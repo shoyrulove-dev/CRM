@@ -16,6 +16,7 @@ export interface Customer {
 
 export interface CareTask {
   id: string;
+  customerId?: string;
   customer: string;
   phone: string;
   purpose: string;
@@ -23,6 +24,9 @@ export interface CareTask {
   dueAt: string;
   channel: string;
   status: CareStatus;
+  orderId?: string;
+  recurrence?: "none" | "monthly" | "yearly";
+  completedAt?: string;
 }
 
 export interface CareActivity {
@@ -39,6 +43,12 @@ export interface CareActivity {
   adverseReaction: boolean;
   note?: string;
   employee: string;
+  orderId?: string;
+  careAttempt?: number;
+  purchaseChannel?: string;
+  productEndDate?: string;
+  dueOffsetDays?: number;
+  repurchaseTimely?: boolean;
 }
 
 export interface ServiceTicket {
@@ -51,6 +61,8 @@ export interface ServiceTicket {
   status: "Mới" | "Đang xử lý" | "Chờ khách" | "Đã đóng";
   owner: string;
   createdAt: string;
+  updatedAt?: string;
+  closedAt?: string;
 }
 
 export interface SalesOrder {

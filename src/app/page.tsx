@@ -1,32 +1,23 @@
 import Link from "next/link";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, CalendarCheck2, CheckCircle2, Clock3, PhoneCall, ShoppingBag, TriangleAlert, UsersRound } from "lucide-react";
+import { ArrowRight, CalendarCheck2, CheckCircle2, Clock3, PhoneCall, ShoppingBag, TriangleAlert, UsersRound } from "lucide-react";
 import { StatusPill } from "@/components/status-pill";
-import { money, tasks } from "@/lib/demo-data";
+import { money } from "@/lib/demo-data";
+import { getReportData } from "@/lib/data-store";
 
-const stats = [
-  { label: "Khách hàng", value: "1.248", note: "+42 trong tháng", icon: UsersRound, tone: "blue", trend: "up" },
-  { label: "Cần chăm sóc hôm nay", value: "12", note: "3 nhiệm vụ quá hạn", icon: CalendarCheck2, tone: "orange", trend: "warn" },
-  { label: "Tỷ lệ liên lạc", value: "76,4%", note: "+4,2% so với tháng trước", icon: PhoneCall, tone: "green", trend: "up" },
-  { label: "Doanh thu mua lại", value: "284,5tr", note: "+12,8% so với tháng trước", icon: ShoppingBag, tone: "violet", trend: "up" },
-];
-
-export default function Dashboard() {
-  return <>
-    <div className="page-heading"><div><p className="eyebrow">THỨ NĂM, 05 THÁNG 11</p><h1>Chào buổi sáng, Vân Anh</h1><p>Đây là tình hình chăm sóc khách hàng hôm nay.</p></div><button className="primary-button"><CalendarCheck2 size={18}/>Tạo lịch chăm sóc</button></div>
-    <section className="stat-grid">{stats.map(s => {const Icon=s.icon; return <article className="stat-card" key={s.label}><div className={`stat-icon ${s.tone}`}><Icon size={21}/></div><div className="stat-main"><span>{s.label}</span><strong>{s.value}</strong><small className={s.trend === "warn" ? "warn-text" : "good-text"}>{s.trend === "warn" ? <TriangleAlert size={13}/> : <ArrowUpRight size={13}/>} {s.note}</small></div></article>})}</section>
-    <div className="dashboard-grid">
-      <section className="panel task-panel"><div className="panel-head"><div><h2>Công việc hôm nay</h2><p>Ưu tiên xử lý nhiệm vụ quá hạn trước</p></div><Link href="/care">Xem tất cả <ArrowRight size={16}/></Link></div>
-        <div className="task-summary"><span><b className="red">3</b>Quá hạn</span><span><b>9</b>Đến hạn hôm nay</span><span><b className="green-text">7</b>Đã hoàn thành</span></div>
-        <div className="table-wrap"><table><thead><tr><th>KHÁCH HÀNG</th><th>MỤC ĐÍCH</th><th>PHỤ TRÁCH</th><th>THỜI HẠN</th><th>TRẠNG THÁI</th><th/></tr></thead><tbody>{tasks.slice(0,3).map(t=><tr key={t.id}><td><strong>{t.customer}</strong><small>{t.phone}</small></td><td>{t.purpose}<small>{t.channel}</small></td><td><span className="person"><i>{t.owner.slice(-2).toUpperCase()}</i>{t.owner}</span></td><td className={t.status === "overdue" ? "danger-text" : ""}><Clock3 size={15}/>{t.dueAt}</td><td><StatusPill status={t.status}/></td><td><button className="row-action">•••</button></td></tr>)}</tbody></table></div>
-      </section>
-      <section className="panel activity-panel"><div className="panel-head"><div><h2>Hiệu quả chăm sóc</h2><p>Tháng 11/2026</p></div><button className="ghost-select">Tháng này⌄</button></div>
-        <div className="ring-row"><div className="ring" style={{"--value":"76"} as React.CSSProperties}><div><strong>76%</strong><span>Liên lạc được</span></div></div><div className="metric-list"><p><i className="dot blue-dot"/><span>Tổng lượt chăm sóc</span><b>189</b></p><p><i className="dot green-dot"/><span>Mua lại / Hẹn mua</span><b>41</b></p><p><i className="dot orange-dot"/><span>Chưa liên lạc được</span><b>58</b></p></div></div>
-        <div className="conversion"><span>Tỷ lệ chốt sau chăm sóc</span><strong>21,7% <small><ArrowUpRight size={13}/> 3,4%</small></strong><div><i/></div></div>
-      </section>
-      <section className="panel revenue-panel"><div className="panel-head"><div><h2>Doanh thu mua lại</h2><p>6 tháng gần nhất</p></div><div className="revenue-total"><small>TỔNG DOANH THU</small><strong>{money.format(1284500000)}</strong></div></div>
-        <div className="chart"><div className="y-axis"><span>300tr</span><span>200tr</span><span>100tr</span><span>0</span></div><div className="bars">{[["T6",42],["T7",55],["T8",48],["T9",69],["T10",77],["T11",92]].map(([m,h])=><div className="bar-slot" key={m}><div className="bar" style={{height:`${h}%`}}>{m === "T11" && <em>284,5tr</em>}</div><span>{m}</span></div>)}</div></div>
-      </section>
-      <section className="panel alerts"><div className="panel-head"><div><h2>Cần chú ý</h2><p>Tín hiệu cần xử lý sớm</p></div></div><div className="alert-item"><div className="alert-icon red-bg"><TriangleAlert size={18}/></div><div><strong>2 phản ứng bất thường</strong><span>Cần liên hệ khách hàng ngay</span></div><ArrowRight size={18}/></div><div className="alert-item"><div className="alert-icon orange-bg"><ArrowDownRight size={18}/></div><div><strong>18 khách sắp hết liệu trình</strong><span>Trong 7 ngày tới</span></div><ArrowRight size={18}/></div><div className="alert-item"><div className="alert-icon green-bg"><CheckCircle2 size={18}/></div><div><strong>36 khách hàng hài lòng</strong><span>Điểm đánh giá 4–5</span></div><ArrowRight size={18}/></div></section>
-    </div>
-  </>;
+export const dynamic = "force-dynamic";
+export default async function Dashboard() {
+  const data = await getReportData(), today = new Date().toISOString().slice(0,10), month = today.slice(0,7);
+  const monthActivities=data.activities.filter(item=>item.occurredAt.startsWith(month)),contacted=monthActivities.filter(item=>item.contactStatus==="Liên lạc được").length;
+  const monthOrders=data.orders.filter(item=>item.orderDate.startsWith(month)),repurchaseRevenue=monthOrders.filter(item=>item.purchaseType==="Mua lại"&&item.status==="Mua hàng").reduce((sum,item)=>sum+item.total,0);
+  const dueToday=data.tasks.filter(item=>item.status!=="done"&&item.dueAt.startsWith(today)),overdue=data.tasks.filter(item=>item.status==="overdue"),done=data.tasks.filter(item=>item.status==="done");
+  const closeCount=monthActivities.filter(item=>item.result.includes("Mua lại")||item.result.includes("Hẹn mua")).length,contactRate=monthActivities.length?contacted/monthActivities.length:0;
+  const todayTime=new Date(`${today}T00:00:00Z`).getTime();
+  const endingSoon=monthActivities.filter(item=>item.productEndDate&&Math.ceil((new Date(item.productEndDate).getTime()-todayTime)/86400000)>=0&&Math.ceil((new Date(item.productEndDate).getTime()-todayTime)/86400000)<=7).length;
+  const stats=[{label:"Khách hàng",value:String(data.customers.length),note:"Tổng hồ sơ",icon:UsersRound,tone:"blue"},{label:"Cần chăm sóc hôm nay",value:String(dueToday.length),note:`${overdue.length} nhiệm vụ quá hạn`,icon:CalendarCheck2,tone:"orange"},{label:"Tỷ lệ liên lạc",value:`${(contactRate*100).toFixed(1)}%`,note:`${contacted}/${monthActivities.length} lượt trong tháng`,icon:PhoneCall,tone:"green"},{label:"Doanh thu mua lại",value:money.format(repurchaseRevenue),note:"Trong tháng hiện tại",icon:ShoppingBag,tone:"violet"}];
+  return <><div className="page-heading"><div><p className="eyebrow">{new Intl.DateTimeFormat("vi-VN",{dateStyle:"full"}).format(new Date()).toUpperCase()}</p><h1>Chào buổi sáng, Vân Anh</h1><p>Dữ liệu tổng hợp trực tiếp từ MongoDB.</p></div><Link className="primary-button" href="/care"><CalendarCheck2 size={18}/>Tạo lịch chăm sóc</Link></div>
+    <section className="stat-grid">{stats.map(item=>{const Icon=item.icon;return <article className="stat-card" key={item.label}><div className={`stat-icon ${item.tone}`}><Icon size={21}/></div><div className="stat-main"><span>{item.label}</span><strong>{item.value}</strong><small>{item.note}</small></div></article>})}</section>
+    <div className="dashboard-grid"><section className="panel task-panel"><div className="panel-head"><div><h2>Công việc ưu tiên</h2><p>Xử lý nhiệm vụ quá hạn và đến hạn trước</p></div><Link href="/care">Xem tất cả <ArrowRight size={16}/></Link></div><div className="task-summary"><span><b className="red">{overdue.length}</b>Quá hạn</span><span><b>{dueToday.length}</b>Đến hạn hôm nay</span><span><b className="green-text">{done.length}</b>Đã hoàn thành</span></div><div className="table-wrap"><table><thead><tr><th>KHÁCH HÀNG</th><th>MỤC ĐÍCH</th><th>PHỤ TRÁCH</th><th>THỜI HẠN</th><th>TRẠNG THÁI</th></tr></thead><tbody>{data.tasks.filter(item=>item.status!=="done").slice(0,5).map(item=><tr key={item.id}><td><strong>{item.customer}</strong><small>{item.phone}</small></td><td>{item.purpose}<small>{item.channel}</small></td><td>{item.owner}</td><td className={item.status==="overdue"?"danger-text":""}><Clock3 size={15}/>{new Date(item.dueAt).toLocaleString("vi-VN")}</td><td><StatusPill status={item.status}/></td></tr>)}</tbody></table></div></section>
+      <section className="panel activity-panel"><div className="panel-head"><div><h2>Hiệu quả chăm sóc</h2><p>Tháng hiện tại</p></div></div><div className="ring-row"><div className="ring" style={{"--value":String(contactRate*100)} as React.CSSProperties}><div><strong>{(contactRate*100).toFixed(0)}%</strong><span>Liên lạc được</span></div></div><div className="metric-list"><p><i className="dot blue-dot"/><span>Tổng lượt chăm sóc</span><b>{monthActivities.length}</b></p><p><i className="dot green-dot"/><span>Mua lại / Hẹn mua</span><b>{closeCount}</b></p><p><i className="dot orange-dot"/><span>Chưa liên lạc được</span><b>{monthActivities.length-contacted}</b></p></div></div></section>
+      <section className="panel alerts"><div className="panel-head"><div><h2>Cần chú ý</h2><p>Tín hiệu cần xử lý sớm</p></div></div><div className="alert-item"><div className="alert-icon red-bg"><TriangleAlert size={18}/></div><div><strong>{monthActivities.filter(item=>item.adverseReaction).length} phản ứng bất thường</strong><span>Cần liên hệ khách hàng</span></div></div><div className="alert-item"><div className="alert-icon orange-bg"><Clock3 size={18}/></div><div><strong>{endingSoon} khách sắp hết liệu trình</strong><span>Trong 7 ngày tới</span></div></div><div className="alert-item"><div className="alert-icon green-bg"><CheckCircle2 size={18}/></div><div><strong>{monthActivities.filter(item=>(item.satisfaction||0)>=4).length} lượt hài lòng</strong><span>Điểm đánh giá 4–5</span></div></div></section>
+    </div></>;
 }

@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </aside>
     {open && <button className="overlay" onClick={() => setOpen(false)} aria-label="Đóng menu"/>}
     <main className="main-area">
-      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><div className="global-search"><Search size={18}/><input aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã đơn..."/><kbd>⌘ K</kbd></div><div className="top-actions"><button className="icon-button notification" aria-label="Thông báo"><Bell size={20}/><i/></button><form action="/api/auth/logout" method="post"><button className="user-chip" title="Bấm để đăng xuất"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></form></div></header>
+      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><form className="global-search" action="/customers" method="get"><Search size={18}/><input name="q" aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã khách..."/><kbd>Enter</kbd></form><div className="top-actions"><Link className="icon-button notification" href="/care" aria-label="Thông báo"><Bell size={20}/><i/></Link><form action="/api/auth/logout" method="post"><button className="user-chip" title="Bấm để đăng xuất"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></form></div></header>
       <div className="page-content">{children}</div>
     </main>
   </div>;
