@@ -1,0 +1,2 @@
+import { ChartNoAxesCombined } from "lucide-react";
+export default function ReportsPage(){return <><div className="page-heading compact"><div><p className="eyebrow">PHÂN TÍCH</p><h1>Báo cáo</h1><p>Báo cáo hiệu quả chăm sóc theo nhân viên và thời gian.</p></div></div><section className="panel empty-state"><ChartNoAxesCombined size={44}/><h2>Báo cáo chi tiết đang được chuẩn hóa</h2><p>Công thức KPI sẽ được hoàn thiện sau khi chốt định nghĩa “nhắc đúng lúc” và thang điểm hài lòng.</p><button className="primary-button">Xem tổng quan hiện tại</button></section></>}

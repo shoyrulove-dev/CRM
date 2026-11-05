@@ -1,0 +1,14 @@
+node_modules/
+node_modules_incomplete_*/
+.next/
+out/
+.env
+.env.local
+.env.*.local
+*.log
+.vercel/
+.idea/
+.vscode/
+.DS_Store
+coverage/
+*.tsbuildinfo

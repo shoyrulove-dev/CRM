@@ -1,0 +1,11 @@
+import { Download, Filter, Plus, Search, SlidersHorizontal } from "lucide-react";
+import { StatusPill } from "@/components/status-pill";
+import { customers, money } from "@/lib/demo-data";
+
+export default function CustomersPage() {
+  return <><div className="page-heading compact"><div><p className="eyebrow">QUẢN LÝ KHÁCH HÀNG</p><h1>Khách hàng</h1><p>Theo dõi hồ sơ, lịch sử mua hàng và hành trình chăm sóc.</p></div><button className="primary-button"><Plus size={18}/>Thêm khách hàng</button></div>
+  <section className="panel list-panel"><div className="list-toolbar"><div className="search-box"><Search size={18}/><input placeholder="Tìm tên, số điện thoại, mã khách hàng..."/></div><button className="secondary-button"><Filter size={17}/>Bộ lọc</button><button className="secondary-button"><Download size={17}/>Xuất Excel</button></div>
+    <div className="filter-chips"><button className="chip active">Tất cả <b>1.248</b></button><button className="chip">Cần chăm sóc <b>12</b></button><button className="chip">Quá hạn <b>3</b></button><button className="chip">Sắp tái mua <b>18</b></button><button className="filter-end"><SlidersHorizontal size={16}/>Tùy chỉnh cột</button></div>
+    <div className="table-wrap customer-table"><table><thead><tr><th>KHÁCH HÀNG</th><th>PHÂN NHÓM</th><th>NHÂN VIÊN</th><th>ĐƠN HÀNG</th><th>DOANH THU</th><th>ĐƠN GẦN NHẤT</th><th>LỊCH TIẾP THEO</th><th/></tr></thead><tbody>{customers.map(c=><tr key={c.id}><td><span className="customer-cell"><i>{c.name.split(" ").slice(-2).map(x=>x[0]).join("")}</i><span><strong>{c.name}</strong><small>{c.id} · {c.phone}</small></span></span></td><td><span className="segment">{c.segment}</span><small>{c.healthGoal}</small></td><td><span className="person"><i>{c.owner.slice(-2).toUpperCase()}</i>{c.owner}</span></td><td><strong>{c.orders}</strong></td><td><strong>{money.format(c.revenue)}</strong></td><td>{c.lastOrder}</td><td><strong>{c.nextCare}</strong><StatusPill status={c.status}/></td><td><button className="row-action">•••</button></td></tr>)}</tbody></table></div><div className="pagination"><span>Hiển thị 1–5 trên 1.248 khách hàng</span><div><button disabled>‹</button><button className="active">1</button><button>2</button><button>3</button><button>…</button><button>250</button><button>›</button></div></div>
+  </section></>;
+}
