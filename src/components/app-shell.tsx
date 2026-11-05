@@ -16,6 +16,7 @@ const nav = [
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  if (pathname === "/login") return <>{children}</>;
   return <div className="app-frame">
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
       <div className="brand"><div className="brand-mark">N</div><div><strong>NICHIÉI</strong><span>Customer Care</span></div><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Đóng menu"><X size={20}/></button></div>
@@ -31,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </aside>
     {open && <button className="overlay" onClick={() => setOpen(false)} aria-label="Đóng menu"/>}
     <main className="main-area">
-      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><div className="global-search"><Search size={18}/><input aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã đơn..."/><kbd>⌘ K</kbd></div><div className="top-actions"><button className="icon-button notification" aria-label="Thông báo"><Bell size={20}/><i/></button><button className="user-chip"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></div></header>
+      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><div className="global-search"><Search size={18}/><input aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã đơn..."/><kbd>⌘ K</kbd></div><div className="top-actions"><button className="icon-button notification" aria-label="Thông báo"><Bell size={20}/><i/></button><form action="/api/auth/logout" method="post"><button className="user-chip" title="Bấm để đăng xuất"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></form></div></header>
       <div className="page-content">{children}</div>
     </main>
   </div>;
