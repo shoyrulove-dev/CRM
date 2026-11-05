@@ -1,4 +1,4 @@
-import type { CareTask, Customer } from "./types";
+import type { CareActivity, CareTask, Customer, SalesOrder, ServiceTicket } from "./types";
 
 export const customers: Customer[] = [
   { id: "KH-1042", name: "Nguyễn Thị Yến Phương", phone: "0931 497 487", owner: "Vân Anh", segment: "Khách trung thành", orders: 8, revenue: 160700000, lastOrder: "02/11/2026", nextCare: "06/11/2026", status: "due", healthGoal: "Tiêu hóa" },
@@ -13,6 +13,23 @@ export const tasks: CareTask[] = [
   { id: "CS-382", customer: "Nguyễn Thị Yến Phương", phone: "0931 497 487", purpose: "Hỏi thăm cảm nhận", owner: "Vân Anh", dueAt: "Hôm nay, 10:30", channel: "Zalo", status: "due" },
   { id: "CS-383", customer: "Bùi Thị Thu Trâm", phone: "0948 620 879", purpose: "Nhắc tái mua", owner: "Linh", dueAt: "Hôm nay, 14:00", channel: "Gọi điện", status: "due" },
   { id: "CS-379", customer: "Nguyễn Oanh", phone: "0905 355 357", purpose: "Hướng dẫn sử dụng", owner: "Ly", dueAt: "04/11, 16:00", channel: "Zalo", status: "done" },
+];
+
+export const activities: CareActivity[] = [
+  { id: "NK-501", customerId: "KH-1042", occurredAt: "2026-11-05T10:30:00+07:00", channel: "Zalo", purpose: "Hỏi thăm cảm nhận", contactStatus: "Liên lạc được", result: "Đang dùng - hài lòng", noPurchaseReason: "Chưa dùng hết", healthGoal: "Tiêu hóa", satisfaction: 5, adverseReaction: false, note: "Khách dùng đúng lịch, tình trạng đã cải thiện.", employee: "Vân Anh" },
+  { id: "NK-488", customerId: "KH-1042", occurredAt: "2026-10-25T09:15:00+07:00", channel: "Gọi điện", purpose: "Hướng dẫn sử dụng", contactStatus: "Liên lạc được", result: "Đang dùng chậm", satisfaction: 4, adverseReaction: false, note: "Đã nhắc khách duy trì đúng liệu trình.", employee: "Vân Anh" },
+  { id: "NK-455", customerId: "KH-0981", occurredAt: "2026-11-04T09:00:00+07:00", channel: "Gọi điện", purpose: "Khảo sát sau mua", contactStatus: "Không nghe máy", result: "Chưa xác định", adverseReaction: false, note: "Gọi 2 lần chưa nghe máy.", employee: "Trâm" },
+];
+
+export const orders: SalesOrder[] = [
+  { id: "OD-15646", code: "#15646.26", customerId: "KH-1042", orderDate: "2026-11-02", channel: "Zalo", location: "SR - HCM", customerSource: "Khách mua cũ", purchaseType: "Mua lại", status: "Mua hàng", products: [{ sku: "HH011", name: "NANO GROWTH HABIT EX", quantity: 6, unitPrice: 1490000, discount: 2490000 }, { sku: "HH028", name: "Bình giữ nhiệt BGN 001", quantity: 2, unitPrice: 0, discount: 0 }], promotion: "Liệu trình 6 hộp", gift: "2 bình giữ nhiệt", total: 6450000, owner: "Vân Anh", salesperson: "Vân Anh" },
+  { id: "OD-10858", code: "#10858.26", customerId: "KH-1042", orderDate: "2026-01-16", channel: "Zalo", location: "SR - HCM", customerSource: "Khách mua cũ", purchaseType: "Mua lại", status: "Mua hàng", products: [{ sku: "HH011", name: "NANO GROWTH HABIT EX", quantity: 26, unitPrice: 1490000, discount: 0 }], total: 69500000, owner: "Vân Anh", salesperson: "Vân Anh" },
+];
+
+export const tickets: ServiceTicket[] = [
+  { id: "YC-1038", customerId: "KH-1042", customer: "Nguyễn Thị Yến Phương", title: "Phản ứng không mong muốn sau khi dùng", description: "Cần chuyên viên liên hệ đánh giá tình trạng.", priority: "Khẩn cấp", status: "Đang xử lý", owner: "Vân Anh", createdAt: "2026-11-05T08:20:00+07:00" },
+  { id: "YC-1037", customerId: "KH-0981", customer: "Phạm Thị Thanh Hương", title: "Yêu cầu đổi sản phẩm", description: "Khách muốn đổi sản phẩm còn nguyên tem.", priority: "Cao", status: "Mới", owner: "Trâm", createdAt: "2026-11-04T15:10:00+07:00" },
+  { id: "YC-1036", customerId: "KH-0764", customer: "Bùi Thị Thu Trâm", title: "Cần tư vấn thêm về liệu trình", description: "Xin lịch tư vấn trong giờ hành chính.", priority: "Bình thường", status: "Chờ khách", owner: "Linh", createdAt: "2026-11-03T10:00:00+07:00" },
 ];
 
 export const money = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });

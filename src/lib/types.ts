@@ -24,3 +24,54 @@ export interface CareTask {
   channel: string;
   status: CareStatus;
 }
+
+export interface CareActivity {
+  id: string;
+  customerId: string;
+  occurredAt: string;
+  channel: "Gọi điện" | "Facebook" | "Zalo" | "SMS" | "Trực tiếp";
+  purpose: string;
+  contactStatus: string;
+  result: string;
+  noPurchaseReason?: string;
+  healthGoal?: string;
+  satisfaction?: number;
+  adverseReaction: boolean;
+  note?: string;
+  employee: string;
+}
+
+export interface ServiceTicket {
+  id: string;
+  customerId: string;
+  customer: string;
+  title: string;
+  description: string;
+  priority: "Bình thường" | "Cao" | "Khẩn cấp";
+  status: "Mới" | "Đang xử lý" | "Chờ khách" | "Đã đóng";
+  owner: string;
+  createdAt: string;
+}
+
+export interface SalesOrder {
+  id: string;
+  code: string;
+  customerId: string;
+  orderDate: string;
+  channel: string;
+  location: string;
+  customerSource: string;
+  purchaseType: "Mua mới" | "Mua lại";
+  status: "Mua hàng" | "Trả hàng" | "Hủy";
+  products: Array<{ sku: string; name: string; quantity: number; unitPrice: number; discount: number }>;
+  promotion?: string;
+  gift?: string;
+  total: number;
+  paidByVisa?: number;
+  owner: string;
+  salesperson: string;
+  returnQuantity?: number;
+  returnRevenue?: number;
+  returnReceivedAt?: string;
+  loyaltyNote?: string;
+}
