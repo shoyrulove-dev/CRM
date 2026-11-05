@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isInternalRequest } from "@/lib/internal-auth";
+import { isInternalOrAdminRequest } from "@/lib/internal-auth";
+import { runScheduler } from "@/lib/scheduler";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  if (!isInternalRequest(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  // Phase 2: acquire MongoDB lock, materialize due care tasks, reconcile Haravan sync events.
-  return NextResponse.json({ ok: true, processed: 0, timestamp: new Date().toISOString() });
+  if (!await isInternalOrAdminRequest(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const result = await runScheduler();
+    return NextResponse.json({ ok: true, ...result, timestamp: new Date().toISOString() });
+  } catch (error) {
+    return NextResponse.json({ ok: false, error: error instanceof Error ? error.message : "Scheduler failed" }, { status: 500 });
+  }
 }

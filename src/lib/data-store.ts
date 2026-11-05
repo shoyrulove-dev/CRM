@@ -10,6 +10,8 @@ export const collections = {
   orders: "orders",
   syncEvents: "sync_events",
   auditLogs: "audit_logs",
+  jobLocks: "job_locks",
+  jobRuns: "job_runs",
 } as const;
 
 export async function ensureIndexes() {
@@ -25,6 +27,8 @@ export async function ensureIndexes() {
     db.collection(collections.orders).createIndex({ code: 1 }, { unique: true }),
     db.collection(collections.orders).createIndex({ customerId: 1, orderDate: -1 }),
     db.collection(collections.syncEvents).createIndex({ externalId: 1, topic: 1 }, { unique: true, sparse: true }),
+    db.collection(collections.jobLocks).createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db.collection(collections.jobRuns).createIndex({ startedAt: -1 }),
   ]);
   return true;
 }
