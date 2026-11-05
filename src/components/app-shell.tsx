@@ -8,8 +8,8 @@ import { useState } from "react";
 const nav = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
   { href: "/customers", label: "Khách hàng", icon: UsersRound },
-  { href: "/care", label: "Lịch chăm sóc", icon: CalendarClock, count: 12 },
-  { href: "/tickets", label: "Phiếu yêu cầu", icon: TicketCheck, count: 3 },
+  { href: "/care", label: "Lịch chăm sóc", icon: CalendarClock },
+  { href: "/tickets", label: "Phiếu yêu cầu", icon: TicketCheck },
   { href: "/reports", label: "Báo cáo", icon: ChartNoAxesCombined },
 ];
 
@@ -22,7 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="brand"><div className="brand-mark">N</div><div><strong>NICHIEI</strong><span>Customer Care</span></div><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Đóng menu"><X size={20}/></button></div>
       <nav className="nav-list">
         <p className="nav-label">QUẢN LÝ</p>
-        {nav.map(item => { const Icon=item.icon; const active=item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={active ? "nav-item active" : "nav-item"} onClick={() => setOpen(false)}><Icon size={19}/><span>{item.label}</span>{item.count && <b>{item.count}</b>}</Link>; })}
+        {nav.map(item => { const Icon=item.icon; const active=item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={active ? "nav-item active" : "nav-item"} onClick={() => setOpen(false)}><Icon size={19}/><span>{item.label}</span></Link>; })}
         <p className="nav-label nav-section">HỆ THỐNG</p>
         <Link href="/settings" className="nav-item"><Settings size={19}/><span>Cài đặt</span></Link>
         <a href="#help" className="nav-item"><CircleHelp size={19}/><span>Trợ giúp</span></a>

@@ -1,15 +1,12 @@
+import { NextRequest } from "next/server";
 import { getReportData } from "@/lib/data-store";
 
-function csvCell(value: unknown) { return `"${String(value ?? "").replaceAll('"', '""')}"`; }
-
-export async function GET() {
-  const data = await getReportData();
-  const rows = [["Mã KH", "Thời gian", "Nhân viên", "Kênh", "Mục đích", "Liên lạc", "Kết quả", "Lý do chưa mua", "Hài lòng", "Phản ứng bất thường", "Ghi chú"]];
-  for (const activity of data.activities) rows.push([
-    activity.customerId, activity.occurredAt, activity.employee, activity.channel, activity.purpose,
-    activity.contactStatus, activity.result, activity.noPurchaseReason || "", activity.satisfaction?.toString() || "",
-    activity.adverseReaction ? "Có" : "Không", activity.note || "",
-  ]);
-  const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
-  return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="bao-cao-cskh-${new Date().toISOString().slice(0,10)}.csv"` } });
+const cell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+export async function GET(request: NextRequest) {
+  const data = await getReportData(), from=request.nextUrl.searchParams.get("from"),to=request.nextUrl.searchParams.get("to");
+  const activities=data.activities.filter(item=>(!from||item.occurredAt.slice(0,10)>=from)&&(!to||item.occurredAt.slice(0,10)<=to));
+  const rows = [["Mã KH", "Mã đơn", "Lần chăm", "Thời gian", "Nhân viên", "Kênh chăm sóc", "Kênh mua", "Mục đích", "Liên lạc", "Kết quả", "Lý do chưa mua", "Ngày hết liệu trình", "Lệch ngày", "Nhắc đúng lúc", "Hài lòng", "Phản ứng bất thường", "Ghi chú"]];
+  activities.forEach(item=>rows.push([item.customerId,item.orderId||"",String(item.careAttempt||""),item.occurredAt,item.employee,item.channel,item.purchaseChannel||"",item.purpose,item.contactStatus,item.result,item.noPurchaseReason||"",item.productEndDate||"",String(item.dueOffsetDays??""),item.repurchaseTimely===undefined?"":item.repurchaseTimely?"Đúng":"Sai",String(item.satisfaction||""),item.adverseReaction?"Có":"Không",item.note||""]));
+  const csv="\uFEFF"+rows.map(row=>row.map(cell).join(",")).join("\r\n");
+  return new Response(csv,{headers:{"content-type":"text/csv; charset=utf-8","content-disposition":`attachment; filename="bao-cao-cskh-${from||"all"}-${to||"all"}.csv"`}});
 }
