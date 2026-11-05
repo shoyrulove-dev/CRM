@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   if (pathname === "/login") return <>{children}</>;
   return <div className="app-frame">
     <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
-      <div className="brand"><div className="brand-mark">N</div><div><strong>NICHIÉI</strong><span>Customer Care</span></div><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Đóng menu"><X size={20}/></button></div>
+      <div className="brand"><div className="brand-mark">N</div><div><strong>NICHIEI</strong><span>Customer Care</span></div><button className="icon-button mobile-only" onClick={() => setOpen(false)} aria-label="Đóng menu"><X size={20}/></button></div>
       <nav className="nav-list">
         <p className="nav-label">QUẢN LÝ</p>
         {nav.map(item => { const Icon=item.icon; const active=item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={active ? "nav-item active" : "nav-item"} onClick={() => setOpen(false)}><Icon size={19}/><span>{item.label}</span>{item.count && <b>{item.count}</b>}</Link>; })}

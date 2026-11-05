@@ -6,8 +6,8 @@ import "./globals.css";
 const font = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Nichiéi CRM",
-  description: "Hệ thống chăm sóc khách hàng Nichiéi",
+  title: "Nichiei CRM",
+  description: "Hệ thống chăm sóc khách hàng Nichiei",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

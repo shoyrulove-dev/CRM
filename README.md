@@ -1,6 +1,6 @@
-# Nichiéi CRM
+# Nichiei CRM
 
-MVP hệ thống chăm sóc khách hàng Nichiéi, lấy Haravan làm nguồn dữ liệu bán hàng.
+MVP hệ thống chăm sóc khách hàng Nichiei, lấy Haravan làm nguồn dữ liệu bán hàng.
 
 ## Chạy local
 
