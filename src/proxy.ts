@@ -5,7 +5,8 @@ const publicPaths = ["/login", "/api/auth/login", "/api/health"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  if (publicPaths.includes(pathname) || pathname.startsWith("/_next") || pathname === "/favicon.ico") return NextResponse.next();
+  // Internal endpoints perform their own constant-time Bearer secret validation.
+  if (publicPaths.includes(pathname) || pathname.startsWith("/api/internal/") || pathname.startsWith("/_next") || pathname === "/favicon.ico") return NextResponse.next();
 
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (token) {
