@@ -1,8 +1,9 @@
-import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, ListFilter, Plus } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, ListFilter } from "lucide-react";
 import { StatusPill } from "@/components/status-pill";
-import { listCareTasks } from "@/lib/data-store";
+import { listCareTasks, listCustomers } from "@/lib/data-store";
+import { CreateCareButton } from "@/components/create-care-button";
 
 export const dynamic = "force-dynamic";
-export default async function CarePage() { const tasks = await listCareTasks(); return <><div className="page-heading compact"><div><p className="eyebrow">CHĂM SÓC KHÁCH HÀNG</p><h1>Lịch chăm sóc</h1><p>Quản lý các mốc chăm sóc và công việc của đội ngũ.</p></div><button className="primary-button"><Plus size={18}/>Tạo lịch chăm sóc</button></div>
+export default async function CarePage() { const [tasks,customers] = await Promise.all([listCareTasks(),listCustomers()]); return <><div className="page-heading compact"><div><p className="eyebrow">CHĂM SÓC KHÁCH HÀNG</p><h1>Lịch chăm sóc</h1><p>Quản lý các mốc chăm sóc và công việc của đội ngũ.</p></div><CreateCareButton customers={customers}/></div>
   <section className="calendar-summary"><article><Clock3/><div><strong>3</strong><span>Đang quá hạn</span></div></article><article><CalendarDays/><div><strong>9</strong><span>Đến hạn hôm nay</span></div></article><article><CheckCircle2/><div><strong>7</strong><span>Đã hoàn thành</span></div></article></section>
   <section className="panel list-panel"><div className="list-toolbar"><div className="date-nav"><button><ChevronLeft/></button><strong>05 tháng 11, 2026</strong><button><ChevronRight/></button><button className="secondary-button">Hôm nay</button></div><button className="secondary-button"><ListFilter size={17}/>Lọc nhiệm vụ</button></div><div className="care-list">{tasks.map(t=><article key={t.id} className={`care-row ${t.status}`}><div className="care-time"><strong>{t.dueAt.split(", ")[1] || "16:00"}</strong><span>{t.dueAt.split(", ")[0]}</span></div><div className="care-line"><i/></div><div className="care-body"><div><StatusPill status={t.status}/><h3>{t.purpose}</h3><p>{t.customer} · {t.phone}</p></div><div className="care-meta"><span>{t.channel}</span><span className="person"><i>{t.owner.slice(-2).toUpperCase()}</i>{t.owner}</span><button className="secondary-button">Chi tiết</button></div></div></article>)}</div></section></> }
