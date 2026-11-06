@@ -6,6 +6,7 @@ import { CareTaskActions } from "@/components/care-task-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { listUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 function careDate(value: string) {
@@ -29,9 +30,10 @@ export default async function CarePage({
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTasks, customers] = await Promise.all([
+    [allTasks, customers, allUsers] = await Promise.all([
       listCareTasks(user),
       listCustomers(undefined, user),
+      listUsers(),
     ]),
     today = new Date().toISOString().slice(0, 10);
   if (!hasPermission(user, "care")) redirect("/");
@@ -41,6 +43,9 @@ export default async function CarePage({
       (!params.owner || item.owner === params.owner) &&
       (!params.status || item.status === params.status),
   );
+  const employees = allUsers
+    .filter((item) => item.active)
+    .map((item) => ({ id: item.id, name: item.name }));
   return (
     <>
       <div className="page-heading compact">
@@ -49,7 +54,7 @@ export default async function CarePage({
           <h1>Lịch chăm sóc</h1>
           <p>Nhiệm vụ chỉ hết cảnh báo khi được đánh dấu hoàn thành.</p>
         </div>
-        <CreateCareButton customers={customers} />
+        <CreateCareButton customers={customers} employees={employees} />
       </div>
       <section className="calendar-summary">
         <article>
@@ -99,8 +104,8 @@ export default async function CarePage({
             defaultValue={params.owner || ""}
           >
             <option value="">Tất cả nhân viên</option>
-            {["Vân Anh", "Trâm", "Linh", "Ly", "Phước An"].map((name) => (
-              <option key={name}>{name}</option>
+            {employees.map((employee) => (
+              <option key={employee.id}>{employee.name}</option>
             ))}
           </select>
           <select
@@ -142,7 +147,7 @@ export default async function CarePage({
                     <i>{item.owner.slice(-2).toUpperCase()}</i>
                     {item.owner}
                   </span>
-                  <CareTaskActions id={item.id} status={item.status} />
+                  <CareTaskActions task={item} employees={employees} />
                 </div>
               </div>
             </article>

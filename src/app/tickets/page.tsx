@@ -5,6 +5,7 @@ import { TicketActions } from "@/components/ticket-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { listUsers } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 export default async function TicketsPage({
@@ -14,9 +15,10 @@ export default async function TicketsPage({
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTickets, customers] = await Promise.all([
+    [allTickets, customers, allUsers] = await Promise.all([
       listTickets(user),
       listCustomers(undefined, user),
+      listUsers(),
     ]),
     needle = (params.q || "").toLowerCase();
   if (!hasPermission(user, "tickets")) redirect("/");
@@ -28,6 +30,9 @@ export default async function TicketsPage({
           .includes(needle)) &&
       (!params.status || item.status === params.status),
   );
+  const employees = allUsers
+    .filter((item) => item.active)
+    .map((item) => ({ id: item.id, name: item.name }));
   return (
     <>
       <div className="page-heading compact">
@@ -36,7 +41,7 @@ export default async function TicketsPage({
           <h1>Phiếu yêu cầu</h1>
           <p>Tạo, phân loại và đóng/mở từng phiếu theo khách hàng.</p>
         </div>
-        <CreateTicketButton customers={customers} />
+        <CreateTicketButton customers={customers} employees={employees} />
       </div>
       <section className="panel list-panel">
         <form className="list-toolbar" method="get">

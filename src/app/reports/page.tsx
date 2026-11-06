@@ -14,7 +14,6 @@ import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
-const employees = ["Vân Anh", "Trâm", "Linh", "Ly", "Phước An"];
 const inRange = (value: string, from: string, to: string) => {
   const date = value.slice(0, 10);
   return date >= from && date <= to;
@@ -39,6 +38,16 @@ export default async function ReportsPage({
       1,
       Math.round((end.getTime() - start.getTime()) / 86400000) + 1,
     );
+  const employees = Array.from(
+    new Set(
+      [
+        ...data.customers.map((item) => item.owner),
+        ...data.tasks.map((item) => item.owner),
+        ...data.activities.map((item) => item.employee),
+        ...data.orders.flatMap((item) => [item.owner, item.salesperson]),
+      ].filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "vi"));
   const previousToDate = new Date(start);
   previousToDate.setDate(previousToDate.getDate() - 1);
   const previousFromDate = new Date(previousToDate);
