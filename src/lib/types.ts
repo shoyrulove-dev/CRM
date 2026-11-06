@@ -1,4 +1,16 @@
 export type CareStatus = "due" | "overdue" | "done";
+export type UserRole = "admin" | "sales" | "care";
+
+export interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  active: boolean;
+  passwordHash: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface Customer {
   id: string;
@@ -12,6 +24,7 @@ export interface Customer {
   nextCare: string;
   status: CareStatus;
   healthGoal: string;
+  birthDate?: string;
 }
 
 export interface CareTask {
@@ -26,6 +39,7 @@ export interface CareTask {
   status: CareStatus;
   orderId?: string;
   recurrence?: "none" | "monthly" | "yearly";
+  offsetDays?: number;
   completedAt?: string;
 }
 

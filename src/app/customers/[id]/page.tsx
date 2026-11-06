@@ -5,12 +5,14 @@ import { getCustomerProfile } from "@/lib/data-store";
 import { money } from "@/lib/demo-data";
 import { CreateActivityButton } from "@/components/create-activity-button";
 import { CreateTicketButton } from "@/components/create-ticket-button";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomerProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { customer, activities, orders, tickets } = await getCustomerProfile(id);
+  const user=await getCurrentUser();
+  const { customer, activities, orders, tickets } = await getCustomerProfile(id,user);
   if (!customer) notFound();
   return <>
     <div className="profile-back"><Link href="/customers"><ArrowLeft size={16}/>Quay lại danh sách khách hàng</Link></div>

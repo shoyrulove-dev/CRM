@@ -1,8 +1,11 @@
 import { Cloud, Database, ShoppingBag } from "lucide-react";
 import { hasDatabase } from "@/lib/mongodb";
+import { getCurrentUser } from "@/lib/current-user";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  if((await getCurrentUser())?.role!=="admin")redirect('/');
   const dataReady=hasDatabase(),salesReady=Boolean(process.env.HARAVAN_ACCESS_TOKEN&&process.env.HARAVAN_WEBHOOK_SECRET),backupReady=Boolean(process.env.R2_ENDPOINT&&process.env.R2_BUCKET&&process.env.R2_ACCESS_KEY_ID&&process.env.R2_SECRET_ACCESS_KEY);
   return <><div className="page-heading compact"><div><p className="eyebrow">HỆ THỐNG</p><h1>Trạng thái hệ thống</h1><p>Theo dõi nơi lưu dữ liệu, kết nối bán hàng và sao lưu an toàn.</p></div></div><div className="settings-grid">
     <section className="panel setting-card"><span className="integration-logo mongo"><Database/></span><div><h2>Kho dữ liệu</h2><p>Lưu thông tin khách hàng, đơn hàng và lịch sử chăm sóc.</p><span className={`connection ${dataReady?"ready":"pending"}`}>{dataReady?"Đang hoạt động":"Chưa sẵn sàng"}</span></div></section>

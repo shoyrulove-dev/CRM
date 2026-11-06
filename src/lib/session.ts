@@ -1,4 +1,5 @@
 import { jwtVerify, SignJWT } from "jose";
+import type { UserRole } from "./types";
 
 export const SESSION_COOKIE = "nichiei_session";
 
@@ -6,7 +7,7 @@ export interface SessionUser {
   id: string;
   name: string;
   email: string;
-  role: "admin" | "leader" | "staff";
+  role: UserRole;
 }
 
 function secretKey() {
@@ -30,4 +31,9 @@ export async function createSessionToken(user: SessionUser) {
 export async function verifySessionToken(token: string) {
   const { payload } = await jwtVerify(token, secretKey());
   return payload as unknown as SessionUser;
+}
+
+export function canSeeAll(user: SessionUser | null) { return user?.role === "admin"; }
+export function roleLabel(role: UserRole) {
+  return role === "admin" ? "Quản trị viên" : role === "sales" ? "Nhân viên bán hàng" : "Chăm sóc khách hàng";
 }

@@ -3,10 +3,11 @@ import { StatusPill } from "@/components/status-pill";
 import { listCareTasks, listCustomers } from "@/lib/data-store";
 import { CreateCareButton } from "@/components/create-care-button";
 import { CareTaskActions } from "@/components/care-task-actions";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 export default async function CarePage({ searchParams }: { searchParams: Promise<{ date?: string; owner?: string; status?: string }> }) {
-  const params=await searchParams,[allTasks,customers]=await Promise.all([listCareTasks(),listCustomers()]),today=new Date().toISOString().slice(0,10);
+  const params=await searchParams,user=await getCurrentUser(),[allTasks,customers]=await Promise.all([listCareTasks(user),listCustomers(undefined,user)]),today=new Date().toISOString().slice(0,10);
   const tasks=allTasks.filter(item=>(!params.date||item.dueAt.startsWith(params.date))&&(!params.owner||item.owner===params.owner)&&(!params.status||item.status===params.status));
   return <><div className="page-heading compact"><div><p className="eyebrow">CHĂM SÓC KHÁCH HÀNG</p><h1>Lịch chăm sóc</h1><p>Nhiệm vụ chỉ hết cảnh báo khi được đánh dấu hoàn thành.</p></div><CreateCareButton customers={customers}/></div>
     <section className="calendar-summary"><article><Clock3/><div><strong>{allTasks.filter(item=>item.status==="overdue").length}</strong><span>Đang quá hạn</span></div></article><article><CalendarDays/><div><strong>{allTasks.filter(item=>item.status!=="done"&&item.dueAt.startsWith(today)).length}</strong><span>Đến hạn hôm nay</span></div></article><article><CheckCircle2/><div><strong>{allTasks.filter(item=>item.status==="done").length}</strong><span>Đã hoàn thành</span></div></article></section>

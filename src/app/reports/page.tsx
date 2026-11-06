@@ -1,12 +1,13 @@
 import { AlertTriangle, CalendarCheck2, CheckCircle2, ContactRound, Download, PhoneCall, ShoppingCart } from "lucide-react";
 import { getReportData } from "@/lib/data-store";
 import { money } from "@/lib/demo-data";
+import { getCurrentUser } from "@/lib/current-user";
 
 export const dynamic = "force-dynamic";
 const employees = ["Vân Anh", "Trâm", "Linh", "Ly", "Phước An"];
 const inRange = (value: string, from: string, to: string) => { const date = value.slice(0, 10); return date >= from && date <= to; };
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
-  const params = await searchParams, data = await getReportData(), now = new Date();
+  const params = await searchParams, user=await getCurrentUser(), data = await getReportData(user), now = new Date();
   const from = params.from || `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`, to = params.to || now.toISOString().slice(0,10);
   const start = new Date(from), end = new Date(to), days = Math.max(1, Math.round((end.getTime()-start.getTime())/86400000)+1);
   const previousToDate = new Date(start); previousToDate.setDate(previousToDate.getDate()-1); const previousFromDate = new Date(previousToDate); previousFromDate.setDate(previousFromDate.getDate()-days+1);
