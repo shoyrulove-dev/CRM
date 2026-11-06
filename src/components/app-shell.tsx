@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, CalendarClock, ChartNoAxesCombined, ChevronDown, CircleHelp, LayoutDashboard, Menu, Search, Settings, TicketCheck, UsersRound, X } from "lucide-react";
+import { CalendarClock, ChartNoAxesCombined, ChevronDown, CircleHelp, LayoutDashboard, Menu, Search, Settings, TicketCheck, UsersRound, X } from "lucide-react";
 import { useState } from "react";
+import { NotificationBell } from "@/components/notification-bell";
 
 const nav = [
   { href: "/", label: "Tổng quan", icon: LayoutDashboard },
@@ -32,7 +33,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     </aside>
     {open && <button className="overlay" onClick={() => setOpen(false)} aria-label="Đóng menu"/>}
     <main className="main-area">
-      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><form className="global-search" action="/customers" method="get"><Search size={18}/><input name="q" aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã khách..."/><kbd>Enter</kbd></form><div className="top-actions"><Link className="icon-button notification" href="/care" aria-label="Thông báo"><Bell size={20}/><i/></Link><form action="/api/auth/logout" method="post"><button className="user-chip" title="Bấm để đăng xuất"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></form></div></header>
+      <header className="topbar"><button className="icon-button menu-button" onClick={() => setOpen(true)} aria-label="Mở menu"><Menu size={22}/></button><form className="global-search" action="/customers" method="get"><Search size={18}/><input name="q" aria-label="Tìm kiếm" placeholder="Tìm khách hàng, số điện thoại, mã khách..."/><kbd>Enter</kbd></form><div className="top-actions"><NotificationBell/><form action="/api/auth/logout" method="post"><button className="user-chip" title="Đăng xuất"><div className="avatar small">VA</div><span>Vân Anh</span><ChevronDown size={16}/></button></form></div></header>
       <div className="page-content">{children}</div>
     </main>
   </div>;
