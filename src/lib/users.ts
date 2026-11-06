@@ -13,7 +13,9 @@ export async function ensureDefaultUsers() {
   if (!hasDatabase()) return;
   await ensureIndexes();
   const db = await getDatabase();
+  const existing=new Set((await db.collection(collections.users).find({email:{$in:defaults.map(x=>x.email)}},{projection:{email:1}}).toArray()).map(x=>x.email));
   for (const item of defaults) {
+    if(existing.has(item.email))continue;
     const passwordHash = await hash(item.password, 10);
     await db.collection(collections.users).updateOne({ email: item.email }, { $setOnInsert: { id:item.id,name:item.name,email:item.email,role:item.role,active:true,passwordHash,createdAt:new Date().toISOString() } }, { upsert:true });
   }
