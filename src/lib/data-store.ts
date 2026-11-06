@@ -14,6 +14,7 @@ export const collections = {
   jobLocks: "job_locks",
   jobRuns: "job_runs",
   users: "users",
+  settings: "settings",
 } as const;
 
 export async function ensureIndexes() {

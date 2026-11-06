@@ -1,15 +1,33 @@
-import { Cloud, Database, ShoppingBag } from "lucide-react";
-import { hasDatabase } from "@/lib/mongodb";
-import { getCurrentUser } from "@/lib/current-user";
 import { redirect } from "next/navigation";
-
+import { IntegrationSettings } from "@/components/integration-settings";
+import { getCurrentUser } from "@/lib/current-user";
+import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
+import { hasDatabase } from "@/lib/mongodb";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
-  if((await getCurrentUser())?.role!=="admin")redirect('/');
-  const dataReady=hasDatabase(),salesReady=Boolean(process.env.HARAVAN_ACCESS_TOKEN&&process.env.HARAVAN_WEBHOOK_SECRET),backupReady=Boolean(process.env.R2_ENDPOINT&&process.env.R2_BUCKET&&process.env.R2_ACCESS_KEY_ID&&process.env.R2_SECRET_ACCESS_KEY);
-  return <><div className="page-heading compact"><div><p className="eyebrow">HỆ THỐNG</p><h1>Trạng thái hệ thống</h1><p>Theo dõi nơi lưu dữ liệu, kết nối bán hàng và sao lưu an toàn.</p></div></div><div className="settings-grid">
-    <section className="panel setting-card"><span className="integration-logo mongo"><Database/></span><div><h2>Kho dữ liệu</h2><p>Lưu thông tin khách hàng, đơn hàng và lịch sử chăm sóc.</p><span className={`connection ${dataReady?"ready":"pending"}`}>{dataReady?"Đang hoạt động":"Chưa sẵn sàng"}</span></div></section>
-    <section className="panel setting-card"><span className="integration-logo hara"><ShoppingBag/></span><div><h2>Kết nối bán hàng</h2><p>Tự động nhận khách hàng và đơn hàng từ Haravan.</p><span className={`connection ${salesReady?"ready":"pending"}`}>{salesReady?"Đã bật":"Sẽ thiết lập sau bản dùng thử"}</span></div></section>
-    <section className="panel setting-card"><span className="integration-logo r2"><Cloud/></span><div><h2>Sao lưu an toàn</h2><p>Lưu bản sao dữ liệu hằng ngày trên Cloudflare R2 khi chuyển sang máy chủ chính thức.</p><span className={`connection ${backupReady?"ready":"pending"}`}>{backupReady?"Đã bật":"Chờ thiết lập khi chuyển máy chủ"}</span></div></section>
-  </div></>;
+  if ((await getCurrentUser())?.role !== "admin") redirect("/");
+  const c = await getIntegrationConfig(),
+    status = configStatus(c),
+    initial = {
+      haravanShop: c.haravanShop || "",
+      r2Endpoint: c.r2Endpoint || "",
+      r2Bucket: c.r2Bucket || "",
+      r2AccessKeyId: c.r2AccessKeyId ? `••••${c.r2AccessKeyId.slice(-4)}` : "",
+      hasHaravanToken: Boolean(c.haravanAccessToken),
+      hasWebhookSecret: Boolean(c.haravanWebhookSecret),
+      hasR2Secret: Boolean(c.r2SecretAccessKey),
+      status,
+    };
+  return (
+    <>
+      <div className="page-heading compact">
+        <div>
+          <p className="eyebrow">CẤU HÌNH HỆ THỐNG</p>
+          <h1>Cài đặt kết nối</h1>
+          <p>Quản lý nơi lưu dữ liệu, Haravan và sao lưu Cloudflare R2.</p>
+        </div>
+      </div>
+      <IntegrationSettings initial={initial} dataReady={hasDatabase()} />
+    </>
+  );
 }

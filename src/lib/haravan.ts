@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { getIntegrationConfig } from "./integration-config";
 
-export function verifyHaravanWebhook(rawBody: string, signature: string | null) {
-  const secret = process.env.HARAVAN_WEBHOOK_SECRET;
+export async function verifyHaravanWebhook(rawBody: string, signature: string | null) {
+  const secret = (await getIntegrationConfig()).haravanWebhookSecret;
   if (!secret || !signature) return false;
   const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("base64");
   if (expected.length !== signature.length) return false;
@@ -9,7 +10,7 @@ export function verifyHaravanWebhook(rawBody: string, signature: string | null) 
 }
 
 export async function fetchHaravanOrders(updatedAtMin?: string) {
-  const token = process.env.HARAVAN_ACCESS_TOKEN;
+  const token = (await getIntegrationConfig()).haravanAccessToken;
   if (!token) throw new Error("HARAVAN_ACCESS_TOKEN is not configured");
   const url = new URL("https://apis.haravan.com/com/orders.json");
   url.searchParams.set("limit", "50");
