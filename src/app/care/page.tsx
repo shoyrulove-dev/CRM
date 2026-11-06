@@ -4,9 +4,24 @@ import { listCareTasks, listCustomers } from "@/lib/data-store";
 import { CreateCareButton } from "@/components/create-care-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
-function careDate(value:string){const d=new Date(value);if(!Number.isNaN(d.getTime()))return{time:d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Bangkok'}),date:d.toLocaleDateString('vi-VN',{timeZone:'Asia/Bangkok'})};const p=value.split(',');return{time:(p[1]||value).trim(),date:(p[0]||'').trim()}}
+function careDate(value: string) {
+  const d = new Date(value);
+  if (!Number.isNaN(d.getTime()))
+    return {
+      time: d.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Bangkok",
+      }),
+      date: d.toLocaleDateString("vi-VN", { timeZone: "Asia/Bangkok" }),
+    };
+  const p = value.split(",");
+  return { time: (p[1] || value).trim(), date: (p[0] || "").trim() };
+}
 export default async function CarePage({
   searchParams,
 }: {
@@ -19,6 +34,7 @@ export default async function CarePage({
       listCustomers(undefined, user),
     ]),
     today = new Date().toISOString().slice(0, 10);
+  if (!hasPermission(user, "care")) redirect("/");
   const tasks = allTasks.filter(
     (item) =>
       (!params.date || item.dueAt.startsWith(params.date)) &&
@@ -103,9 +119,7 @@ export default async function CarePage({
           {tasks.map((item) => (
             <article key={item.id} className={`care-row ${item.status}`}>
               <div className="care-time">
-                <strong>
-                  {careDate(item.dueAt).time}
-                </strong>
+                <strong>{careDate(item.dueAt).time}</strong>
                 <span>{careDate(item.dueAt).date}</span>
               </div>
               <div className="care-line">

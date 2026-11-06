@@ -1,5 +1,5 @@
 import { jwtVerify, SignJWT } from "jose";
-import type { UserRole } from "./types";
+import type { PermissionKey, UserRole } from "./types";
 
 export const SESSION_COOKIE = "nichiei_session";
 
@@ -8,6 +8,7 @@ export interface SessionUser {
   name: string;
   email: string;
   role: UserRole;
+  permissions?:PermissionKey[];
 }
 
 function secretKey() {
@@ -37,3 +38,4 @@ export function canSeeAll(user: SessionUser | null) { return user?.role === "adm
 export function roleLabel(role: UserRole) {
   return role === "admin" ? "Quản trị viên" : role === "sales" ? "Nhân viên bán hàng" : "Chăm sóc khách hàng";
 }
+export function hasPermission(user:SessionUser|null,key:PermissionKey){return user?.role==='admin'||!user?.permissions||user.permissions.includes(key)}

@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { listCustomers, collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
 
 export async function GET(request: NextRequest) {
-  const data = await listCustomers(request.nextUrl.searchParams.get("q") || undefined,await getCurrentUser());
+  const user=await getCurrentUser();
+  if(!hasPermission(user,"customers")) return NextResponse.json({error:"Bạn không có quyền xem khách hàng."},{status:403});
+  const data = await listCustomers(request.nextUrl.searchParams.get("q") || undefined,user);
   return NextResponse.json({ data, source: hasDatabase() ? "mongodb" : "demo", total: data.length });
 }
 
@@ -12,6 +15,7 @@ export async function POST(request: NextRequest) {
   if (!hasDatabase()) return NextResponse.json({ error: "Kho dữ liệu chưa sẵn sàng. Vui lòng liên hệ quản trị viên." }, { status: 503 });
   const body = await request.json().catch(() => null);
   const user=await getCurrentUser();
+  if(!hasPermission(user,"customers")) return NextResponse.json({error:"Bạn không có quyền tạo khách hàng."},{status:403});
   if (!body?.name || !body?.phone) return NextResponse.json({ error: "Tên và số điện thoại là bắt buộc." }, { status: 400 });
   const db = await getDatabase();
   const duplicate = await db.collection(collections.customers).findOne({ phone: body.phone });

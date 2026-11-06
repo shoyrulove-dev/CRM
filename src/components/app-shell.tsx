@@ -18,22 +18,28 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/notification-bell";
-import type { SessionUser } from "@/lib/session";
+import { hasPermission, type SessionUser } from "@/lib/session";
 import type { UserRole } from "@/lib/types";
 const roleLabel = (role: UserRole) =>
   role === "admin"
-    ? "Quáº£n trá»‹ viÃªn"
+    ? "Quản trị viên"
     : role === "sales"
-      ? "NhÃ¢n viÃªn bÃ¡n hÃ ng"
-      : "ChÄƒm sÃ³c khÃ¡ch hÃ ng";
+      ? "Nhân viên bán hàng"
+      : "Chăm sóc khách hàng";
 
 const nav = [
-  { href: "/", label: "Tá»•ng quan", icon: LayoutDashboard },
-  { href: "/customers", label: "KhÃ¡ch hÃ ng", icon: UsersRound },
-  { href: "/care", label: "Lá»‹ch chÄƒm sÃ³c", icon: CalendarClock },
-  { href: "/tickets", label: "Phiáº¿u yÃªu cáº§u", icon: TicketCheck },
-  { href: "/reports", label: "BÃ¡o cÃ¡o", icon: ChartNoAxesCombined },
+  { href: "/", label: "Tổng quan", icon: LayoutDashboard },
+  { href: "/customers", label: "Khách hàng", icon: UsersRound },
+  { href: "/care", label: "Lịch chăm sóc", icon: CalendarClock },
+  { href: "/tickets", label: "Phiếu yêu cầu", icon: TicketCheck },
+  { href: "/reports", label: "Báo cáo", icon: ChartNoAxesCombined },
 ];
+const navPermission = {
+  "/customers": "customers",
+  "/care": "care",
+  "/tickets": "tickets",
+  "/reports": "reports",
+} as const;
 
 export function AppShell({
   children,
@@ -57,32 +63,38 @@ export function AppShell({
           <button
             className="icon-button mobile-only"
             onClick={() => setOpen(false)}
-            aria-label="ÄÃ³ng menu"
+            aria-label="Đóng menu"
           >
             <X size={20} />
           </button>
         </div>
         <nav className="nav-list">
-          <p className="nav-label">QUáº¢N LÃ</p>
-          {nav.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={active ? "nav-item active" : "nav-item"}
-                onClick={() => setOpen(false)}
-              >
-                <Icon size={19} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-          <p className="nav-label nav-section">Há»† THá»NG</p>
+          <p className="nav-label">QUẢN LÝ</p>
+          {nav
+            .filter((item) => {
+              const permission =
+                navPermission[item.href as keyof typeof navPermission];
+              return !permission || hasPermission(user, permission);
+            })
+            .map((item) => {
+              const Icon = item.icon;
+              const active =
+                item.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? "nav-item active" : "nav-item"}
+                  onClick={() => setOpen(false)}
+                >
+                  <Icon size={19} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          <p className="nav-label nav-section">HỆ THỐNG</p>
           {user?.role === "admin" && (
             <Link
               href="/accounts"
@@ -93,24 +105,24 @@ export function AppShell({
               }
             >
               <UserCog size={19} />
-              <span>TÃ i khoáº£n</span>
+              <span>Tài khoản</span>
             </Link>
           )}
           {user?.role === "admin" && (
             <Link href="/settings" className="nav-item">
               <Settings size={19} />
-              <span>CÃ i Ä‘áº·t</span>
+              <span>Cài đặt</span>
             </Link>
           )}
           <Link href="/help" className="nav-item">
             <CircleHelp size={19} />
-            <span>Trá»£ giÃºp</span>
+            <span>Trợ giúp</span>
           </Link>
         </nav>
         <div className="sync-card">
           <span className="live-dot" />
-          <strong>Káº¿t ná»‘i bÃ¡n hÃ ng</strong>
-          <small>Sáº½ bá»• sung sau báº£n dÃ¹ng thá»­</small>
+          <strong>Kết nối bán hàng</strong>
+          <small>Sẽ bổ sung sau bản dùng thử</small>
         </div>
         <div className="sidebar-user">
           <div className="avatar">
@@ -131,7 +143,7 @@ export function AppShell({
         <button
           className="overlay"
           onClick={() => setOpen(false)}
-          aria-label="ÄÃ³ng menu"
+          aria-label="Đóng menu"
         />
       )}
       <main className="main-area">
@@ -139,7 +151,7 @@ export function AppShell({
           <button
             className="icon-button menu-button"
             onClick={() => setOpen(true)}
-            aria-label="Má»Ÿ menu"
+            aria-label="Mở menu"
           >
             <Menu size={22} />
           </button>
@@ -147,14 +159,14 @@ export function AppShell({
             <Search size={18} />
             <input
               name="q"
-              aria-label="TÃ¬m kiáº¿m"
-              placeholder="TÃ¬m khÃ¡ch hÃ ng, sá»‘ Ä‘iá»‡n thoáº¡i, mÃ£ khÃ¡ch..."
+              aria-label="Tìm kiếm"
+              placeholder="Tìm khách hàng, số điện thoại, mã khách..."
             />
           </form>
           <div className="top-actions">
             <NotificationBell />
             <form action="/api/auth/logout" method="post">
-              <button className="user-chip" title="ÄÄƒng xuáº¥t">
+              <button className="user-chip" title="Đăng xuất">
                 <div className="avatar small">
                   {user?.name
                     .split(" ")
