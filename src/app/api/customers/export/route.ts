@@ -1,11 +1,42 @@
 import { listCustomers } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
+import { createExcelFile, excelResponse } from "@/lib/excel";
+import { hasPermission } from "@/lib/session";
 
-const cell = (value: unknown) => `"${String(value ?? "").replaceAll('"', '""')}"`;
 export async function GET() {
-  const customers = await listCustomers(undefined,await getCurrentUser());
-  const rows = [["Mã khách", "Tên khách", "Số điện thoại", "Nhân viên", "Phân nhóm", "Mục tiêu sức khỏe", "Số đơn", "Doanh thu", "Đơn gần nhất", "Lịch chăm sóc"]];
-  customers.forEach(item => rows.push([item.id, item.name, item.phone, item.owner, item.segment, item.healthGoal, String(item.orders), String(item.revenue), item.lastOrder, item.nextCare]));
-  const csv = "\uFEFF" + rows.map(row => row.map(cell).join(",")).join("\r\n");
-  return new Response(csv, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="danh-sach-khach-hang-${new Date().toISOString().slice(0,10)}.csv"` } });
+  const user = await getCurrentUser();
+  if (!hasPermission(user, "customers"))
+    return new Response("Không có quyền xuất dữ liệu.", { status: 403 });
+  const customers = await listCustomers(undefined, user);
+  const headers = [
+    "Mã khách",
+    "Tên khách",
+    "Số điện thoại",
+    "Ngày sinh",
+    "Nhân viên",
+    "Phân nhóm",
+    "Mục tiêu sức khỏe",
+    "Số đơn",
+    "Doanh thu",
+    "Đơn gần nhất",
+    "Lịch chăm sóc",
+  ];
+  const rows = customers.map((item) => [
+    item.id,
+    item.name,
+    item.phone,
+    item.birthDate || "",
+    item.owner,
+    item.segment,
+    item.healthGoal,
+    item.orders,
+    item.revenue,
+    item.lastOrder,
+    item.nextCare,
+  ]);
+  const file = await createExcelFile("Khách hàng", headers, rows);
+  return excelResponse(
+    file,
+    `danh-sach-khach-hang-${new Date().toISOString().slice(0, 10)}.xlsx`,
+  );
 }

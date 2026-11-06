@@ -1,13 +1,73 @@
 import { collections, ensureIndexes } from "./data-store";
 import { getDatabase, hasDatabase } from "./mongodb";
-import type { SalesOrder } from "./types";
+import type { Customer, SalesOrder } from "./types";
 
 const rules = [
-  { offset: 7, purpose: "Khảo sát tình trạng sử dụng sau 7 ngày", channel: "Gọi điện" },
-  { offset: 25, purpose: "Khảo sát liệu trình và mức độ hài lòng", channel: "Gọi điện" },
-  { offset: 25, purpose: "Nhắc tái mua để duy trì liệu trình", channel: "Zalo" },
+  {
+    offset: 7,
+    purpose: "Khảo sát tình trạng sử dụng sau 7 ngày",
+    channel: "Gọi điện",
+  },
+  {
+    offset: 25,
+    purpose: "Khảo sát liệu trình và mức độ hài lòng",
+    channel: "Gọi điện",
+  },
+  {
+    offset: 25,
+    purpose: "Nhắc tái mua để duy trì liệu trình",
+    channel: "Zalo",
+  },
   { offset: 45, purpose: "Duy trì tương tác với khách hàng", channel: "Zalo" },
 ] as const;
+
+const fixedHolidays = [
+  { month: 1, day: 1, purpose: "Chúc mừng năm mới" },
+  { month: 3, day: 8, purpose: "Chúc mừng ngày Quốc tế Phụ nữ" },
+  { month: 4, day: 30, purpose: "Chăm sóc khách hàng dịp lễ 30/4" },
+  { month: 5, day: 1, purpose: "Chăm sóc khách hàng dịp Quốc tế Lao động" },
+  { month: 9, day: 2, purpose: "Chăm sóc khách hàng dịp Quốc khánh" },
+  { month: 10, day: 20, purpose: "Chúc mừng ngày Phụ nữ Việt Nam" },
+  { month: 12, day: 25, purpose: "Chúc mừng Giáng sinh" },
+] as const;
+
+const lunarNewYear: Record<number, string> = {
+  2026: "02-17",
+  2027: "02-06",
+  2028: "01-26",
+  2029: "02-13",
+  2030: "02-03",
+  2031: "01-23",
+  2032: "02-11",
+};
+
+function localDue(year: number, month: number, day: number) {
+  return new Date(
+    `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T09:00:00+07:00`,
+  );
+}
+
+function upcomingDates(
+  month: number,
+  day: number,
+  now: Date,
+  horizonDays = 45,
+) {
+  const localYear = Number(
+    new Intl.DateTimeFormat("en", {
+      year: "numeric",
+      timeZone: "Asia/Bangkok",
+    }).format(now),
+  );
+  return [
+    localDue(localYear, month, day),
+    localDue(localYear + 1, month, day),
+  ].filter(
+    (due) =>
+      due.getTime() >= now.getTime() - 86400000 &&
+      due.getTime() <= now.getTime() + horizonDays * 86400000,
+  );
+}
 
 export async function runScheduler() {
   if (!hasDatabase()) return { source: "demo", created: 0, overdue: 0 };
@@ -15,36 +75,205 @@ export async function runScheduler() {
   const db = await getDatabase();
   const now = new Date();
   const lockId = "care-scheduler";
-  const lock = await db.collection(collections.jobLocks).findOneAndUpdate(
-    { _id: lockId as never, $or: [{ expiresAt: { $lte: now } }, { expiresAt: { $exists: false } }] },
-    { $set: { expiresAt: new Date(now.getTime() + 4 * 60 * 1000), acquiredAt: now } },
-    { upsert: true, returnDocument: "after" },
-  ).catch(error => { if ((error as { code?: number }).code === 11000) return null; throw error; });
-  if (!lock) return { source: "mongodb", skipped: "locked", created: 0, overdue: 0 };
+  const lock = await db
+    .collection(collections.jobLocks)
+    .findOneAndUpdate(
+      {
+        _id: lockId as never,
+        $or: [{ expiresAt: { $lte: now } }, { expiresAt: { $exists: false } }],
+      },
+      {
+        $set: {
+          expiresAt: new Date(now.getTime() + 4 * 60 * 1000),
+          acquiredAt: now,
+        },
+      },
+      { upsert: true, returnDocument: "after" },
+    )
+    .catch((error) => {
+      if ((error as { code?: number }).code === 11000) return null;
+      throw error;
+    });
+  if (!lock)
+    return { source: "mongodb", skipped: "locked", created: 0, overdue: 0 };
 
   const startedAt = new Date();
-  let created = 0;
+  let created = 0,
+    birthdayCreated = 0,
+    holidayCreated = 0;
   try {
-    const salesOrders = await db.collection(collections.orders).find({ status: "Mua hàng" }, { projection: { _id: 0 } }).toArray() as unknown as SalesOrder[];
+    const salesOrders = (await db
+      .collection(collections.orders)
+      .find({ status: "Mua hàng" }, { projection: { _id: 0 } })
+      .toArray()) as unknown as SalesOrder[];
     for (const order of salesOrders) {
-      const customer = await db.collection(collections.customers).findOne({ id: order.customerId });
+      const customer = await db
+        .collection(collections.customers)
+        .findOne({ id: order.customerId });
       if (!customer) continue;
       for (const rule of rules) {
         const due = new Date(`${order.orderDate}T09:00:00+07:00`);
         due.setUTCDate(due.getUTCDate() + rule.offset);
         const id = `AUTO-${order.id}-${rule.offset}-${rule.purpose.slice(0, 8).replace(/\s/g, "")}`;
-        const result = await db.collection(collections.careTasks).updateOne({ id }, { $setOnInsert: { id, customerId: order.customerId, customer: customer.name, phone: customer.phone, purpose: rule.purpose, owner: order.owner || customer.owner, dueAt: due.toISOString(), channel: rule.channel, status: "due", source: "order-rule", orderId: order.id, createdAt: now.toISOString() } }, { upsert: true });
+        const result = await db
+          .collection(collections.careTasks)
+          .updateOne(
+            { id },
+            {
+              $setOnInsert: {
+                id,
+                customerId: order.customerId,
+                customer: customer.name,
+                phone: customer.phone,
+                purpose: rule.purpose,
+                owner: order.owner || customer.owner,
+                dueAt: due.toISOString(),
+                channel: rule.channel,
+                status: "due",
+                source: "order-rule",
+                orderId: order.id,
+                createdAt: now.toISOString(),
+              },
+            },
+            { upsert: true },
+          );
         created += result.upsertedCount;
       }
     }
-    const overdueResult = await db.collection(collections.careTasks).updateMany({ status: "due", dueAt: { $lt: now.toISOString() } }, { $set: { status: "overdue", updatedAt: now.toISOString() } });
-    const outcome = { source: "mongodb", created, overdue: overdueResult.modifiedCount };
-    await db.collection(collections.jobRuns).insertOne({ job: lockId, startedAt, finishedAt: new Date(), status: "success", ...outcome });
+    const customers = (await db
+      .collection(collections.customers)
+      .find({}, { projection: { _id: 0 } })
+      .toArray()) as unknown as Customer[];
+    for (const customer of customers) {
+      if (customer.birthDate) {
+        const match = customer.birthDate.match(/^(?:\d{4})-(\d{2})-(\d{2})$/);
+        if (match)
+          for (const due of upcomingDates(
+            Number(match[1]),
+            Number(match[2]),
+            now,
+          )) {
+            const year = due.getFullYear();
+            const id = `AUTO-BIRTHDAY-${customer.id}-${year}`;
+            const result = await db
+              .collection(collections.careTasks)
+              .updateOne(
+                { id },
+                {
+                  $setOnInsert: {
+                    id,
+                    customerId: customer.id,
+                    customer: customer.name,
+                    phone: customer.phone,
+                    purpose: "Chúc mừng sinh nhật khách hàng",
+                    owner: customer.owner,
+                    dueAt: due.toISOString(),
+                    channel: "Zalo",
+                    status: "due",
+                    recurrence: "yearly",
+                    source: "birthday",
+                    createdAt: now.toISOString(),
+                  },
+                },
+                { upsert: true },
+              );
+            birthdayCreated += result.upsertedCount;
+          }
+      }
+      const localYear = Number(
+        new Intl.DateTimeFormat("en", {
+          year: "numeric",
+          timeZone: "Asia/Bangkok",
+        }).format(now),
+      );
+      const holidayDates: Array<{ due: Date; purpose: string; key: string }> = fixedHolidays.flatMap((holiday) =>
+        upcomingDates(holiday.month, holiday.day, now).map((due) => ({
+          due,
+          purpose: holiday.purpose,
+          key: `${holiday.month}-${holiday.day}`,
+        })),
+      );
+      for (const year of [localYear, localYear + 1]) {
+        const lunar = lunarNewYear[year];
+        if (lunar) {
+          const [month, day] = lunar.split("-").map(Number);
+          holidayDates.push(
+            ...upcomingDates(month, day, now)
+              .filter((due) => due.getFullYear() === year)
+              .map((due) => ({
+                due,
+                purpose: "Chúc Tết khách hàng",
+                key: "tet",
+              })),
+          );
+        }
+      }
+      for (const holiday of holidayDates) {
+        const year = holiday.due.getFullYear();
+        const id = `AUTO-HOLIDAY-${holiday.key}-${customer.id}-${year}`;
+        const result = await db
+          .collection(collections.careTasks)
+          .updateOne(
+            { id },
+            {
+              $setOnInsert: {
+                id,
+                customerId: customer.id,
+                customer: customer.name,
+                phone: customer.phone,
+                purpose: holiday.purpose,
+                owner: customer.owner,
+                dueAt: holiday.due.toISOString(),
+                channel: "Zalo",
+                status: "due",
+                recurrence: "yearly",
+                source: "holiday",
+                createdAt: now.toISOString(),
+              },
+            },
+            { upsert: true },
+          );
+        holidayCreated += result.upsertedCount;
+      }
+    }
+    created += birthdayCreated + holidayCreated;
+    const overdueResult = await db
+      .collection(collections.careTasks)
+      .updateMany(
+        { status: "due", dueAt: { $lt: now.toISOString() } },
+        { $set: { status: "overdue", updatedAt: now.toISOString() } },
+      );
+    const outcome = {
+      source: "mongodb",
+      created,
+      birthdayCreated,
+      holidayCreated,
+      overdue: overdueResult.modifiedCount,
+    };
+    await db
+      .collection(collections.jobRuns)
+      .insertOne({
+        job: lockId,
+        startedAt,
+        finishedAt: new Date(),
+        status: "success",
+        ...outcome,
+      });
     return outcome;
   } catch (error) {
-    await db.collection(collections.jobRuns).insertOne({ job: lockId, startedAt, finishedAt: new Date(), status: "failed", error: error instanceof Error ? error.message : "Unknown error" });
+    await db
+      .collection(collections.jobRuns)
+      .insertOne({
+        job: lockId,
+        startedAt,
+        finishedAt: new Date(),
+        status: "failed",
+        error: error instanceof Error ? error.message : "Unknown error",
+      });
     throw error;
   } finally {
-    await db.collection(collections.jobLocks).deleteOne({ _id: lockId as never });
+    await db
+      .collection(collections.jobLocks)
+      .deleteOne({ _id: lockId as never });
   }
 }
