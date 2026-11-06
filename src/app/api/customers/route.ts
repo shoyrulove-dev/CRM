@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!hasDatabase()) return NextResponse.json({ error: "MongoDB chưa được cấu hình." }, { status: 503 });
+  if (!hasDatabase()) return NextResponse.json({ error: "Kho dữ liệu chưa sẵn sàng. Vui lòng liên hệ quản trị viên." }, { status: 503 });
   const body = await request.json().catch(() => null);
   if (!body?.name || !body?.phone) return NextResponse.json({ error: "Tên và số điện thoại là bắt buộc." }, { status: 400 });
   const db = await getDatabase();

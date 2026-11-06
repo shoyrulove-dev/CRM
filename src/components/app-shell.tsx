@@ -27,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/settings" className="nav-item"><Settings size={19}/><span>Cài đặt</span></Link>
         <a href="#help" className="nav-item"><CircleHelp size={19}/><span>Trợ giúp</span></a>
       </nav>
-      <div className="sync-card"><span className="live-dot"/><strong>Haravan</strong><small>Chờ cấu hình kết nối</small></div>
+      <div className="sync-card"><span className="live-dot"/><strong>Kết nối bán hàng</strong><small>Sẽ bổ sung sau bản dùng thử</small></div>
       <div className="sidebar-user"><div className="avatar">VA</div><div><strong>Vân Anh</strong><span>Quản trị viên</span></div><ChevronDown size={17}/></div>
     </aside>
     {open && <button className="overlay" onClick={() => setOpen(false)} aria-label="Đóng menu"/>}

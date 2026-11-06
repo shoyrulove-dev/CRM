@@ -3,7 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 
 export async function POST(request: NextRequest) {
-  if (!hasDatabase()) return NextResponse.json({ error: "MongoDB chưa được cấu hình." }, { status: 503 });
+  if (!hasDatabase()) return NextResponse.json({ error: "Kho dữ liệu chưa sẵn sàng. Vui lòng liên hệ quản trị viên." }, { status: 503 });
   const body = await request.json().catch(() => null);
   if (!body?.customerId || !body?.purpose || !body?.channel || !body?.contactStatus || !body?.result) return NextResponse.json({ error: "Vui lòng nhập đủ thông tin bắt buộc." }, { status: 400 });
   const db = await getDatabase();

@@ -1,7 +1,37 @@
 services:
+  mongodb:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-nichiei_admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: nichiei_crm
+    volumes:
+      - nichiei_mongodb:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok", "--username", "${MONGO_ROOT_USER:-nichiei_admin}", "--password", "${MONGO_ROOT_PASSWORD}", "--authenticationDatabase", "admin"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+    networks: [nichiei_internal]
+
   crm:
     build: .
     restart: unless-stopped
     env_file: .env
+    environment:
+      MONGODB_URI: mongodb://${MONGO_ROOT_USER:-nichiei_admin}:${MONGO_ROOT_PASSWORD}@mongodb:27017/nichiei_crm?authSource=admin
+      MONGODB_DB: nichiei_crm
+    depends_on:
+      mongodb:
+        condition: service_healthy
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
+    networks: [nichiei_internal]
+
+networks:
+  nichiei_internal:
+    driver: bridge
+
+volumes:
+  nichiei_mongodb:
