@@ -12,8 +12,20 @@ export interface UserAccount {
   updatedAt?: string;
   groupId?: string;
 }
-export type PermissionKey="customers"|"care"|"tickets"|"reports"|"accounts"|"settings";
-export interface PermissionGroup{id:string;name:string;permissions:PermissionKey[];createdAt:string;updatedAt?:string}
+export type PermissionKey =
+  | "customers"
+  | "care"
+  | "tickets"
+  | "reports"
+  | "accounts"
+  | "settings";
+export interface PermissionGroup {
+  id: string;
+  name: string;
+  permissions: PermissionKey[];
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export interface Customer {
   id: string;
@@ -80,6 +92,7 @@ export interface ServiceTicket {
   createdAt: string;
   updatedAt?: string;
   closedAt?: string;
+  orderCode?: string;
 }
 
 export interface SalesOrder {
@@ -92,7 +105,13 @@ export interface SalesOrder {
   customerSource: string;
   purchaseType: "Mua mới" | "Mua lại";
   status: "Mua hàng" | "Trả hàng" | "Hủy";
-  products: Array<{ sku: string; name: string; quantity: number; unitPrice: number; discount: number }>;
+  products: Array<{
+    sku: string;
+    name: string;
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+  }>;
   promotion?: string;
   gift?: string;
   total: number;
