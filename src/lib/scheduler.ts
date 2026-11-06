@@ -51,7 +51,7 @@ function upcomingDates(
   month: number,
   day: number,
   now: Date,
-  horizonDays = 45,
+  horizonDays = 60,
 ) {
   const localYear = Number(
     new Intl.DateTimeFormat("en", {
@@ -115,28 +115,26 @@ export async function runScheduler() {
         const due = new Date(`${order.orderDate}T09:00:00+07:00`);
         due.setUTCDate(due.getUTCDate() + rule.offset);
         const id = `AUTO-${order.id}-${rule.offset}-${rule.purpose.slice(0, 8).replace(/\s/g, "")}`;
-        const result = await db
-          .collection(collections.careTasks)
-          .updateOne(
-            { id },
-            {
-              $setOnInsert: {
-                id,
-                customerId: order.customerId,
-                customer: customer.name,
-                phone: customer.phone,
-                purpose: rule.purpose,
-                owner: order.owner || customer.owner,
-                dueAt: due.toISOString(),
-                channel: rule.channel,
-                status: "due",
-                source: "order-rule",
-                orderId: order.id,
-                createdAt: now.toISOString(),
-              },
+        const result = await db.collection(collections.careTasks).updateOne(
+          { id },
+          {
+            $setOnInsert: {
+              id,
+              customerId: order.customerId,
+              customer: customer.name,
+              phone: customer.phone,
+              purpose: rule.purpose,
+              owner: order.owner || customer.owner,
+              dueAt: due.toISOString(),
+              channel: rule.channel,
+              status: "due",
+              source: "order-rule",
+              orderId: order.id,
+              createdAt: now.toISOString(),
             },
-            { upsert: true },
-          );
+          },
+          { upsert: true },
+        );
         created += result.upsertedCount;
       }
     }
@@ -155,28 +153,26 @@ export async function runScheduler() {
           )) {
             const year = due.getFullYear();
             const id = `AUTO-BIRTHDAY-${customer.id}-${year}`;
-            const result = await db
-              .collection(collections.careTasks)
-              .updateOne(
-                { id },
-                {
-                  $setOnInsert: {
-                    id,
-                    customerId: customer.id,
-                    customer: customer.name,
-                    phone: customer.phone,
-                    purpose: "Chúc mừng sinh nhật khách hàng",
-                    owner: customer.owner,
-                    dueAt: due.toISOString(),
-                    channel: "Zalo",
-                    status: "due",
-                    recurrence: "yearly",
-                    source: "birthday",
-                    createdAt: now.toISOString(),
-                  },
+            const result = await db.collection(collections.careTasks).updateOne(
+              { id },
+              {
+                $setOnInsert: {
+                  id,
+                  customerId: customer.id,
+                  customer: customer.name,
+                  phone: customer.phone,
+                  purpose: "Chúc mừng sinh nhật khách hàng",
+                  owner: customer.owner,
+                  dueAt: due.toISOString(),
+                  channel: "Zalo",
+                  status: "due",
+                  recurrence: "yearly",
+                  source: "birthday",
+                  createdAt: now.toISOString(),
                 },
-                { upsert: true },
-              );
+              },
+              { upsert: true },
+            );
             birthdayCreated += result.upsertedCount;
           }
       }
@@ -186,13 +182,14 @@ export async function runScheduler() {
           timeZone: "Asia/Bangkok",
         }).format(now),
       );
-      const holidayDates: Array<{ due: Date; purpose: string; key: string }> = fixedHolidays.flatMap((holiday) =>
-        upcomingDates(holiday.month, holiday.day, now).map((due) => ({
-          due,
-          purpose: holiday.purpose,
-          key: `${holiday.month}-${holiday.day}`,
-        })),
-      );
+      const holidayDates: Array<{ due: Date; purpose: string; key: string }> =
+        fixedHolidays.flatMap((holiday) =>
+          upcomingDates(holiday.month, holiday.day, now).map((due) => ({
+            due,
+            purpose: holiday.purpose,
+            key: `${holiday.month}-${holiday.day}`,
+          })),
+        );
       for (const year of [localYear, localYear + 1]) {
         const lunar = lunarNewYear[year];
         if (lunar) {
@@ -211,28 +208,26 @@ export async function runScheduler() {
       for (const holiday of holidayDates) {
         const year = holiday.due.getFullYear();
         const id = `AUTO-HOLIDAY-${holiday.key}-${customer.id}-${year}`;
-        const result = await db
-          .collection(collections.careTasks)
-          .updateOne(
-            { id },
-            {
-              $setOnInsert: {
-                id,
-                customerId: customer.id,
-                customer: customer.name,
-                phone: customer.phone,
-                purpose: holiday.purpose,
-                owner: customer.owner,
-                dueAt: holiday.due.toISOString(),
-                channel: "Zalo",
-                status: "due",
-                recurrence: "yearly",
-                source: "holiday",
-                createdAt: now.toISOString(),
-              },
+        const result = await db.collection(collections.careTasks).updateOne(
+          { id },
+          {
+            $setOnInsert: {
+              id,
+              customerId: customer.id,
+              customer: customer.name,
+              phone: customer.phone,
+              purpose: holiday.purpose,
+              owner: customer.owner,
+              dueAt: holiday.due.toISOString(),
+              channel: "Zalo",
+              status: "due",
+              recurrence: "yearly",
+              source: "holiday",
+              createdAt: now.toISOString(),
             },
-            { upsert: true },
-          );
+          },
+          { upsert: true },
+        );
         holidayCreated += result.upsertedCount;
       }
     }
@@ -250,26 +245,22 @@ export async function runScheduler() {
       holidayCreated,
       overdue: overdueResult.modifiedCount,
     };
-    await db
-      .collection(collections.jobRuns)
-      .insertOne({
-        job: lockId,
-        startedAt,
-        finishedAt: new Date(),
-        status: "success",
-        ...outcome,
-      });
+    await db.collection(collections.jobRuns).insertOne({
+      job: lockId,
+      startedAt,
+      finishedAt: new Date(),
+      status: "success",
+      ...outcome,
+    });
     return outcome;
   } catch (error) {
-    await db
-      .collection(collections.jobRuns)
-      .insertOne({
-        job: lockId,
-        startedAt,
-        finishedAt: new Date(),
-        status: "failed",
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
+    await db.collection(collections.jobRuns).insertOne({
+      job: lockId,
+      startedAt,
+      finishedAt: new Date(),
+      status: "failed",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     throw error;
   } finally {
     await db

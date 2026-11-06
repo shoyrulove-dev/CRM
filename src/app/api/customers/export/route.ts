@@ -1,6 +1,6 @@
 import { listCustomers } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
-import { createExcelFile, excelResponse } from "@/lib/excel";
+import { createExcelFile, excelResponse, vietnamDateStamp } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
 
 export async function GET() {
@@ -35,8 +35,5 @@ export async function GET() {
     item.nextCare,
   ]);
   const file = await createExcelFile("Khách hàng", headers, rows);
-  return excelResponse(
-    file,
-    `danh-sach-khach-hang-${new Date().toISOString().slice(0, 10)}.xlsx`,
-  );
+  return excelResponse(file, `danh-sach-khach-hang-${vietnamDateStamp()}.xlsx`);
 }

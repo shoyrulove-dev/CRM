@@ -2,6 +2,15 @@ import ExcelJS from "exceljs";
 
 export type ExcelCell = string | number | boolean | Date | null | undefined;
 
+export function vietnamDateStamp(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
 export async function createExcelFile(
   sheetName: string,
   headers: string[],
