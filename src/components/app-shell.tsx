@@ -25,7 +25,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {nav.map(item => { const Icon=item.icon; const active=item.href === "/" ? pathname === "/" : pathname.startsWith(item.href); return <Link key={item.href} href={item.href} className={active ? "nav-item active" : "nav-item"} onClick={() => setOpen(false)}><Icon size={19}/><span>{item.label}</span></Link>; })}
         <p className="nav-label nav-section">HỆ THỐNG</p>
         <Link href="/settings" className="nav-item"><Settings size={19}/><span>Cài đặt</span></Link>
-        <a href="#help" className="nav-item"><CircleHelp size={19}/><span>Trợ giúp</span></a>
+        <Link href="/help" className="nav-item"><CircleHelp size={19}/><span>Trợ giúp</span></Link>
       </nav>
       <div className="sync-card"><span className="live-dot"/><strong>Kết nối bán hàng</strong><small>Sẽ bổ sung sau bản dùng thử</small></div>
       <div className="sidebar-user"><div className="avatar">VA</div><div><strong>Vân Anh</strong><span>Quản trị viên</span></div><ChevronDown size={17}/></div>

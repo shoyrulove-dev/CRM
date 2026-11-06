@@ -7,7 +7,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
   if (!hasDatabase()) return NextResponse.json({ error: "Kho dữ liệu chưa sẵn sàng. Vui lòng liên hệ quản trị viên." }, { status: 503 });
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
-  const allowed = ["status", "owner", "dueAt", "purpose", "channel"];
+  const allowed = ["status", "owner", "dueAt", "purpose", "channel", "customer", "phone"];
   const update = Object.fromEntries(Object.entries(body || {}).filter(([key]) => allowed.includes(key)));
   if (!Object.keys(update).length) return NextResponse.json({ error: "Không có dữ liệu hợp lệ." }, { status: 400 });
   const db = await getDatabase();
