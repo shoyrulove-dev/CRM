@@ -10,14 +10,16 @@ type Row = {
   email: string;
   role: UserRole;
   active: boolean;
+  groupId?: string;
 };
+type Group={id:string;name:string};
 type Filter = "all" | UserRole;
 const labels: Record<UserRole, string> = {
   admin: "Quản trị",
   sales: "Bán hàng",
   care: "Chăm sóc khách hàng",
 };
-export function AccountManager({ users }: { users: Row[] }) {
+export function AccountManager({ users,groups=[] }: { users: Row[];groups?:Group[] }) {
   const [filter, setFilter] = useState<Filter>("all"),
     [mode, setMode] = useState<"create" | "edit" | null>(null),
     [selected, setSelected] = useState<Row | null>(null),
@@ -65,7 +67,7 @@ export function AccountManager({ users }: { users: Row[] }) {
     e.preventDefault();
     if (!selected) return;
     const form = Object.fromEntries(new FormData(e.currentTarget).entries());
-    if (await patch(selected.id, { name: form.name, role: form.role })) close();
+    if (await patch(selected.id, { name: form.name, role: form.role,groupId:form.groupId })) close();
   }
   async function reset(u: Row) {
     const password = prompt(
@@ -201,6 +203,7 @@ export function AccountManager({ users }: { users: Row[] }) {
                   <RoleOptions />
                 </select>
               </label>
+              <label className="full">Nhóm tùy chỉnh<select name="groupId" defaultValue={selected.groupId||""}><option value="">Theo vai trò mặc định</option>{groups.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select></label>
             </div>
             {error && <p className="form-error">{error}</p>}
             <footer>

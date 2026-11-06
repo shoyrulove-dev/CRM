@@ -15,6 +15,6 @@ export async function POST(request:NextRequest){
   if(String(body.password).length<8) return NextResponse.json({error:"Mật khẩu cần ít nhất 8 ký tự."},{status:400});
   const db=await getDatabase(),email=String(body.email).trim().toLowerCase();
   if(await db.collection(collections.users).findOne({email})) return NextResponse.json({error:"Email này đã có tài khoản."},{status:409});
-  const document={id:`NV-${Date.now().toString().slice(-6)}`,name:String(body.name).trim(),email,role:body.role,active:true,passwordHash:await hash(String(body.password),10),createdAt:new Date().toISOString()};
+  const document={id:`NV-${Date.now().toString().slice(-6)}`,name:String(body.name).trim(),email,role:body.role,groupId:body.groupId||"",active:true,passwordHash:await hash(String(body.password),10),createdAt:new Date().toISOString()};
   await db.collection(collections.users).insertOne(document); return NextResponse.json({data:{...document,passwordHash:undefined}},{status:201});
 }

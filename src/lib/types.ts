@@ -10,7 +10,10 @@ export interface UserAccount {
   passwordHash: string;
   createdAt: string;
   updatedAt?: string;
+  groupId?: string;
 }
+export type PermissionKey="customers"|"care"|"tickets"|"reports"|"accounts"|"settings";
+export interface PermissionGroup{id:string;name:string;permissions:PermissionKey[];createdAt:string;updatedAt?:string}
 
 export interface Customer {
   id: string;

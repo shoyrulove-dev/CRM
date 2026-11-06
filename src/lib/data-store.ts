@@ -15,6 +15,7 @@ export const collections = {
   jobRuns: "job_runs",
   users: "users",
   settings: "settings",
+  permissionGroups: "permission_groups",
 } as const;
 
 export async function ensureIndexes() {
@@ -23,12 +24,16 @@ export async function ensureIndexes() {
   await Promise.all([
     db.collection(collections.customers).createIndex({ id: 1 }, { unique: true }),
     db.collection(collections.customers).createIndex({ phone: 1 }),
+    db.collection(collections.customers).createIndex({ owner: 1, name: 1 }),
     db.collection(collections.careTasks).createIndex({ id: 1 }, { unique: true }),
     db.collection(collections.careTasks).createIndex({ status: 1, dueAt: 1 }),
+    db.collection(collections.careTasks).createIndex({ owner: 1, status: 1, dueAt: 1 }),
     db.collection(collections.careActivities).createIndex({ customerId: 1, occurredAt: -1 }),
     db.collection(collections.tickets).createIndex({ id: 1 }, { unique: true }),
+    db.collection(collections.tickets).createIndex({ owner: 1, createdAt: -1 }),
     db.collection(collections.orders).createIndex({ code: 1 }, { unique: true }),
     db.collection(collections.orders).createIndex({ customerId: 1, orderDate: -1 }),
+    db.collection(collections.orders).createIndex({ owner: 1, orderDate: -1 }),
     db.collection(collections.syncEvents).createIndex({ externalId: 1, topic: 1 }, { unique: true, sparse: true }),
     db.collection(collections.jobLocks).createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
     db.collection(collections.jobRuns).createIndex({ startedAt: -1 }),
