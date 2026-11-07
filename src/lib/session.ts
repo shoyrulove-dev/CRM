@@ -49,6 +49,7 @@ export function roleLabel(role: UserRole) {
       : "Chăm sóc khách hàng";
 }
 export function hasPermission(user: SessionUser | null, key: PermissionKey) {
+  if (!user) return false;
   return (
     user?.role === "admin" ||
     !user?.permissions ||

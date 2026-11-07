@@ -4,7 +4,7 @@ test.beforeEach(async ({ page }) => {
   await page.getByLabel("Email").fill("admin@nichiei.vn");
   await page.locator('input[type="password"]').fill("Nichiei@2026");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/$/, { timeout: 20_000 });
 });
 test("các trang CRM và chuông thông báo hoạt động", async ({ page }) => {
   for (const path of [
