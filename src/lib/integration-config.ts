@@ -70,19 +70,17 @@ export async function saveIntegrationConfig(input: IntegrationConfig) {
         Object.entries(input).filter(([, v]) => v !== undefined && v !== ""),
       ),
     };
-  await (await getDatabase())
-    .collection(collections.settings)
-    .updateOne(
-      { id: "integrations" },
-      {
-        $set: {
-          id: "integrations",
-          payload: encrypt(JSON.stringify(next)),
-          updatedAt: new Date().toISOString(),
-        },
+  await (await getDatabase()).collection(collections.settings).updateOne(
+    { id: "integrations" },
+    {
+      $set: {
+        id: "integrations",
+        payload: encrypt(JSON.stringify(next)),
+        updatedAt: new Date().toISOString(),
       },
-      { upsert: true },
-    );
+    },
+    { upsert: true },
+  );
   return next;
 }
 export function configStatus(c: IntegrationConfig) {

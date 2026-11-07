@@ -2,14 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { collections } from "@/lib/data-store";
 import { getDatabase } from "@/lib/mongodb";
-const valid = [
-  "customers",
-  "care",
-  "tickets",
-  "reports",
-  "accounts",
-  "settings",
-];
+const valid = ["customers", "care", "tickets", "reports"];
 export async function PATCH(
   r: NextRequest,
   { params }: { params: Promise<{ id: string }> },

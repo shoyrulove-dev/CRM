@@ -2,7 +2,7 @@ import { Download, Search } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/status-pill";
 import { money } from "@/lib/demo-data";
-import { listCustomers } from "@/lib/data-store";
+import { getCustomersPage } from "@/lib/data-store";
 import { CreateCustomerButton } from "@/components/create-customer-button";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
@@ -22,18 +22,23 @@ export default async function CustomersPage({
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers")) redirect("/");
-  const all = await listCustomers(params.q, user);
-  const filtered = all.filter(
-    (item) =>
-      (!params.owner || item.owner === params.owner) &&
-      (!params.status || item.status === params.status),
-  );
-  const filteredRevenue = filtered.reduce((sum, item) => sum + item.revenue, 0),
-    filteredOrders = filtered.reduce((sum, item) => sum + item.orders, 0);
   const size = 20,
-    totalPages = Math.max(1, Math.ceil(filtered.length / size)),
-    page = Math.min(totalPages, Math.max(1, Number(params.page) || 1));
-  const customers = filtered.slice((page - 1) * size, page * size);
+    requestedPage = Math.max(1, Number(params.page) || 1),
+    result = await getCustomersPage(
+      {
+        search: params.q,
+        owner: params.owner,
+        status: params.status,
+        page: requestedPage,
+        size,
+      },
+      user,
+    ),
+    totalPages = Math.max(1, Math.ceil(result.total / size)),
+    page = Math.min(totalPages, requestedPage),
+    customers = result.items,
+    filteredRevenue = result.totalRevenue,
+    filteredOrders = result.totalOrders;
   const query = (next: Record<string, string | number | undefined>) => {
     const result = new URLSearchParams();
     Object.entries({ ...params, ...next }).forEach(([key, value]) => {
@@ -54,7 +59,7 @@ export default async function CustomersPage({
       <section className="customer-summary-strip">
         <div>
           <span>Khách hàng</span>
-          <b>{filtered.length}</b>
+          <b>{result.total}</b>
         </div>
         <div>
           <span>Tổng đơn hàng</span>
@@ -106,21 +111,23 @@ export default async function CustomersPage({
             className={`chip ${!params.status ? "active" : ""}`}
             href={query({ status: undefined, page: 1 })}
           >
-            Tất cả <b>{all.length}</b>
+            Tất cả <b>{result.total}</b>
           </Link>
           <Link
             className={`chip ${params.status === "due" ? "active" : ""}`}
             href={query({ status: "due", page: 1 })}
           >
             Cần chăm sóc{" "}
-            <b>{all.filter((item) => item.status === "due").length}</b>
+            <b>{customers.filter((item) => item.status === "due").length}</b>
           </Link>
           <Link
             className={`chip ${params.status === "overdue" ? "active" : ""}`}
             href={query({ status: "overdue", page: 1 })}
           >
             Quá hạn{" "}
-            <b>{all.filter((item) => item.status === "overdue").length}</b>
+            <b>
+              {customers.filter((item) => item.status === "overdue").length}
+            </b>
           </Link>
         </div>
         <div className="table-wrap customer-table">
@@ -197,8 +204,7 @@ export default async function CustomersPage({
         <div className="pagination">
           <span>
             Hiển thị {customers.length ? (page - 1) * size + 1 : 0}–
-            {Math.min(page * size, filtered.length)} trên {filtered.length}{" "}
-            khách hàng
+            {Math.min(page * size, result.total)} trên {result.total} khách hàng
           </span>
           <div>
             <Link

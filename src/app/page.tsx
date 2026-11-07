@@ -213,7 +213,7 @@ export default async function Dashboard() {
                     </td>
                     <td className={x.status === "overdue" ? "danger-text" : ""}>
                       <Clock3 size={14} />
-                    {displayDue(x.dueAt)}
+                      {displayDue(x.dueAt)}
                     </td>
                     <td>
                       <StatusPill status={x.status} />

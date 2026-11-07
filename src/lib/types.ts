@@ -11,6 +11,8 @@ export interface UserAccount {
   createdAt: string;
   updatedAt?: string;
   groupId?: string;
+  sessionVersion?: number;
+  lastLoginAt?: string;
 }
 export type PermissionKey =
   | "customers"

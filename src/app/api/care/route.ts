@@ -3,7 +3,9 @@ import { collections, listCareTasks } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
-
+import { cleanText, oneOf, validDate } from "@/lib/validation";
+import { writeAudit } from "@/lib/audit";
+const channels = ["Gọi điện", "Zalo", "Facebook", "SMS", "Trực tiếp"] as const;
 export async function GET() {
   const user = await getCurrentUser();
   if (!hasPermission(user, "care"))
@@ -19,47 +21,72 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
     return NextResponse.json(
-      { error: "Kho dữ liệu chưa sẵn sàng. Vui lòng liên hệ quản trị viên." },
+      { error: "Kho dữ liệu chưa sẵn sàng." },
       { status: 503 },
     );
-  const body = await request.json().catch(() => null);
-  if (!body?.customer || !body?.purpose || (!body?.dueAt && !body?.baseDate))
-    return NextResponse.json(
-      { error: "Vui lòng chọn khách hàng và ngày chăm sóc." },
-      { status: 400 },
-    );
-  const user = await getCurrentUser();
-  let dueAt = body.dueAt;
+  const body = await request.json().catch(() => null),
+    user = await getCurrentUser();
   if (!hasPermission(user, "care"))
     return NextResponse.json(
       { error: "Bạn không có quyền tạo lịch chăm sóc." },
       { status: 403 },
     );
+  if (!body?.customerId || !body?.purpose || (!body?.dueAt && !body?.baseDate))
+    return NextResponse.json(
+      { error: "Vui lòng chọn khách hàng, nội dung và ngày chăm sóc." },
+      { status: 400 },
+    );
+  const db = await getDatabase(),
+    customer = await db
+      .collection(collections.customers)
+      .findOne({ id: body.customerId });
+  if (!customer)
+    return NextResponse.json(
+      { error: "Khách hàng không tồn tại." },
+      { status: 400 },
+    );
+  let dueAt = body.dueAt;
   if (!dueAt && body.baseDate) {
     const date = new Date(`${body.baseDate}T09:00:00+07:00`);
     date.setDate(date.getDate() + Number(body.offsetDays || 0));
     dueAt = date.toISOString();
   }
+  if (!validDate(dueAt) || !oneOf(body.channel || "Gọi điện", channels))
+    return NextResponse.json(
+      { error: "Ngày hoặc kênh chăm sóc không hợp lệ." },
+      { status: 400 },
+    );
+  const owner =
+    user?.role === "admin"
+      ? cleanText(body.owner || user.name, 120)
+      : user?.name || "Chưa phân công";
+  if (
+    !(await db
+      .collection(collections.users)
+      .findOne({ name: owner, active: true }))
+  )
+    return NextResponse.json(
+      { error: "Nhân viên phụ trách không tồn tại hoặc đã bị khóa." },
+      { status: 400 },
+    );
   const document = {
     id: `CS-${Date.now().toString().slice(-6)}`,
-    customerId: body.customerId || "",
-    customer: body.customer,
-    phone: body.phone || "",
-    purpose: body.purpose,
-    owner:
-      user?.role === "admin"
-        ? body.owner || user.name
-        : user?.name || "Chưa phân công",
+    customerId: customer.id,
+    customer: customer.name,
+    phone: customer.phone,
+    purpose: cleanText(body.purpose, 200),
+    owner,
     dueAt,
     offsetDays: Number(body.offsetDays || 0) || undefined,
     channel: body.channel || "Gọi điện",
-    recurrence: body.recurrence || "none",
+    recurrence: ["monthly", "yearly"].includes(body.recurrence)
+      ? body.recurrence
+      : "none",
     orderId: body.orderId || "",
     status: "due",
     createdAt: new Date().toISOString(),
   };
-  await (await getDatabase())
-    .collection(collections.careTasks)
-    .insertOne(document);
+  await db.collection(collections.careTasks).insertOne(document);
+  await writeAudit(user, "create", "care_task", document.id, null, document);
   return NextResponse.json({ data: document }, { status: 201 });
 }

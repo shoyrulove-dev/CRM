@@ -1,3 +1,107 @@
 "use client";
-import { Plus } from "lucide-react";import { FormEvent,useState } from "react";import { useRouter } from "next/navigation";import { Modal } from "./modal";
-export function CreateCustomerButton(){const[open,setOpen]=useState(false),[error,setError]=useState(""),[loading,setLoading]=useState(false),router=useRouter();async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setLoading(true);setError("");const res=await fetch('/api/customers',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget).entries()))}),json=await res.json();if(!res.ok){setError(json.error||'Không thể tạo khách hàng');setLoading(false);return}setOpen(false);router.refresh()}return <><button className="primary-button" onClick={()=>setOpen(true)}><Plus size={18}/>Thêm khách hàng</button>{open&&<Modal title="Thêm khách hàng" description="Tạo hồ sơ khách hàng mới trong CRM." onClose={()=>setOpen(false)}><form className="entity-form" onSubmit={submit}><div className="form-grid"><label className="full">Tên khách hàng<input name="name" required/></label><label>Số điện thoại<input name="phone" required/></label><label>Nhân viên phụ trách<input name="owner" placeholder="Tự nhận theo tài khoản nếu không chọn"/></label><label>Phân nhóm<select name="segment"><option>Khách mới</option><option>Khách trung thành</option><option>Đang theo liệu trình</option><option>Cần kéo lại</option></select></label><label>Mục tiêu sức khỏe<select name="healthGoal"><option>Tiêu hóa</option><option>Xương khớp</option><option>Tim mạch</option><option>Da - làm đẹp</option><option>Miễn dịch</option><option>Khác</option></select></label><label>Ngày sinh<input name="birthDate" type="date"/></label><label>Lịch chăm sóc đầu tiên<input name="nextCare" type="date"/></label></div>{error&&<p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={()=>setOpen(false)}>Hủy</button><button className="primary-button" disabled={loading}>{loading?'Đang lưu...':'Tạo khách hàng'}</button></footer></form></Modal>}</>}
+import { Plus } from "lucide-react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Modal } from "./modal";
+export function CreateCustomerButton() {
+  const [open, setOpen] = useState(false),
+    [error, setError] = useState(""),
+    [loading, setLoading] = useState(false),
+    router = useRouter();
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(
+          Object.fromEntries(new FormData(e.currentTarget).entries()),
+        ),
+      }),
+      json = await res.json();
+    if (!res.ok) {
+      setError(json.error || "Không thể tạo khách hàng");
+      setLoading(false);
+      return;
+    }
+    setOpen(false);
+    router.refresh();
+  }
+  return (
+    <>
+      <button className="primary-button" onClick={() => setOpen(true)}>
+        <Plus size={18} />
+        Thêm khách hàng
+      </button>
+      {open && (
+        <Modal
+          title="Thêm khách hàng"
+          description="Tạo hồ sơ khách hàng mới trong CRM."
+          onClose={() => setOpen(false)}
+        >
+          <form className="entity-form" onSubmit={submit}>
+            <div className="form-grid">
+              <label className="full">
+                Tên khách hàng
+                <input name="name" required />
+              </label>
+              <label>
+                Số điện thoại
+                <input name="phone" required />
+              </label>
+              <label>
+                Nhân viên phụ trách
+                <input
+                  name="owner"
+                  placeholder="Tự nhận theo tài khoản nếu không chọn"
+                />
+              </label>
+              <label>
+                Phân nhóm
+                <select name="segment">
+                  <option>Khách mới</option>
+                  <option>Khách trung thành</option>
+                  <option>Đang theo liệu trình</option>
+                  <option>Cần kéo lại</option>
+                </select>
+              </label>
+              <label>
+                Mục tiêu sức khỏe
+                <select name="healthGoal">
+                  <option>Tiêu hóa</option>
+                  <option>Xương khớp</option>
+                  <option>Tim mạch</option>
+                  <option>Da - làm đẹp</option>
+                  <option>Miễn dịch</option>
+                  <option>Khác</option>
+                </select>
+              </label>
+              <label>
+                Ngày sinh
+                <input name="birthDate" type="date" />
+              </label>
+              <label>
+                Lịch chăm sóc đầu tiên
+                <input name="nextCare" type="date" />
+              </label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <footer>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setOpen(false)}
+              >
+                Hủy
+              </button>
+              <button className="primary-button" disabled={loading}>
+                {loading ? "Đang lưu..." : "Tạo khách hàng"}
+              </button>
+            </footer>
+          </form>
+        </Modal>
+      )}
+    </>
+  );
+}

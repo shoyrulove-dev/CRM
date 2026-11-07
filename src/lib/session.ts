@@ -8,14 +8,18 @@ export interface SessionUser {
   name: string;
   email: string;
   role: UserRole;
-  permissions?:PermissionKey[];
+  permissions?: PermissionKey[];
+  sessionVersion?: number;
 }
 
 function secretKey() {
   const value = process.env.SESSION_SECRET;
   if (!value || value.length < 32) {
-    if (process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET must contain at least 32 characters");
-    return new TextEncoder().encode("local-development-session-secret-change-me");
+    if (process.env.NODE_ENV === "production")
+      throw new Error("SESSION_SECRET must contain at least 32 characters");
+    return new TextEncoder().encode(
+      "local-development-session-secret-change-me",
+    );
   }
   return new TextEncoder().encode(value);
 }
@@ -34,8 +38,20 @@ export async function verifySessionToken(token: string) {
   return payload as unknown as SessionUser;
 }
 
-export function canSeeAll(user: SessionUser | null) { return user?.role === "admin"; }
-export function roleLabel(role: UserRole) {
-  return role === "admin" ? "Quản trị viên" : role === "sales" ? "Nhân viên bán hàng" : "Chăm sóc khách hàng";
+export function canSeeAll(user: SessionUser | null) {
+  return user?.role === "admin";
 }
-export function hasPermission(user:SessionUser|null,key:PermissionKey){return user?.role==='admin'||!user?.permissions||user.permissions.includes(key)}
+export function roleLabel(role: UserRole) {
+  return role === "admin"
+    ? "Quản trị viên"
+    : role === "sales"
+      ? "Nhân viên bán hàng"
+      : "Chăm sóc khách hàng";
+}
+export function hasPermission(user: SessionUser | null, key: PermissionKey) {
+  return (
+    user?.role === "admin" ||
+    !user?.permissions ||
+    user.permissions.includes(key)
+  );
+}

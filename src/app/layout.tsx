@@ -5,14 +5,26 @@ import "./globals.css";
 import "./refinements.css";
 import { getCurrentUser } from "@/lib/current-user";
 
-const font = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700"], display: "swap" });
+const font = Be_Vietnam_Pro({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Nichiei CRM",
   description: "Hệ thống chăm sóc khách hàng Nichiei",
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
-  return <html lang="vi"><body className={font.className}><AppShell user={user}>{children}</AppShell></body></html>;
+  return (
+    <html lang="vi">
+      <body className={font.className}>
+        <AppShell user={user}>{children}</AppShell>
+      </body>
+    </html>
+  );
 }

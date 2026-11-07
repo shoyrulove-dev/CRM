@@ -41,19 +41,17 @@ export async function PATCH(
     );
   const db = await getDatabase();
   const now = new Date().toISOString();
-  const result = (await db
-    .collection(collections.careTasks)
-    .findOneAndUpdate(
-      { id, ...(user?.role === "admin" ? {} : { owner: user?.name }) },
-      {
-        $set: {
-          ...update,
-          updatedAt: now,
-          ...(update.status === "done" ? { completedAt: now } : {}),
-        },
+  const result = (await db.collection(collections.careTasks).findOneAndUpdate(
+    { id, ...(user?.role === "admin" ? {} : { owner: user?.name }) },
+    {
+      $set: {
+        ...update,
+        updatedAt: now,
+        ...(update.status === "done" ? { completedAt: now } : {}),
       },
-      { returnDocument: "after", projection: { _id: 0 } },
-    )) as CareTask | null;
+    },
+    { returnDocument: "after", projection: { _id: 0 } },
+  )) as CareTask | null;
   if (!result)
     return NextResponse.json(
       { error: "Không tìm thấy nhiệm vụ." },
@@ -69,23 +67,21 @@ export async function PATCH(
       nextDue.setMonth(nextDue.getMonth() + 1);
     else nextDue.setFullYear(nextDue.getFullYear() + 1);
     const nextId = `${result.id}-R-${nextDue.toISOString().slice(0, 10)}`;
-    await db
-      .collection(collections.careTasks)
-      .updateOne(
-        { id: nextId },
-        {
-          $setOnInsert: {
-            ...result,
-            id: nextId,
-            dueAt: nextDue.toISOString(),
-            status: "due",
-            completedAt: null,
-            createdAt: now,
-            parentTaskId: result.id,
-          },
+    await db.collection(collections.careTasks).updateOne(
+      { id: nextId },
+      {
+        $setOnInsert: {
+          ...result,
+          id: nextId,
+          dueAt: nextDue.toISOString(),
+          status: "due",
+          completedAt: null,
+          createdAt: now,
+          parentTaskId: result.id,
         },
-        { upsert: true },
-      );
+      },
+      { upsert: true },
+    );
   }
   return NextResponse.json({ data: result });
 }

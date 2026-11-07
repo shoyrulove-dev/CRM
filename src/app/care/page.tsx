@@ -26,7 +26,12 @@ function careDate(value: string) {
 export default async function CarePage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; owner?: string; status?: string }>;
+  searchParams: Promise<{
+    date?: string;
+    owner?: string;
+    status?: string;
+    task?: string;
+  }>;
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
@@ -41,7 +46,8 @@ export default async function CarePage({
     (item) =>
       (!params.date || item.dueAt.startsWith(params.date)) &&
       (!params.owner || item.owner === params.owner) &&
-      (!params.status || item.status === params.status),
+      (!params.status || item.status === params.status) &&
+      (!params.task || item.id === params.task),
   );
   const employees = allUsers
     .filter((item) => item.active)

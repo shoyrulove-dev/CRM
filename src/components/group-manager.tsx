@@ -9,8 +9,6 @@ const choices: [PermissionKey, string][] = [
   ["care", "Lịch chăm sóc"],
   ["tickets", "Phiếu yêu cầu"],
   ["reports", "Báo cáo"],
-  ["accounts", "Quản lý tài khoản"],
-  ["settings", "Cài đặt kết nối"],
 ];
 export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
   const [open, setOpen] = useState(false),

@@ -14,7 +14,9 @@ export function hasDatabase() {
 export async function getDatabase() {
   if (!uri) throw new Error("MONGODB_URI is not configured");
   if (!global.mongoClientPromise) {
-    global.mongoClientPromise = new MongoClient(uri, { maxPoolSize: 10 }).connect();
+    global.mongoClientPromise = new MongoClient(uri, {
+      maxPoolSize: 10,
+    }).connect();
   }
   return (await global.mongoClientPromise).db(databaseName);
 }

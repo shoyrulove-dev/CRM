@@ -3,6 +3,7 @@ import { collections, listTickets } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
+import { writeAudit } from "@/lib/audit";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -52,5 +53,6 @@ export async function POST(request: NextRequest) {
   await (await getDatabase())
     .collection(collections.tickets)
     .insertOne(document);
+  await writeAudit(user, "create", "ticket", document.id, null, document);
   return NextResponse.json({ data: document }, { status: 201 });
 }

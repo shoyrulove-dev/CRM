@@ -8,38 +8,32 @@ type Task = {
   purpose: string;
   dueAt: string;
   status: string;
+  category: string;
+  read: boolean;
 };
-function dueText(v: string) {
-  const d = new Date(v);
-  return Number.isNaN(d.getTime())
-    ? v
-    : d.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
-}
+const dueText = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" });
+};
 export function NotificationBell() {
   const [items, setItems] = useState<Task[]>([]),
+    [unread, setUnread] = useState(0),
     [open, setOpen] = useState(false),
     box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let active = true;
-    fetch("/api/care")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!active || !j?.data) return;
-        const today = new Date().toISOString().slice(0, 10);
-        setItems(
-          j.data
-            .filter(
-              (x: Task) =>
-                x.status !== "done" &&
-                (x.status === "overdue" ||
-                  x.dueAt.slice(0, 10) <= today ||
-                  x.dueAt.startsWith("Hôm nay")),
-            )
-            .slice(0, 8),
-        );
+    fetch("/api/notifications")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((json) => {
+        if (active && json?.data) {
+          setItems(json.data);
+          setUnread(json.unread);
+        }
       });
-    const close = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node))
+    const close = (event: MouseEvent) => {
+      if (box.current && !box.current.contains(event.target as Node))
         setOpen(false);
     };
     document.addEventListener("mousedown", close);
@@ -48,6 +42,22 @@ export function NotificationBell() {
       document.removeEventListener("mousedown", close);
     };
   }, []);
+  async function read(task: Task) {
+    if (!task.read) {
+      await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids: [task.id] }),
+      });
+      setItems((old) =>
+        old.map((item) =>
+          item.id === task.id ? { ...item, read: true } : item,
+        ),
+      );
+      setUnread((value) => Math.max(0, value - 1));
+    }
+    setOpen(false);
+  }
   return (
     <div className="notification-wrap" ref={box}>
       <button
@@ -56,8 +66,8 @@ export function NotificationBell() {
         aria-label="Mở thông báo"
       >
         <Bell size={20} />
-        {items.length > 0 && (
-          <b className="notification-count">{items.length}</b>
+        {unread > 0 && (
+          <b className="notification-count">{unread > 9 ? "9+" : unread}</b>
         )}
       </button>
       {open && (
@@ -65,20 +75,26 @@ export function NotificationBell() {
           <header>
             <div>
               <b>Việc cần xử lý</b>
-              <span>{items.length} thông báo đang chờ</span>
+              <span>{unread} thông báo chưa xem</span>
             </div>
             <Link href="/care">Xem tất cả</Link>
           </header>
           <div className="notification-list">
-            {items.map((x) => (
-              <Link key={x.id} href="/care" onClick={() => setOpen(false)}>
-                <i className={x.status === "overdue" ? "late" : ""}>
+            {items.map((item) => (
+              <Link
+                className={item.read ? "read" : ""}
+                key={item.id}
+                href={`/care?task=${encodeURIComponent(item.id)}`}
+                onClick={() => read(item)}
+              >
+                <i className={item.category === "Quá hạn" ? "late" : ""}>
                   <CalendarClock />
                 </i>
                 <span>
-                  <b>{x.purpose}</b>
+                  <em>{item.category}</em>
+                  <b>{item.purpose}</b>
                   <small>
-                    {x.customer} · {dueText(x.dueAt)}
+                    {item.customer} · {dueText(item.dueAt)}
                   </small>
                 </span>
                 <ChevronRight />

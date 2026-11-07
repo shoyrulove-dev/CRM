@@ -22,6 +22,8 @@ export const collections = {
   users: "users",
   settings: "settings",
   permissionGroups: "permission_groups",
+  loginAttempts: "login_attempts",
+  notificationReads: "notification_reads",
 } as const;
 
 export async function ensureIndexes() {
@@ -62,6 +64,12 @@ export async function ensureIndexes() {
     db
       .collection(collections.users)
       .createIndex({ email: 1 }, { unique: true }),
+    db
+      .collection(collections.loginAttempts)
+      .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
+    db
+      .collection(collections.notificationReads)
+      .createIndex({ userId: 1, taskId: 1 }, { unique: true }),
   ]);
   return true;
 }
@@ -125,6 +133,78 @@ export async function listCustomers(
   if (user && user.role !== "admin") clauses.push({ owner: user.name });
   const filter = clauses.length ? { $and: clauses } : {};
   return listFromMongo<Customer>(collections.customers, filter, { name: 1 });
+}
+
+export async function getCustomersPage(
+  input: {
+    search?: string;
+    owner?: string;
+    status?: string;
+    page?: number;
+    size?: number;
+  },
+  user?: SessionUser | null,
+) {
+  const page = Math.max(1, input.page || 1),
+    size = Math.min(100, Math.max(1, input.size || 20));
+  if (!hasDatabase()) {
+    const filtered = customers.filter(
+      (item) =>
+        (!user || user.role === "admin" || item.owner === user.name) &&
+        (!input.search ||
+          `${item.name} ${item.phone} ${item.id}`
+            .toLowerCase()
+            .includes(input.search.toLowerCase())) &&
+        (!input.owner || item.owner === input.owner) &&
+        (!input.status || item.status === input.status),
+    );
+    return {
+      items: filtered.slice((page - 1) * size, page * size),
+      total: filtered.length,
+      totalRevenue: filtered.reduce((sum, item) => sum + item.revenue, 0),
+      totalOrders: filtered.reduce((sum, item) => sum + item.orders, 0),
+    };
+  }
+  const filter: Record<string, unknown> = {};
+  if (user && user.role !== "admin") filter.owner = user.name;
+  else if (input.owner) filter.owner = input.owner;
+  if (input.status) filter.status = input.status;
+  if (input.search)
+    filter.$or = [
+      { name: { $regex: input.search, $options: "i" } },
+      { phone: { $regex: input.search, $options: "i" } },
+      { id: { $regex: input.search, $options: "i" } },
+    ];
+  const db = await getDatabase();
+  const [items, totals] = await Promise.all([
+    db
+      .collection(collections.customers)
+      .find(filter, { projection: { _id: 0 } })
+      .sort({ name: 1 })
+      .skip((page - 1) * size)
+      .limit(size)
+      .toArray(),
+    db
+      .collection(collections.customers)
+      .aggregate([
+        { $match: filter },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            totalRevenue: { $sum: "$revenue" },
+            totalOrders: { $sum: "$orders" },
+          },
+        },
+      ])
+      .next(),
+  ]);
+  return {
+    items: items as unknown as Customer[],
+    total: Number(totals?.total || 0),
+    totalRevenue: Number(totals?.totalRevenue || 0),
+    totalOrders: Number(totals?.totalOrders || 0),
+  };
 }
 
 export async function getCustomerProfile(
