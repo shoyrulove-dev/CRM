@@ -78,7 +78,7 @@ async function fetchPages<T>(
   const total = Number(countPayload.count || 0);
   const totalPages = Math.ceil(total / 50);
   // Keep each import comfortably below Vercel's function duration limit.
-  const lastPage = Math.min(totalPages, startPage + 4);
+  const lastPage = Math.min(totalPages, startPage + 9);
   const pages = Array.from(
     { length: Math.max(0, lastPage - startPage + 1) },
     (_, index) => startPage + index,
