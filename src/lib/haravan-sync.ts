@@ -77,7 +77,8 @@ async function fetchPages<T>(
   const countPayload = (await countResponse.json()) as { count?: number };
   const total = Number(countPayload.count || 0);
   const totalPages = Math.ceil(total / 50);
-  const lastPage = Math.min(totalPages, startPage + 19);
+  // Keep each import comfortably below Vercel's function duration limit.
+  const lastPage = Math.min(totalPages, startPage + 4);
   const pages = Array.from(
     { length: Math.max(0, lastPage - startPage + 1) },
     (_, index) => startPage + index,
@@ -283,20 +284,24 @@ export async function syncHaravanData() {
       }));
     }
     const affectedCustomerIds = [...new Set(customerMap.values().map((item) => item.id))];
-    for (const customerId of affectedCustomerIds) {
+    for (let offset = 0; offset < affectedCustomerIds.length; offset += 20) {
+      await Promise.all(affectedCustomerIds.slice(offset, offset + 20).map(async (customerId) => {
       const customerOrders = await db
         .collection(collections.orders)
         .find({ customerId, status: "Mua hàng" })
         .sort({ orderDate: 1, code: 1 })
         .project({ id: 1 })
         .toArray();
-      for (let index = 0; index < customerOrders.length; index += 1)
-        await db.collection(collections.orders).updateOne(
-          { id: customerOrders[index].id },
-          { $set: { purchaseType: index === 0 ? "Mua mới" : "Mua lại" } },
-        );
+      await Promise.all(
+        customerOrders.map((order, index) =>
+          db.collection(collections.orders).updateOne(
+            { id: order.id },
+            { $set: { purchaseType: index === 0 ? "Mua mới" : "Mua lại" } },
+          ),
+        ),
+      );
+      }));
     }
-    await reconcileCustomers();
     const finishedAt = new Date();
     const result = {
       customers: customers.length,
@@ -308,6 +313,7 @@ export async function syncHaravanData() {
       incremental,
       complete: customerBatch.done && orderBatch.done,
     };
+    if (result.complete || incremental) await reconcileCustomers();
     await db.collection(collections.settings).updateOne(
       { id: "haravan_sync" },
       {
