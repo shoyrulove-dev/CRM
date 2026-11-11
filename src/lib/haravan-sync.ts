@@ -266,8 +266,17 @@ export async function syncHaravanData() {
         source: "haravan",
         syncedAt: new Date().toISOString(),
       };
+      const existingOrder = await db.collection(collections.orders).findOne({
+        $or: [
+          { haravanId: String(order.id) },
+          { code: document.code },
+        ],
+      });
+      if (existingOrder?.id) document.id = String(existingOrder.id);
       await db.collection(collections.orders).updateOne(
-        { haravanId: String(order.id) },
+        existingOrder?._id
+          ? { _id: existingOrder._id }
+          : { haravanId: String(order.id) },
         { $set: document },
         { upsert: true },
       );
