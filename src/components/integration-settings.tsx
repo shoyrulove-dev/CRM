@@ -11,6 +11,18 @@ type Data = {
   hasR2Secret: boolean;
   status: { haravan: boolean; r2: boolean };
 };
+type HaravanTest = {
+  ok: boolean;
+  shopName: string;
+  shopDomain: string;
+  checks: Array<{
+    key: string;
+    label: string;
+    ok: boolean;
+    status: number;
+    message: string;
+  }>;
+};
 export function IntegrationSettings({
   initial,
   dataReady,
@@ -20,7 +32,9 @@ export function IntegrationSettings({
 }) {
   const [tab, setTab] = useState<"general" | "haravan" | "r2">("general"),
     [status, setStatus] = useState(initial.status),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [testing, setTesting] = useState(false),
+    [haravanTest, setHaravanTest] = useState<HaravanTest | null>(null);
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("Đang lưu...");
@@ -34,6 +48,26 @@ export function IntegrationSettings({
     if (!r.ok) return setMessage(j.error || "Không thể lưu cài đặt");
     setStatus(j.status);
     setMessage("Đã lưu an toàn. Cấu hình mới được áp dụng ngay.");
+  }
+  async function testHaravan() {
+    setTesting(true);
+    setMessage("Đang kiểm tra Token với Haravan...");
+    setHaravanTest(null);
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "testHaravan" }),
+    });
+    const json = await response.json();
+    setTesting(false);
+    if (!response.ok)
+      return setMessage(json.error || "Không thể kiểm tra kết nối Haravan.");
+    setHaravanTest(json.data);
+    setMessage(
+      json.data.ok
+        ? "Token hoạt động tốt và có đủ quyền đọc dữ liệu cần thiết."
+        : "Token đã được kiểm tra. Vui lòng xem quyền nào còn thiếu bên dưới.",
+    );
   }
   return (
     <>
@@ -86,56 +120,90 @@ export function IntegrationSettings({
             <div>
               <h2>Kết nối Haravan</h2>
               <p>
-                Nhập thông tin ứng dụng Haravan. Khóa bí mật được mã hóa trước
-                khi lưu.
+                Private App chỉ cần một Token. Token được mã hóa trước khi lưu
+                và không hiển thị lại.
               </p>
             </div>
           </div>
           <form onSubmit={save} className="config-form">
-            <label>
-              Tên cửa hàng
-              <input
-                name="haravanShop"
-                defaultValue={initial.haravanShop}
-                placeholder="nichiei.myharavan.com"
-                required
-              />
-            </label>
-            <label>
-              Khóa truy cập
+            <label className="full">
+              Token Private App
               <input
                 name="haravanAccessToken"
                 type="password"
                 placeholder={
                   initial.hasHaravanToken
                     ? "Đã lưu · nhập để thay đổi"
-                    : "Nhập khóa truy cập"
+                    : "Dán Token được cấp trong Private App"
                 }
               />
-            </label>
-            <label>
-              Khóa xác thực webhook
-              <input
-                name="haravanWebhookSecret"
-                type="password"
-                placeholder={
-                  initial.hasWebhookSecret
-                    ? "Đã lưu · nhập để thay đổi"
-                    : "Nhập khóa xác thực"
-                }
-              />
+              <small>
+                Token cần quyền đọc đơn hàng, khách hàng và sản phẩm.
+              </small>
             </label>
             <label className="full">
-              Địa chỉ nhận dữ liệu
+              Cửa hàng nhận diện tự động
               <input
-                value="https://nichiei-crm.vercel.app/api/webhooks/haravan"
+                value={
+                  haravanTest?.shopDomain ||
+                  initial.haravanShop ||
+                  "Sẽ hiển thị sau khi kiểm tra Token"
+                }
                 readOnly
               />
             </label>
+            <details className="full config-advanced">
+              <summary>Đồng bộ tự động bằng webhook (tùy chọn)</summary>
+              <label>
+                Webhook authentication secret
+                <input
+                  name="haravanWebhookSecret"
+                  type="password"
+                  placeholder={
+                    initial.hasWebhookSecret
+                      ? "Đã lưu · nhập để thay đổi"
+                      : "Có thể bổ sung sau"
+                  }
+                />
+              </label>
+              <label>
+                Địa chỉ nhận dữ liệu
+                <input
+                  value="https://nichiei-crm.vercel.app/api/webhooks/haravan"
+                  readOnly
+                />
+              </label>
+            </details>
             <footer>
-              <button className="primary-button">Lưu cấu hình Haravan</button>
+              <button className="primary-button">Lưu Token</button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={
+                  testing || (!initial.hasHaravanToken && !status.haravan)
+                }
+                onClick={testHaravan}
+              >
+                {testing ? "Đang kiểm tra..." : "Kiểm tra kết nối"}
+              </button>
             </footer>
           </form>
+          {haravanTest && (
+            <div className="connection-checks full">
+              <h3>{haravanTest.shopName || "Kết quả kiểm tra Haravan"}</h3>
+              {haravanTest.checks.map((check) => (
+                <p
+                  key={check.key}
+                  className={check.ok ? "green-text" : "danger-text"}
+                >
+                  <b>
+                    {check.ok ? "✓" : "!"} {check.label}
+                  </b>
+                  <span>{check.message}</span>
+                </p>
+              ))}
+            </div>
+          )}
         </section>
       )}
       {tab === "r2" && (

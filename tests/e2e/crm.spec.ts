@@ -82,3 +82,16 @@ test("danh sách khách và bộ lọc tháng hiển thị đúng yêu cầu", a
   await page.goto("/accounts");
   await expect(page.getByRole("button", { name: /Đã lưu trữ/ })).toBeVisible();
 });
+
+test("cấu hình Haravan chỉ yêu cầu một Token", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByRole("button", { name: /Haravan/ }).click();
+  await expect(page.getByLabel(/Token Private App/)).toBeVisible();
+  await expect(
+    page.getByText("Cửa hàng nhận diện tự động", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Đồng bộ tự động bằng webhook (tùy chọn)", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Lưu Token" })).toBeVisible();
+});

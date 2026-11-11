@@ -55,7 +55,9 @@ export async function getIntegrationConfig(): Promise<IntegrationConfig> {
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   };
   if (!hasDatabase()) return env;
-  const row = await (await getDatabase())
+  const row = await (
+    await getDatabase()
+  )
     .collection(collections.settings)
     .findOne({ id: "integrations" });
   if (!row?.payload) return env;
@@ -85,9 +87,7 @@ export async function saveIntegrationConfig(input: IntegrationConfig) {
 }
 export function configStatus(c: IntegrationConfig) {
   return {
-    haravan: Boolean(
-      c.haravanShop && c.haravanAccessToken && c.haravanWebhookSecret,
-    ),
+    haravan: Boolean(c.haravanAccessToken),
     r2: Boolean(
       c.r2Endpoint && c.r2Bucket && c.r2AccessKeyId && c.r2SecretAccessKey,
     ),

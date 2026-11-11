@@ -293,6 +293,39 @@
   border-radius: 7px;
   padding: 10px 13px;
 }
+.config-advanced {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+}
+.config-advanced summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--ink);
+}
+.config-advanced[open] {
+  display: grid;
+  gap: 14px;
+}
+.connection-checks {
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+}
+.connection-checks p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.connection-checks p span {
+  color: var(--muted);
+  text-align: right;
+}
 .help-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

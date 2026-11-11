@@ -5,6 +5,7 @@ import {
   getIntegrationConfig,
   saveIntegrationConfig,
 } from "@/lib/integration-config";
+import { testHaravanConnection } from "@/lib/haravan";
 async function allowed() {
   return (await getCurrentUser())?.role === "admin";
 }
@@ -42,4 +43,36 @@ export async function PATCH(request: NextRequest) {
     );
   const c = await saveIntegrationConfig(body);
   return NextResponse.json({ ok: true, status: configStatus(c) });
+}
+
+export async function POST(request: NextRequest) {
+  if (!(await allowed()))
+    return NextResponse.json(
+      { error: "Bạn không có quyền kiểm tra kết nối." },
+      { status: 403 },
+    );
+  const body = await request.json().catch(() => null);
+  if (body?.action !== "testHaravan")
+    return NextResponse.json(
+      { error: "Yêu cầu không hợp lệ." },
+      { status: 400 },
+    );
+  try {
+    const result = await testHaravanConnection();
+    if (result.shopDomain || result.shopName)
+      await saveIntegrationConfig({
+        haravanShop: result.shopDomain || result.shopName,
+      });
+    return NextResponse.json({ data: result });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Không thể kiểm tra Haravan.",
+      },
+      { status: 400 },
+    );
+  }
 }
