@@ -33,6 +33,8 @@ export default async function Dashboard() {
     sourceData = await getReportData(user),
     canViewCustomers = hasPermission(user, "customers") || hasPermission(user, "reports"),
     canViewCare = hasPermission(user, "care") || hasPermission(user, "reports"),
+    canOpenCustomers = hasPermission(user, "customers"),
+    canOpenReports = hasPermission(user, "reports"),
     data = {
       ...sourceData,
       customers: canViewCustomers ? sourceData.customers : [],
@@ -152,7 +154,7 @@ export default async function Dashboard() {
           </span>
         </div>
         <div className="welcome-actions">
-          {canViewCustomers && (
+          {canOpenCustomers && (
             <Link className="secondary-button" href="/customers">
               Xem khách hàng
             </Link>
@@ -291,15 +293,15 @@ export default async function Dashboard() {
                 <p>Tín hiệu cần theo dõi</p>
               </div>
             </div>
-            <Link href="/care">
+            {canViewCare && <Link href="/care">
               <TriangleAlert className="danger-text" />
               <span>
                 <b>{overdue.length} việc quá hạn</b>
                 <small>Ưu tiên xử lý trước</small>
               </span>
               <ArrowRight />
-            </Link>
-            <Link href="/reports">
+            </Link>}
+            {canOpenReports && <Link href="/reports">
               <Headphones />
               <span>
                 <b>
@@ -309,8 +311,8 @@ export default async function Dashboard() {
                 <small>Kiểm tra lịch sử chăm sóc</small>
               </span>
               <ArrowRight />
-            </Link>
-            <Link href="/customers">
+            </Link>}
+            {canOpenCustomers && <Link href="/customers">
               <ShoppingBag />
               <span>
                 <b>
@@ -320,7 +322,7 @@ export default async function Dashboard() {
                 <small>Xem danh sách phụ trách</small>
               </span>
               <ArrowRight />
-            </Link>
+            </Link>}
           </section>
         </aside>
       </div>
