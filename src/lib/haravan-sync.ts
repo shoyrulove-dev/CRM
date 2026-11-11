@@ -2,7 +2,6 @@ import "server-only";
 import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getIntegrationConfig } from "./integration-config";
 import { getDatabase, hasDatabase } from "./mongodb";
-import { runScheduler } from "./scheduler";
 
 type HaravanCustomer = {
   id: number | string;
@@ -82,7 +81,7 @@ async function fetchPages<T>(
     const payload = (await response.json()) as Record<string, T[]>;
     const batch = payload[resource] || [];
     rows.push(...batch);
-    if (batch.length < 250) break;
+    if (!batch.length) break;
     if (page === 100)
       throw new Error("Dữ liệu Haravan quá lớn, cần chia nhỏ lần đồng bộ đầu tiên.");
   }
@@ -156,7 +155,7 @@ export async function syncHaravanData() {
     .collection(collections.settings)
     .findOne({ id: "haravan_sync" });
   const startedAt = new Date();
-  const updatedAtMin = previous?.lastSuccessAt
+  const updatedAtMin = previous?.complete && previous?.lastSuccessAt
     ? new Date(new Date(String(previous.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
   await db.collection(collections.settings).updateOne(
@@ -170,13 +169,22 @@ export async function syncHaravanData() {
       fetchPages<HaravanOrder>("orders", config.haravanAccessToken, updatedAtMin),
     ]);
     const customerMap = new Map<string, { id: string; owner: string }>();
-    for (const customer of customers) {
-      const mapped = await upsertCustomer(customer);
-      customerMap.set(String(customer.id), mapped);
+    for (let offset = 0; offset < customers.length; offset += 10) {
+      const batch = customers.slice(offset, offset + 10);
+      const mapped = await Promise.all(
+        batch.map(async (customer) => ({
+          key: String(customer.id),
+          value: await upsertCustomer(customer),
+        })),
+      );
+      mapped.forEach((item) => customerMap.set(item.key, item.value));
     }
-    for (const order of orders.sort((a, b) =>
+    const sortedOrders = orders.sort((a, b) =>
       String(a.created_at || "").localeCompare(String(b.created_at || "")),
-    )) {
+    );
+    for (let offset = 0; offset < sortedOrders.length; offset += 10) {
+      const batch = sortedOrders.slice(offset, offset + 10);
+      await Promise.all(batch.map(async (order) => {
       const rawCustomer =
         order.customer || ({ id: `order-${order.id}` } as HaravanCustomer);
       let mapped = rawCustomer.id ? customerMap.get(String(rawCustomer.id)) : undefined;
@@ -225,6 +233,7 @@ export async function syncHaravanData() {
         { $set: document },
         { upsert: true },
       );
+      }));
     }
     const affectedCustomerIds = [...new Set(customerMap.values().map((item) => item.id))];
     for (const customerId of affectedCustomerIds) {
@@ -251,10 +260,9 @@ export async function syncHaravanData() {
     };
     await db.collection(collections.settings).updateOne(
       { id: "haravan_sync" },
-      { $set: { status: "success", lastSuccessAt: finishedAt.toISOString(), ...result }, $unset: { error: "" } },
+      { $set: { status: "success", complete: true, lastSuccessAt: finishedAt.toISOString(), ...result }, $unset: { error: "" } },
       { upsert: true },
     );
-    await runScheduler();
     return result;
   } catch (error) {
     await db.collection(collections.settings).updateOne(
