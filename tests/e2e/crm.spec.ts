@@ -36,3 +36,30 @@ test("hồ sơ khách hàng có đủ bốn tab", async ({ page }) => {
         .getByRole("link", { name: new RegExp(name) }),
     ).toBeVisible();
 });
+
+test("quản trị thấy các công cụ nâng cấp mới", async ({ page }) => {
+  await page.goto("/customers");
+  await expect(page.getByRole("button", { name: "Xuất Excel" })).toBeVisible();
+  await expect(page.getByLabel("Từ ngày mua")).toBeVisible();
+  await page.goto("/care");
+  await expect(
+    page.getByRole("button", { name: "Tạo hàng loạt" }),
+  ).toBeVisible();
+  await page.goto("/tickets");
+  await expect(page.getByText("HƯỚNG XỬ LÝ", { exact: true })).toBeVisible();
+  await page.goto("/accounts");
+  await expect(
+    page.getByRole("heading", { name: "Lịch sử đăng nhập" }),
+  ).toBeVisible();
+});
+
+test("nhân viên bán hàng không được xuất dữ liệu tổng", async ({ page }) => {
+  await page.request.post("/api/auth/logout");
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("sale@nichiei.vn");
+  await page.locator('input[type="password"]').fill("Sale@2026");
+  await page.getByRole("button", { name: "Đăng nhập" }).click();
+  await expect(page).toHaveURL(/\/$/, { timeout: 20_000 });
+  const response = await page.request.get("/api/customers/export");
+  expect(response.status()).toBe(403);
+});

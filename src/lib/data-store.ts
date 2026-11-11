@@ -24,6 +24,7 @@ export const collections = {
   permissionGroups: "permission_groups",
   loginAttempts: "login_attempts",
   notificationReads: "notification_reads",
+  loginEvents: "login_events",
 } as const;
 
 export async function ensureIndexes() {
@@ -70,6 +71,16 @@ export async function ensureIndexes() {
     db
       .collection(collections.notificationReads)
       .createIndex({ userId: 1, taskId: 1 }, { unique: true }),
+    db.collection(collections.loginEvents).createIndex({ createdAt: -1 }),
+    db
+      .collection(collections.loginEvents)
+      .createIndex({ userId: 1, createdAt: -1 }),
+    db
+      .collection(collections.tickets)
+      .createIndex({ owner: 1, status: 1, createdAt: -1 }),
+    db
+      .collection(collections.orders)
+      .createIndex({ "products.sku": 1, orderDate: -1 }),
   ]);
   return true;
 }
@@ -140,6 +151,8 @@ export async function getCustomersPage(
     search?: string;
     owner?: string;
     status?: string;
+    from?: string;
+    to?: string;
     page?: number;
     size?: number;
   },
@@ -156,7 +169,9 @@ export async function getCustomersPage(
             .toLowerCase()
             .includes(input.search.toLowerCase())) &&
         (!input.owner || item.owner === input.owner) &&
-        (!input.status || item.status === input.status),
+        (!input.status || item.status === input.status) &&
+        (!input.from || item.lastOrder >= input.from) &&
+        (!input.to || item.lastOrder <= input.to),
     );
     return {
       items: filtered.slice((page - 1) * size, page * size),
@@ -169,6 +184,11 @@ export async function getCustomersPage(
   if (user && user.role !== "admin") filter.owner = user.name;
   else if (input.owner) filter.owner = input.owner;
   if (input.status) filter.status = input.status;
+  if (input.from || input.to)
+    filter.lastOrder = {
+      ...(input.from ? { $gte: input.from } : {}),
+      ...(input.to ? { $lte: input.to } : {}),
+    };
   if (input.search)
     filter.$or = [
       { name: { $regex: input.search, $options: "i" } },

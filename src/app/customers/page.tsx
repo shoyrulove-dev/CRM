@@ -1,4 +1,4 @@
-import { Download, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/status-pill";
 import { money } from "@/lib/demo-data";
@@ -7,6 +7,8 @@ import { CreateCustomerButton } from "@/components/create-customer-button";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { listUsers } from "@/lib/users";
+import { ExportCustomersButton } from "@/components/export-customers-button";
 
 export const dynamic = "force-dynamic";
 export default async function CustomersPage({
@@ -17,11 +19,17 @@ export default async function CustomersPage({
     owner?: string;
     status?: string;
     page?: string;
+    from?: string;
+    to?: string;
   }>;
 }) {
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers")) redirect("/");
+  const employees =
+    user?.role === "admin"
+      ? (await listUsers()).filter((item) => item.active)
+      : [];
   const size = 20,
     requestedPage = Math.max(1, Number(params.page) || 1),
     result = await getCustomersPage(
@@ -29,6 +37,8 @@ export default async function CustomersPage({
         search: params.q,
         owner: params.owner,
         status: params.status,
+        from: params.from,
+        to: params.to,
         page: requestedPage,
         size,
       },
@@ -86,10 +96,24 @@ export default async function CustomersPage({
             defaultValue={params.owner || ""}
           >
             <option value="">Tất cả nhân viên</option>
-            {["Vân Anh", "Trâm", "Linh", "Ly", "Phước An"].map((name) => (
-              <option key={name}>{name}</option>
+            {employees.map((employee) => (
+              <option key={employee.id}>{employee.name}</option>
             ))}
           </select>
+          <input
+            className="ghost-select"
+            type="date"
+            name="from"
+            defaultValue={params.from}
+            aria-label="Từ ngày mua"
+          />
+          <input
+            className="ghost-select"
+            type="date"
+            name="to"
+            defaultValue={params.to}
+            aria-label="Đến ngày mua"
+          />
           <select
             className="ghost-select"
             name="status"
@@ -101,10 +125,17 @@ export default async function CustomersPage({
             <option value="done">Đã hoàn thành</option>
           </select>
           <button className="secondary-button">Lọc</button>
-          <Link className="secondary-button" href="/api/customers/export">
-            <Download size={17} />
-            Xuất Excel
-          </Link>
+          {user?.role === "admin" && (
+            <ExportCustomersButton
+              query={{
+                q: params.q,
+                owner: params.owner,
+                status: params.status,
+                from: params.from,
+                to: params.to,
+              }}
+            />
+          )}
         </form>
         <div className="filter-chips">
           <Link

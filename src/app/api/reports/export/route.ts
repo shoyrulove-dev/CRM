@@ -10,12 +10,15 @@ export async function GET(request: NextRequest) {
     return new Response("Không có quyền xuất báo cáo.", { status: 403 });
   const data = await getReportData(user),
     from = request.nextUrl.searchParams.get("from"),
-    to = request.nextUrl.searchParams.get("to");
-  const activities = data.activities.filter(
-    (item) =>
-      (!from || item.occurredAt.slice(0, 10) >= from) &&
-      (!to || item.occurredAt.slice(0, 10) <= to),
-  );
+    to = request.nextUrl.searchParams.get("to"),
+    owner = request.nextUrl.searchParams.get("owner");
+  const activities = data.activities
+    .filter(
+      (item) =>
+        (!from || item.occurredAt.slice(0, 10) >= from) &&
+        (!to || item.occurredAt.slice(0, 10) <= to),
+    )
+    .filter((item) => !owner || item.employee === owner);
   const headers = [
     "Mã KH",
     "Mã đơn",

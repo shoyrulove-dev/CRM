@@ -19,6 +19,23 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const key = `${email}:${ip}`,
     now = new Date();
+  const recordLogin = async (
+    success: boolean,
+    reason: string,
+    user?: { id: string; name: string },
+  ) => {
+    if (!hasDatabase()) return;
+    await (await getDatabase()).collection(collections.loginEvents).insertOne({
+      id: `DN-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      email,
+      userId: user?.id,
+      userName: user?.name,
+      ip,
+      success,
+      reason,
+      createdAt: new Date().toISOString(),
+    });
+  };
   if (hasDatabase()) {
     const db = await getDatabase(),
       attempt = await db.collection(collections.loginAttempts).findOne({ key });
@@ -26,16 +43,20 @@ export async function POST(request: NextRequest) {
       attempt &&
       Number(attempt.count) >= 5 &&
       new Date(String(attempt.expiresAt)) > now
-    )
+    ) {
+      await recordLogin(false, "Tạm khóa do đăng nhập sai nhiều lần");
       return NextResponse.json(
         { error: "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút." },
         { status: 429 },
       );
+    }
   }
   const user = await authenticateUser(email, body.password);
   if (!user) {
     if (hasDatabase())
-      await (await getDatabase())
+      await (
+        await getDatabase()
+      )
         .collection(collections.loginAttempts)
         .updateOne(
           { key },
@@ -50,11 +71,16 @@ export async function POST(request: NextRequest) {
           },
           { upsert: true },
         );
+    await recordLogin(
+      false,
+      "Email, mật khẩu không đúng hoặc tài khoản bị khóa",
+    );
     return NextResponse.json(
       { error: "Email hoặc mật khẩu không đúng, hoặc tài khoản đã bị khóa." },
       { status: 401 },
     );
   }
+  await recordLogin(true, "Đăng nhập thành công", user);
   if (hasDatabase()) {
     const db = await getDatabase();
     await Promise.all([

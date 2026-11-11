@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
-import { Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { Pencil, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { PermissionGroup, PermissionKey } from "@/lib/types";
@@ -12,6 +12,7 @@ const choices: [PermissionKey, string][] = [
 ];
 export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
   const [open, setOpen] = useState(false),
+    [editing, setEditing] = useState<PermissionGroup | null>(null),
     router = useRouter();
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,6 +35,23 @@ export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
     const r = await fetch(`/api/groups/${id}`, { method: "DELETE" });
     if (r.ok) router.refresh();
     else alert((await r.json()).error);
+  }
+  async function update(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editing) return;
+    const f = new FormData(e.currentTarget),
+      r = await fetch(`/api/groups/${editing.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: f.get("name"),
+          permissions: f.getAll("permissions"),
+        }),
+      });
+    if (r.ok) {
+      setEditing(null);
+      router.refresh();
+    } else alert((await r.json()).error);
   }
   return (
     <section className="group-section">
@@ -61,9 +79,14 @@ export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
                   .join(" · ") || "Chưa có quyền"}
               </small>
             </div>
-            <button onClick={() => remove(g.id)}>
-              <Trash2 />
-            </button>
+            <div className="row-buttons">
+              <button onClick={() => setEditing(g)} title="Sửa nhóm">
+                <Pencil />
+              </button>
+              <button onClick={() => remove(g.id)} title="Xóa nhóm">
+                <Trash2 />
+              </button>
+            </div>
           </article>
         ))}
         {!initial.length && <p>Chưa có nhóm tùy chỉnh.</p>}
@@ -98,6 +121,45 @@ export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
                 Hủy
               </button>
               <button className="primary-button">Tạo nhóm</button>
+            </footer>
+          </form>
+        </Modal>
+      )}
+      {editing && (
+        <Modal
+          title="Sửa nhóm quyền"
+          description="Cập nhật tên và các khu vực nhóm được sử dụng."
+          onClose={() => setEditing(null)}
+        >
+          <form className="entity-form" onSubmit={update}>
+            <div className="form-grid">
+              <label className="full">
+                Tên nhóm
+                <input name="name" required defaultValue={editing.name} />
+              </label>
+              <div className="permission-grid full">
+                {choices.map(([key, text]) => (
+                  <label key={key}>
+                    <input
+                      type="checkbox"
+                      name="permissions"
+                      value={key}
+                      defaultChecked={editing.permissions.includes(key)}
+                    />
+                    {text}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <footer>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setEditing(null)}
+              >
+                Hủy
+              </button>
+              <button className="primary-button">Lưu thay đổi</button>
             </footer>
           </form>
         </Modal>

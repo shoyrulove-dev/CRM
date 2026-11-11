@@ -48,9 +48,19 @@ export async function POST(request: NextRequest) {
         ? body.owner || user.name
         : user?.name || "Chưa phân công",
     orderCode: body.orderCode || "",
+    resolution: [
+      "Thu hàng - Hoàn tiền",
+      "Đổi hàng",
+      "Điều chỉnh cách dùng",
+      "Khác",
+    ].includes(body.resolution)
+      ? body.resolution
+      : "Khác",
     createdAt: new Date().toISOString(),
   };
-  await (await getDatabase())
+  await (
+    await getDatabase()
+  )
     .collection(collections.tickets)
     .insertOne(document);
   await writeAudit(user, "create", "ticket", document.id, null, document);

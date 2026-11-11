@@ -22,6 +22,7 @@ export async function PATCH(
     "title",
     "description",
     "customer",
+    "resolution",
   ];
   const update = Object.fromEntries(
     Object.entries(body || {}).filter(([key]) => allowed.includes(key)),
@@ -32,7 +33,9 @@ export async function PATCH(
       { status: 400 },
     );
   const now = new Date().toISOString();
-  const result = await (await getDatabase())
+  const result = await (
+    await getDatabase()
+  )
     .collection(collections.tickets)
     .findOneAndUpdate(
       { id, ...(user?.role === "admin" ? {} : { owner: user?.name }) },
@@ -64,7 +67,9 @@ export async function DELETE(
     );
   const { id } = await context.params;
   const user = await getCurrentUser();
-  const result = await (await getDatabase())
+  const result = await (
+    await getDatabase()
+  )
     .collection(collections.tickets)
     .deleteOne({
       id,

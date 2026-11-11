@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
+import { writeAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -65,5 +66,27 @@ export async function POST(request: NextRequest) {
     createdAt: new Date().toISOString(),
   };
   await db.collection(collections.careActivities).insertOne(document);
+  const nextCareDate = new Date(occurredAt);
+  nextCareDate.setDate(nextCareDate.getDate() + 30);
+  await db
+    .collection(collections.customers)
+    .updateOne(
+      { id: body.customerId },
+      {
+        $set: {
+          lastCare: occurredAt,
+          nextCare: nextCareDate.toISOString(),
+          status: "due",
+        },
+      },
+    );
+  await writeAudit(
+    user,
+    "create",
+    "care_activity",
+    document.id,
+    null,
+    document,
+  );
   return NextResponse.json({ data: document }, { status: 201 });
 }

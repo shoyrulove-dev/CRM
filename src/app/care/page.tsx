@@ -1,12 +1,13 @@
 import { CalendarDays, CheckCircle2, Clock3 } from "lucide-react";
 import { StatusPill } from "@/components/status-pill";
-import { listCareTasks, listCustomers } from "@/lib/data-store";
+import { getReportData, listCareTasks, listCustomers } from "@/lib/data-store";
 import { CreateCareButton } from "@/components/create-care-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
+import { BulkCareButton } from "@/components/bulk-care-button";
 
 export const dynamic = "force-dynamic";
 function careDate(value: string) {
@@ -28,6 +29,8 @@ export default async function CarePage({
 }: {
   searchParams: Promise<{
     date?: string;
+    from?: string;
+    to?: string;
     owner?: string;
     status?: string;
     task?: string;
@@ -35,16 +38,19 @@ export default async function CarePage({
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTasks, customers, allUsers] = await Promise.all([
+    [allTasks, customers, allUsers, reportData] = await Promise.all([
       listCareTasks(user),
       listCustomers(undefined, user),
       listUsers(),
+      getReportData(user),
     ]),
     today = new Date().toISOString().slice(0, 10);
   if (!hasPermission(user, "care")) redirect("/");
   const tasks = allTasks.filter(
     (item) =>
       (!params.date || item.dueAt.startsWith(params.date)) &&
+      (!params.from || item.dueAt.slice(0, 10) >= params.from) &&
+      (!params.to || item.dueAt.slice(0, 10) <= params.to) &&
       (!params.owner || item.owner === params.owner) &&
       (!params.status || item.status === params.status) &&
       (!params.task || item.id === params.task),
@@ -52,6 +58,13 @@ export default async function CarePage({
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
+  const products = Array.from(
+    new Set(
+      reportData.orders.flatMap((order) =>
+        order.products.map((product) => product.name),
+      ),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "vi"));
   return (
     <>
       <div className="page-heading compact">
@@ -60,7 +73,12 @@ export default async function CarePage({
           <h1>Lịch chăm sóc</h1>
           <p>Nhiệm vụ chỉ hết cảnh báo khi được đánh dấu hoàn thành.</p>
         </div>
-        <CreateCareButton customers={customers} employees={employees} />
+        <div className="page-actions">
+          {user?.role === "admin" && (
+            <BulkCareButton products={products} employees={employees} />
+          )}
+          <CreateCareButton customers={customers} employees={employees} />
+        </div>
       </div>
       <section className="calendar-summary">
         <article>
@@ -104,16 +122,32 @@ export default async function CarePage({
             name="date"
             defaultValue={params.date}
           />
-          <select
+          <input
             className="ghost-select"
-            name="owner"
-            defaultValue={params.owner || ""}
-          >
-            <option value="">Tất cả nhân viên</option>
-            {employees.map((employee) => (
-              <option key={employee.id}>{employee.name}</option>
-            ))}
-          </select>
+            type="date"
+            name="from"
+            defaultValue={params.from}
+            aria-label="Từ ngày"
+          />
+          <input
+            className="ghost-select"
+            type="date"
+            name="to"
+            defaultValue={params.to}
+            aria-label="Đến ngày"
+          />
+          {user?.role === "admin" && (
+            <select
+              className="ghost-select"
+              name="owner"
+              defaultValue={params.owner || ""}
+            >
+              <option value="">Tất cả nhân viên</option>
+              {employees.map((employee) => (
+                <option key={employee.id}>{employee.name}</option>
+              ))}
+            </select>
+          )}
           <select
             className="ghost-select"
             name="status"

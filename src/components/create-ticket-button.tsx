@@ -39,6 +39,7 @@ export function CreateTicketButton({
         priority: form.get("priority"),
         owner: form.get("owner"),
         orderCode,
+        resolution: form.get("resolution"),
       }),
     });
     const json = await response.json();
@@ -115,6 +116,15 @@ export function CreateTicketButton({
                       {employee.name}
                     </option>
                   ))}
+                </select>
+              </label>
+              <label className="full">
+                Hướng xử lý
+                <select name="resolution" defaultValue="Điều chỉnh cách dùng">
+                  <option>Thu hàng - Hoàn tiền</option>
+                  <option>Đổi hàng</option>
+                  <option>Điều chỉnh cách dùng</option>
+                  <option>Khác</option>
                 </select>
               </label>
             </div>

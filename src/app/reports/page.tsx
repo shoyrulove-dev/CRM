@@ -21,7 +21,7 @@ const inRange = (value: string, from: string, to: string) => {
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; owner?: string }>;
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
@@ -54,8 +54,10 @@ export default async function ReportsPage({
   previousFromDate.setDate(previousFromDate.getDate() - days + 1);
   const previousFrom = previousFromDate.toISOString().slice(0, 10),
     previousTo = previousToDate.toISOString().slice(0, 10);
-  const activities = data.activities.filter((item) =>
-      inRange(item.occurredAt, from, to),
+  const activities = data.activities.filter(
+      (item) =>
+        inRange(item.occurredAt, from, to) &&
+        (!params.owner || item.employee === params.owner),
     ),
     previousActivities = data.activities.filter((item) =>
       inRange(item.occurredAt, previousFrom, previousTo),
@@ -204,7 +206,7 @@ export default async function ReportsPage({
         </div>
         <a
           className="secondary-button"
-          href={`/api/reports/export?from=${from}&to=${to}`}
+          href={`/api/reports/export?from=${from}&to=${to}${params.owner ? `&owner=${encodeURIComponent(params.owner)}` : ""}`}
         >
           <Download size={17} />
           Tải báo cáo Excel
@@ -215,6 +217,17 @@ export default async function ReportsPage({
           Từ ngày
           <input type="date" name="from" defaultValue={from} />
         </label>
+        {user?.role === "admin" && (
+          <label>
+            Nhân viên
+            <select name="owner" defaultValue={params.owner || ""}>
+              <option value="">Tất cả nhân viên</option>
+              {employees.map((name) => (
+                <option key={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
           Đến ngày
           <input type="date" name="to" defaultValue={to} />

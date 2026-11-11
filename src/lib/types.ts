@@ -15,12 +15,7 @@ export interface UserAccount {
   lastLoginAt?: string;
 }
 export type PermissionKey =
-  | "customers"
-  | "care"
-  | "tickets"
-  | "reports"
-  | "accounts"
-  | "settings";
+  "customers" | "care" | "tickets" | "reports" | "accounts" | "settings";
 export interface PermissionGroup {
   id: string;
   name: string;
@@ -42,6 +37,7 @@ export interface Customer {
   status: CareStatus;
   healthGoal: string;
   birthDate?: string;
+  lastCare?: string;
 }
 
 export interface CareTask {
@@ -95,6 +91,19 @@ export interface ServiceTicket {
   updatedAt?: string;
   closedAt?: string;
   orderCode?: string;
+  resolution?:
+    "Thu hàng - Hoàn tiền" | "Đổi hàng" | "Điều chỉnh cách dùng" | "Khác";
+}
+
+export interface LoginEvent {
+  id: string;
+  email: string;
+  userId?: string;
+  userName?: string;
+  ip: string;
+  success: boolean;
+  reason?: string;
+  createdAt: string;
 }
 
 export interface SalesOrder {
