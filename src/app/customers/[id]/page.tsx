@@ -20,6 +20,7 @@ import { CareTaskActions } from "@/components/care-task-actions";
 import { StatusPill } from "@/components/status-pill";
 import { getCurrentUser } from "@/lib/current-user";
 import { listUsers } from "@/lib/users";
+import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -79,6 +80,13 @@ export default async function CustomerProfilePage({
           </div>
         </div>
         <div className="profile-actions">
+          {user?.role === "admin" && (
+            <AssignCustomerOwner
+              customerId={customer.id}
+              owner={customer.owner}
+              employees={employees}
+            />
+          )}
           <CreateTicketButton
             customers={[customer]}
             employees={employees}

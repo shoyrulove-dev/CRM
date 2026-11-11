@@ -10,6 +10,13 @@ type Data = {
   hasWebhookSecret: boolean;
   hasR2Secret: boolean;
   status: { haravan: boolean; r2: boolean };
+  sync: {
+    status: string;
+    lastSuccessAt: string;
+    customers: number;
+    orders: number;
+    error: string;
+  } | null;
 };
 type HaravanTest = {
   ok: boolean;
@@ -34,7 +41,9 @@ export function IntegrationSettings({
     [status, setStatus] = useState(initial.status),
     [message, setMessage] = useState(""),
     [testing, setTesting] = useState(false),
-    [haravanTest, setHaravanTest] = useState<HaravanTest | null>(null);
+    [haravanTest, setHaravanTest] = useState<HaravanTest | null>(null),
+    [syncing, setSyncing] = useState(false),
+    [sync, setSync] = useState(initial.sync);
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("Đang lưu...");
@@ -67,6 +76,29 @@ export function IntegrationSettings({
       json.data.ok
         ? "Token hoạt động tốt và có đủ quyền đọc dữ liệu cần thiết."
         : "Token đã được kiểm tra. Vui lòng xem quyền nào còn thiếu bên dưới.",
+    );
+  }
+  async function syncHaravan() {
+    setSyncing(true);
+    setMessage("Đang lấy dữ liệu mới từ Haravan. Vui lòng giữ trang này mở...");
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "syncHaravan" }),
+    });
+    const json = await response.json();
+    setSyncing(false);
+    if (!response.ok)
+      return setMessage(json.error || "Không thể đồng bộ dữ liệu Haravan.");
+    setSync({
+      status: "success",
+      lastSuccessAt: json.data.finishedAt,
+      customers: json.data.customers,
+      orders: json.data.orders,
+      error: "",
+    });
+    setMessage(
+      `Đồng bộ thành công ${json.data.customers} khách hàng và ${json.data.orders} đơn hàng.`,
     );
   }
   return (
@@ -186,8 +218,33 @@ export function IntegrationSettings({
               >
                 {testing ? "Đang kiểm tra..." : "Kiểm tra kết nối"}
               </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={syncing || !status.haravan}
+                onClick={syncHaravan}
+              >
+                {syncing ? "Đang đồng bộ..." : "Đồng bộ dữ liệu ngay"}
+              </button>
             </footer>
           </form>
+          {sync && (
+            <div className="sync-summary">
+              <b>
+                {sync.status === "success"
+                  ? "Đồng bộ gần nhất thành công"
+                  : sync.status === "running"
+                    ? "Đang đồng bộ dữ liệu"
+                    : "Lần đồng bộ gần nhất chưa thành công"}
+              </b>
+              {sync.lastSuccessAt && (
+                <span>
+                  {new Date(sync.lastSuccessAt).toLocaleString("vi-VN")} · {sync.customers} khách hàng · {sync.orders} đơn hàng
+                </span>
+              )}
+              {sync.error && <span className="danger-text">{sync.error}</span>}
+            </div>
+          )}
           {haravanTest && (
             <div className="connection-checks full">
               <h3>{haravanTest.shopName || "Kết quả kiểm tra Haravan"}</h3>

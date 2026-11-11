@@ -54,6 +54,23 @@ export async function PATCH(
       { $set: { ...update, updatedAt: new Date().toISOString() } },
       { returnDocument: "after", projection: { _id: 0 } },
     );
+  if (result && update.owner) {
+    const db = await getDatabase();
+    await Promise.all([
+      db.collection(collections.orders).updateMany(
+        { customerId: id },
+        { $set: { owner: update.owner, salesperson: update.owner } },
+      ),
+      db.collection(collections.careTasks).updateMany(
+        { customerId: id, status: { $ne: "done" } },
+        { $set: { owner: update.owner } },
+      ),
+      db.collection(collections.tickets).updateMany(
+        { customerId: id, status: { $ne: "Đã đóng" } },
+        { $set: { owner: update.owner } },
+      ),
+    ]);
+  }
   return result
     ? NextResponse.json({ data: result })
     : NextResponse.json(

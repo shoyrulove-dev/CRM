@@ -44,9 +44,11 @@ const navPermission = {
 export function AppShell({
   children,
   user,
+  commerceStatus,
 }: {
   children: React.ReactNode;
   user: SessionUser | null;
+  commerceStatus: { ready: boolean; lastSyncAt: string };
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -122,7 +124,13 @@ export function AppShell({
         <div className="sync-card">
           <span className="live-dot" />
           <strong>Kết nối bán hàng</strong>
-          <small>Sẽ bổ sung sau bản dùng thử</small>
+          <small>
+            {commerceStatus.lastSyncAt
+              ? `Đồng bộ ${new Date(commerceStatus.lastSyncAt).toLocaleString("vi-VN")}`
+              : commerceStatus.ready
+                ? "Haravan đã kết nối"
+                : "Chưa kết nối Haravan"}
+          </small>
         </div>
         <div className="sidebar-user">
           <div className="avatar">

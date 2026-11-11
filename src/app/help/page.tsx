@@ -56,8 +56,9 @@ const guides = [
     icon: ShoppingBag,
     title: "Kết nối Haravan",
     steps: [
-      "Mở Cài đặt → Haravan và nhập tên cửa hàng, khóa truy cập, khóa xác thực.",
-      "Sao chép địa chỉ nhận dữ liệu hiển thị tại màn hình để khai báo webhook.",
+      "Mở Cài đặt → Haravan, dán Token Private App rồi chọn Lưu Token.",
+      "Chọn Kiểm tra kết nối; khi bốn mục đều màu xanh, chọn Đồng bộ dữ liệu ngay.",
+      "Webhook là tùy chọn để nhận thay đổi tức thời. Nếu chưa cấu hình, hệ thống vẫn tự đồng bộ hằng ngày.",
       "Sau khi lưu, kiểm tra trạng thái kết nối trước khi đồng bộ đơn hàng thật.",
     ],
   },

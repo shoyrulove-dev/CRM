@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/internal/haravan-sync",
+      "schedule": "30 0 * * *"
+    },
+    {
       "path": "/api/internal/scheduler",
       "schedule": "0 1 * * *"
     }

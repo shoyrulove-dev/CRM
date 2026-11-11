@@ -3,6 +3,7 @@ import { IntegrationSettings } from "@/components/integration-settings";
 import { getCurrentUser } from "@/lib/current-user";
 import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
 import { hasDatabase } from "@/lib/mongodb";
+import { getHaravanSyncStatus } from "@/lib/haravan-sync";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   if ((await getCurrentUser())?.role !== "admin") redirect("/");
@@ -17,6 +18,7 @@ export default async function SettingsPage() {
       hasWebhookSecret: Boolean(c.haravanWebhookSecret),
       hasR2Secret: Boolean(c.r2SecretAccessKey),
       status,
+      sync: await getHaravanSyncStatus(),
     };
   return (
     <>

@@ -6,6 +6,7 @@ import {
   saveIntegrationConfig,
 } from "@/lib/integration-config";
 import { testHaravanConnection } from "@/lib/haravan";
+import { getHaravanSyncStatus, syncHaravanData } from "@/lib/haravan-sync";
 async function allowed() {
   return (await getCurrentUser())?.role === "admin";
 }
@@ -26,6 +27,7 @@ export async function GET() {
       hasWebhookSecret: Boolean(c.haravanWebhookSecret),
       hasR2Secret: Boolean(c.r2SecretAccessKey),
       status: configStatus(c),
+      sync: await getHaravanSyncStatus(),
     },
   });
 }
@@ -52,12 +54,14 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   const body = await request.json().catch(() => null);
-  if (body?.action !== "testHaravan")
+  if (!body || !["testHaravan", "syncHaravan"].includes(body.action))
     return NextResponse.json(
       { error: "Yêu cầu không hợp lệ." },
       { status: 400 },
     );
   try {
+    if (body.action === "syncHaravan")
+      return NextResponse.json({ data: await syncHaravanData() });
     const result = await testHaravanConnection();
     if (result.shopDomain || result.shopName)
       await saveIntegrationConfig({

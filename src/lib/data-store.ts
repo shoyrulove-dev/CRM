@@ -35,6 +35,9 @@ export async function ensureIndexes() {
       .collection(collections.customers)
       .createIndex({ id: 1 }, { unique: true }),
     db.collection(collections.customers).createIndex({ phone: 1 }),
+    db
+      .collection(collections.customers)
+      .createIndex({ haravanId: 1 }, { unique: true, sparse: true }),
     db.collection(collections.customers).createIndex({ owner: 1, name: 1 }),
     db
       .collection(collections.careTasks)
@@ -51,6 +54,9 @@ export async function ensureIndexes() {
     db
       .collection(collections.orders)
       .createIndex({ code: 1 }, { unique: true }),
+    db
+      .collection(collections.orders)
+      .createIndex({ haravanId: 1 }, { unique: true, sparse: true }),
     db
       .collection(collections.orders)
       .createIndex({ customerId: 1, orderDate: -1 }),

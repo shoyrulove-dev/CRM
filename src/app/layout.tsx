@@ -4,6 +4,8 @@ import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 import "./refinements.css";
 import { getCurrentUser } from "@/lib/current-user";
+import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
+import { getHaravanSyncStatus } from "@/lib/haravan-sync";
 
 const font = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -19,11 +21,21 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const user = await getCurrentUser();
+  const [user, integration, sync] = await Promise.all([
+    getCurrentUser(),
+    getIntegrationConfig(),
+    getHaravanSyncStatus(),
+  ]);
+  const haravanReady = configStatus(integration).haravan;
   return (
     <html lang="vi">
       <body className={font.className}>
-        <AppShell user={user}>{children}</AppShell>
+        <AppShell
+          user={user}
+          commerceStatus={{ ready: haravanReady, lastSyncAt: sync?.lastSuccessAt || "" }}
+        >
+          {children}
+        </AppShell>
       </body>
     </html>
   );

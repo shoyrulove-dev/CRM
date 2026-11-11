@@ -314,6 +314,19 @@
   border-top: 1px solid var(--line);
   padding-top: 18px;
 }
+.sync-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #bfe8d2;
+  border-radius: 12px;
+  background: #f0fbf5;
+  color: #17663b;
+}
+.sync-summary span { color: var(--muted); }
 .connection-checks p {
   display: flex;
   align-items: center;
