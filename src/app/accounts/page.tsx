@@ -7,10 +7,19 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { collections } from "@/lib/data-store";
 import type { PermissionGroup } from "@/lib/types";
 export const dynamic = "force-dynamic";
-export default async function AccountsPage() {
+export default async function AccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ loginPage?: string }>;
+}) {
   const current = await getCurrentUser();
   if (current?.role !== "admin") redirect("/");
-  const [users, groups, loginEvents] = await Promise.all([
+  const requestedPage = Number((await searchParams).loginPage || 1);
+  const loginPage = Number.isFinite(requestedPage)
+    ? Math.max(1, requestedPage)
+    : 1;
+  const pageSize = 15;
+  const [users, groups, loginData] = await Promise.all([
     listUsers(),
     hasDatabase()
       ? getDatabase().then((db) =>
@@ -21,16 +30,21 @@ export default async function AccountsPage() {
         )
       : Promise.resolve([]),
     hasDatabase()
-      ? getDatabase().then((db) =>
-          db
+      ? getDatabase().then(async (db) => ({
+          events: await db
             .collection(collections.loginEvents)
             .find({}, { projection: { _id: 0 } })
             .sort({ createdAt: -1 })
-            .limit(50)
+            .skip((loginPage - 1) * pageSize)
+            .limit(pageSize)
             .toArray(),
-        )
-      : Promise.resolve([]),
+          total: await db.collection(collections.loginEvents).countDocuments(),
+        }))
+      : Promise.resolve({ events: [], total: 0 }),
   ]);
+  const loginEvents = loginData.events;
+  const totalPages = Math.max(1, Math.ceil(loginData.total / pageSize));
+  if (loginPage > totalPages) redirect(`/accounts?loginPage=${totalPages}`);
   return (
     <>
       <div className="page-heading compact">
@@ -47,7 +61,7 @@ export default async function AccountsPage() {
           <div>
             <h2>Lịch sử đăng nhập</h2>
             <p>
-              50 lần đăng nhập gần nhất, gồm cả thành công và không thành công.
+              Theo dõi cả lần đăng nhập thành công và không thành công.
             </p>
           </div>
         </div>
@@ -93,6 +107,24 @@ export default async function AccountsPage() {
             </tbody>
           </table>
         </div>
+        <nav className="login-pagination" aria-label="Phân trang lịch sử đăng nhập">
+          <span>
+            {loginData.total
+              ? `${(loginPage - 1) * pageSize + 1}–${Math.min(loginPage * pageSize, loginData.total)} / ${loginData.total}`
+              : "0 bản ghi"}
+          </span>
+          <div>
+            {loginPage > 1 && <a href={`/accounts?loginPage=${loginPage - 1}`}>Trước</a>}
+            {Array.from({ length: totalPages }, (_, index) => index + 1)
+              .filter((page) => Math.abs(page - loginPage) <= 2)
+              .map((page) => (
+                <a key={page} href={`/accounts?loginPage=${page}`} className={page === loginPage ? "active" : ""}>
+                  {page}
+                </a>
+              ))}
+            {loginPage < totalPages && <a href={`/accounts?loginPage=${loginPage + 1}`}>Sau</a>}
+          </div>
+        </nav>
       </section>
     </>
   );

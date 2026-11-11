@@ -16,6 +16,7 @@ type Data = {
     customers: number;
     orders: number;
     error: string;
+    complete: boolean;
   } | null;
 };
 type HaravanTest = {
@@ -96,9 +97,12 @@ export function IntegrationSettings({
       customers: json.data.customers,
       orders: json.data.orders,
       error: "",
+      complete: json.data.complete,
     });
     setMessage(
-      `Đồng bộ thành công ${json.data.customers} khách hàng và ${json.data.orders} đơn hàng.`,
+      json.data.complete
+        ? `Đồng bộ hoàn tất ${json.data.totalCustomers} khách hàng và ${json.data.totalOrders} đơn hàng.`
+        : `Đã nhập thêm ${json.data.customers} khách hàng và ${json.data.orders} đơn hàng. Chọn Đồng bộ dữ liệu ngay lần nữa để lấy đợt tiếp theo.`,
     );
   }
   return (
@@ -231,8 +235,10 @@ export function IntegrationSettings({
           {sync && (
             <div className="sync-summary">
               <b>
-                {sync.status === "success"
-                  ? "Đồng bộ gần nhất thành công"
+                {sync.status === "success" && sync.complete
+                  ? "Đồng bộ gần nhất đã hoàn tất"
+                  : sync.status === "success"
+                    ? "Đã nhập một phần dữ liệu, cần đồng bộ tiếp"
                   : sync.status === "running"
                     ? "Đang đồng bộ dữ liệu"
                     : "Lần đồng bộ gần nhất chưa thành công"}

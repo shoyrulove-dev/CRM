@@ -19,6 +19,7 @@ import { CreateCareButton } from "@/components/create-care-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { StatusPill } from "@/components/status-pill";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
 import { listUsers } from "@/lib/users";
 import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 
@@ -34,6 +35,7 @@ export default async function CustomerProfilePage({
   const { id } = await params,
     query = await searchParams,
     user = await getCurrentUser();
+  if (!hasPermission(user, "customers")) notFound();
   const [{ customer, activities, orders, tickets, tasks }, allUsers] =
     await Promise.all([getCustomerProfile(id, user), listUsers()]);
   if (!customer) notFound();

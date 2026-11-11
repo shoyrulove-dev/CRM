@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
 
 export async function PATCH(
   request: NextRequest,
@@ -14,6 +15,8 @@ export async function PATCH(
     );
   const { id } = await context.params;
   const user = await getCurrentUser();
+  if (!hasPermission(user, "tickets"))
+    return NextResponse.json({ error: "Bạn không có quyền sửa phiếu." }, { status: 403 });
   const body = await request.json().catch(() => null);
   const allowed = [
     "status",
@@ -67,6 +70,8 @@ export async function DELETE(
     );
   const { id } = await context.params;
   const user = await getCurrentUser();
+  if (!hasPermission(user, "tickets"))
+    return NextResponse.json({ error: "Bạn không có quyền xóa phiếu." }, { status: 403 });
   const result = await (
     await getDatabase()
   )

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
 const allowed = [
   "channel",
   "purpose",
@@ -33,6 +34,8 @@ export async function PATCH(
       id,
       ...(user?.role === "admin" ? {} : { employee: user?.name }),
     };
+  if (!hasPermission(user, "care"))
+    return NextResponse.json({ error: "Bạn không có quyền sửa nhật ký." }, { status: 403 });
   const result = await (await getDatabase())
     .collection(collections.careActivities)
     .findOneAndUpdate(
@@ -56,8 +59,10 @@ export async function DELETE(
       { error: "Kho dữ liệu chưa sẵn sàng." },
       { status: 503 },
     );
-  const user = await getCurrentUser(),
-    { id } = await params,
+  const user = await getCurrentUser();
+  if (!hasPermission(user, "care"))
+    return NextResponse.json({ error: "Bạn không có quyền xóa nhật ký." }, { status: 403 });
+  const { id } = await params,
     filter = {
       id,
       ...(user?.role === "admin" ? {} : { employee: user?.name }),

@@ -173,30 +173,41 @@ export function AccountManager({
             </span>
             <div className="row-buttons">
               <button
+                className="icon-action"
+                title="Sửa tài khoản"
+                aria-label={`Sửa tài khoản ${u.name}`}
                 onClick={() => {
                   setSelected(u);
                   setMode("edit");
                 }}
               >
                 <Pencil />
-                Sửa
               </button>
               {!u.archivedAt && (
-                <button className="danger-action" onClick={() => archive(u)}>
+                <button
+                  className="danger-action icon-action"
+                  title="Lưu trữ tài khoản"
+                  aria-label={`Lưu trữ tài khoản ${u.name}`}
+                  onClick={() => archive(u)}
+                >
                   <Archive />
-                  Lưu trữ
                 </button>
               )}
-              <button onClick={() => reset(u)}>
+              <button
+                className="icon-action"
+                title="Đặt lại mật khẩu"
+                aria-label={`Đặt lại mật khẩu ${u.name}`}
+                onClick={() => reset(u)}
+              >
                 <KeyRound />
-                Mật khẩu
               </button>
               <button
-                className={u.active ? "danger-action" : "success-action"}
+                className={`${u.active ? "danger-action" : "success-action"} icon-action`}
+                title={u.active ? "Khóa tài khoản" : "Mở tài khoản"}
+                aria-label={`${u.active ? "Khóa" : "Mở"} tài khoản ${u.name}`}
                 onClick={() => patch(u.id, { active: !u.active })}
               >
                 {u.active ? <Lock /> : <LockOpen />}
-                {u.active ? "Khóa" : "Mở"}
               </button>
             </div>
           </div>

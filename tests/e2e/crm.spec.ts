@@ -51,6 +51,8 @@ test("quản trị thấy các công cụ nâng cấp mới", async ({ page }) =
   await expect(
     page.getByRole("heading", { name: "Lịch sử đăng nhập" }),
   ).toBeVisible();
+  await expect(page.locator(".login-pagination")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Sửa tài khoản/ }).first()).toHaveAttribute("title", "Sửa tài khoản");
 });
 
 test("nhân viên bán hàng không được xuất dữ liệu tổng", async ({ page }) => {
@@ -62,6 +64,10 @@ test("nhân viên bán hàng không được xuất dữ liệu tổng", async (
   await expect(page).toHaveURL(/\/$/, { timeout: 20_000 });
   const response = await page.request.get("/api/customers/export");
   expect(response.status()).toBe(403);
+  await page.goto("/accounts");
+  await expect(page).toHaveURL(/\/$/);
+  await page.goto("/settings");
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("danh sách khách và bộ lọc tháng hiển thị đúng yêu cầu", async ({

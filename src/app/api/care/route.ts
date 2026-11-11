@@ -39,11 +39,14 @@ export async function POST(request: NextRequest) {
   const db = await getDatabase(),
     customer = await db
       .collection(collections.customers)
-      .findOne({ id: body.customerId });
+      .findOne({
+        id: body.customerId,
+        ...(user?.role === "admin" ? {} : { owner: user?.name }),
+      });
   if (!customer)
     return NextResponse.json(
-      { error: "Khách hàng không tồn tại." },
-      { status: 400 },
+      { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
+      { status: 403 },
     );
   let dueAt = body.dueAt;
   if (!dueAt && body.baseDate) {

@@ -15,7 +15,7 @@ import {
 import { StatusPill } from "@/components/status-pill";
 import { money } from "@/lib/demo-data";
 import { getReportData } from "@/lib/data-store";
-import { roleLabel } from "@/lib/session";
+import { hasPermission, roleLabel } from "@/lib/session";
 import { getCurrentUser } from "@/lib/current-user";
 export const dynamic = "force-dynamic";
 function displayDue(value: string) {
@@ -30,7 +30,17 @@ function displayDue(value: string) {
 }
 export default async function Dashboard() {
   const user = await getCurrentUser(),
-    data = await getReportData(user),
+    sourceData = await getReportData(user),
+    canViewCustomers = hasPermission(user, "customers") || hasPermission(user, "reports"),
+    canViewCare = hasPermission(user, "care") || hasPermission(user, "reports"),
+    data = {
+      ...sourceData,
+      customers: canViewCustomers ? sourceData.customers : [],
+      orders: canViewCustomers ? sourceData.orders : [],
+      tasks: canViewCare ? sourceData.tasks : [],
+      activities: canViewCare ? sourceData.activities : [],
+      tickets: hasPermission(user, "tickets") ? sourceData.tickets : [],
+    },
     today = new Date().toISOString().slice(0, 10),
     month = today.slice(0, 7);
   const activities = data.activities.filter((x) =>
@@ -142,13 +152,17 @@ export default async function Dashboard() {
           </span>
         </div>
         <div className="welcome-actions">
-          <Link className="secondary-button" href="/customers">
-            Xem khách hàng
-          </Link>
-          <Link className="primary-button" href="/care">
-            <CalendarCheck2 size={17} />
-            Mở lịch chăm sóc
-          </Link>
+          {canViewCustomers && (
+            <Link className="secondary-button" href="/customers">
+              Xem khách hàng
+            </Link>
+          )}
+          {canViewCare && (
+            <Link className="primary-button" href="/care">
+              <CalendarCheck2 size={17} />
+              Mở lịch chăm sóc
+            </Link>
+          )}
         </div>
       </section>
       <section className="stat-grid">
@@ -175,9 +189,11 @@ export default async function Dashboard() {
               <h2>Hàng đợi công việc</h2>
               <p>Sắp xếp theo việc quá hạn và gần đến giờ</p>
             </div>
-            <Link href="/care">
-              Xem tất cả <ArrowRight size={15} />
-            </Link>
+            {canViewCare && (
+              <Link href="/care">
+                Xem tất cả <ArrowRight size={15} />
+              </Link>
+            )}
           </div>
           <div className="task-summary">
             <span>

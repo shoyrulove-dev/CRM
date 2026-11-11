@@ -62,11 +62,29 @@ async function fetchPages<T>(
   resource: "customers" | "orders",
   token: string,
   updatedAtMin?: string,
+  startPage = 1,
 ) {
-  const rows: T[] = [];
-  for (let page = 1; page <= 100; page += 1) {
+  const countUrl = new URL(`${API}/${resource}/count.json`);
+  if (resource === "orders") countUrl.searchParams.set("status", "any");
+  if (updatedAtMin) countUrl.searchParams.set("updated_at_min", updatedAtMin);
+  const countResponse = await fetch(countUrl, {
+    headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!countResponse.ok)
+    throw new Error(`Haravan không thể đếm ${resource} (lỗi ${countResponse.status}).`);
+  const countPayload = (await countResponse.json()) as { count?: number };
+  const total = Number(countPayload.count || 0);
+  const totalPages = Math.ceil(total / 50);
+  const lastPage = Math.min(totalPages, startPage + 19);
+  const pages = Array.from(
+    { length: Math.max(0, lastPage - startPage + 1) },
+    (_, index) => startPage + index,
+  );
+  const fetchPage = async (page: number) => {
     const url = new URL(`${API}/${resource}.json`);
-    url.searchParams.set("limit", "250");
+    url.searchParams.set("limit", "50");
     url.searchParams.set("page", String(page));
     url.searchParams.set("order", "updated_at asc");
     if (resource === "orders") url.searchParams.set("status", "any");
@@ -79,13 +97,20 @@ async function fetchPages<T>(
     if (!response.ok)
       throw new Error(`Haravan không thể đọc ${resource} (lỗi ${response.status}).`);
     const payload = (await response.json()) as Record<string, T[]>;
-    const batch = payload[resource] || [];
-    rows.push(...batch);
-    if (!batch.length) break;
-    if (page === 100)
-      throw new Error("Dữ liệu Haravan quá lớn, cần chia nhỏ lần đồng bộ đầu tiên.");
-  }
-  return rows;
+    return payload[resource] || [];
+  };
+  const batches: T[][] = [];
+  for (let offset = 0; offset < pages.length; offset += 5)
+    batches.push(...(await Promise.all(pages.slice(offset, offset + 5).map(fetchPage))));
+  const earlyEnd = batches.findIndex((batch) => batch.length < 50);
+  const processedPages = earlyEnd >= 0 ? earlyEnd + 1 : pages.length;
+  const done = startPage + processedPages > totalPages || earlyEnd >= 0;
+  return {
+    rows: batches.slice(0, processedPages).flat(),
+    total,
+    nextPage: startPage + processedPages,
+    done,
+  };
 }
 
 async function upsertCustomer(
@@ -155,8 +180,9 @@ export async function syncHaravanData() {
     .collection(collections.settings)
     .findOne({ id: "haravan_sync" });
   const startedAt = new Date();
-  const updatedAtMin = previous?.complete && previous?.lastSuccessAt
-    ? new Date(new Date(String(previous.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
+  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt);
+  const updatedAtMin = incremental
+    ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
   await db.collection(collections.settings).updateOne(
     { id: "haravan_sync" },
@@ -164,10 +190,22 @@ export async function syncHaravanData() {
     { upsert: true },
   );
   try {
-    const [customers, orders] = await Promise.all([
-      fetchPages<HaravanCustomer>("customers", config.haravanAccessToken, updatedAtMin),
-      fetchPages<HaravanOrder>("orders", config.haravanAccessToken, updatedAtMin),
+    const [customerBatch, orderBatch] = await Promise.all([
+      fetchPages<HaravanCustomer>(
+        "customers",
+        config.haravanAccessToken,
+        updatedAtMin,
+        incremental ? 1 : Number(previous?.customerPage || 1),
+      ),
+      fetchPages<HaravanOrder>(
+        "orders",
+        config.haravanAccessToken,
+        updatedAtMin,
+        incremental ? 1 : Number(previous?.orderPage || 1),
+      ),
     ]);
+    const customers = customerBatch.rows;
+    const orders = orderBatch.rows;
     const customerMap = new Map<string, { id: string; owner: string }>();
     for (let offset = 0; offset < customers.length; offset += 10) {
       const batch = customers.slice(offset, offset + 10);
@@ -254,13 +292,25 @@ export async function syncHaravanData() {
     const result = {
       customers: customers.length,
       orders: orders.length,
+      totalCustomers: customerBatch.total,
+      totalOrders: orderBatch.total,
       startedAt: startedAt.toISOString(),
       finishedAt: finishedAt.toISOString(),
-      incremental: Boolean(updatedAtMin),
+      incremental,
+      complete: customerBatch.done && orderBatch.done,
     };
     await db.collection(collections.settings).updateOne(
       { id: "haravan_sync" },
-      { $set: { status: "success", complete: true, lastSuccessAt: finishedAt.toISOString(), ...result }, $unset: { error: "" } },
+      {
+        $set: {
+          ...result,
+          status: "success",
+          customerPage: result.complete ? 1 : customerBatch.nextPage,
+          orderPage: result.complete ? 1 : orderBatch.nextPage,
+          lastSuccessAt: finishedAt.toISOString(),
+        },
+        $unset: { error: "" },
+      },
       { upsert: true },
     );
     return result;
@@ -286,5 +336,6 @@ export async function getHaravanSyncStatus() {
     customers: Number(row.customers || 0),
     orders: Number(row.orders || 0),
     error: String(row.error || ""),
+    complete: Boolean(row.complete),
   };
 }

@@ -2,13 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections, getCustomerProfile } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
+import { hasPermission } from "@/lib/session";
 
 export async function GET(
   _: Request,
   context: { params: Promise<{ id: string }> },
 ) {
   const { id } = await context.params;
-  const profile = await getCustomerProfile(id, await getCurrentUser());
+  const user = await getCurrentUser();
+  if (!hasPermission(user, "customers"))
+    return NextResponse.json({ error: "Bạn không có quyền xem khách hàng." }, { status: 403 });
+  const profile = await getCustomerProfile(id, user);
   if (!profile.customer)
     return NextResponse.json(
       { error: "Không tìm thấy khách hàng." },
@@ -29,6 +33,8 @@ export async function PATCH(
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
   const user = await getCurrentUser();
+  if (!hasPermission(user, "customers"))
+    return NextResponse.json({ error: "Bạn không có quyền sửa khách hàng." }, { status: 403 });
   const allowed = [
     "name",
     "phone",

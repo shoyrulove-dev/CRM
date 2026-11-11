@@ -80,10 +80,10 @@ export function GroupManager({ initial }: { initial: PermissionGroup[] }) {
               </small>
             </div>
             <div className="row-buttons">
-              <button onClick={() => setEditing(g)} title="Sửa nhóm">
+              <button className="icon-action" onClick={() => setEditing(g)} title="Sửa nhóm" aria-label={`Sửa nhóm ${g.name}`}>
                 <Pencil />
               </button>
-              <button onClick={() => remove(g.id)} title="Xóa nhóm">
+              <button className="icon-action danger-action" onClick={() => remove(g.id)} title="Xóa nhóm" aria-label={`Xóa nhóm ${g.name}`}>
                 <Trash2 />
               </button>
             </div>

@@ -3,6 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
+import { hasPermission } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -24,6 +25,20 @@ export async function POST(request: NextRequest) {
     );
   const db = await getDatabase();
   const user = await getCurrentUser();
+  if (!hasPermission(user, "care"))
+    return NextResponse.json(
+      { error: "Bạn không có quyền ghi nhận chăm sóc." },
+      { status: 403 },
+    );
+  const customer = await db.collection(collections.customers).findOne({
+    id: body.customerId,
+    ...(user?.role === "admin" ? {} : { owner: user?.name }),
+  });
+  if (!customer)
+    return NextResponse.json(
+      { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
+      { status: 403 },
+    );
   const occurredAt = body.occurredAt || new Date().toISOString();
   const careAttempt =
     (await db

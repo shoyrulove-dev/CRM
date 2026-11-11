@@ -35,6 +35,16 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng và nội dung là bắt buộc." },
       { status: 400 },
     );
+  const db = await getDatabase();
+  const customer = await db.collection(collections.customers).findOne({
+    id: body.customerId,
+    ...(user?.role === "admin" ? {} : { owner: user?.name }),
+  });
+  if (!customer)
+    return NextResponse.json(
+      { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
+      { status: 403 },
+    );
   const document = {
     id: `YC-${Date.now().toString().slice(-6)}`,
     customerId: body.customerId,
@@ -58,11 +68,7 @@ export async function POST(request: NextRequest) {
       : "Khác",
     createdAt: new Date().toISOString(),
   };
-  await (
-    await getDatabase()
-  )
-    .collection(collections.tickets)
-    .insertOne(document);
+  await db.collection(collections.tickets).insertOne(document);
   await writeAudit(user, "create", "ticket", document.id, null, document);
   return NextResponse.json({ data: document }, { status: 201 });
 }
