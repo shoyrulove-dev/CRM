@@ -1,6 +1,7 @@
 import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getDatabase, hasDatabase } from "./mongodb";
 import type { Customer, SalesOrder } from "./types";
+import type { AnyBulkWriteOperation, Document } from "mongodb";
 
 const rules = [
   {
@@ -102,22 +103,35 @@ export async function runScheduler() {
     birthdayCreated = 0,
     holidayCreated = 0;
   try {
+    const recentOrderDate = new Date(now.getTime() - 90 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+    const customers = (await db
+      .collection(collections.customers)
+      .find({}, { projection: { _id: 0 } })
+      .toArray()) as unknown as Customer[];
+    const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
+    const orderOperations: AnyBulkWriteOperation<Document>[] = [];
+    const birthdayOperations: AnyBulkWriteOperation<Document>[] = [];
+    const holidayOperations: AnyBulkWriteOperation<Document>[] = [];
     const salesOrders = (await db
       .collection(collections.orders)
-      .find({ status: "Mua hàng" }, { projection: { _id: 0 } })
+      .find(
+        { status: "Mua hàng", orderDate: { $gte: recentOrderDate } },
+        { projection: { _id: 0 } },
+      )
       .toArray()) as unknown as SalesOrder[];
     for (const order of salesOrders) {
-      const customer = await db
-        .collection(collections.customers)
-        .findOne({ id: order.customerId });
+      const customer = customerMap.get(order.customerId);
       if (!customer) continue;
       for (const rule of rules) {
         const due = new Date(`${order.orderDate}T09:00:00+07:00`);
         due.setUTCDate(due.getUTCDate() + rule.offset);
         const id = `AUTO-${order.id}-${rule.offset}-${rule.purpose.slice(0, 8).replace(/\s/g, "")}`;
-        const result = await db.collection(collections.careTasks).updateOne(
-          { id },
-          {
+        orderOperations.push({
+          updateOne: {
+            filter: { id },
+            update: {
             $setOnInsert: {
               id,
               customerId: order.customerId,
@@ -132,16 +146,12 @@ export async function runScheduler() {
               orderId: order.id,
               createdAt: now.toISOString(),
             },
+            },
+            upsert: true,
           },
-          { upsert: true },
-        );
-        created += result.upsertedCount;
+        });
       }
     }
-    const customers = (await db
-      .collection(collections.customers)
-      .find({}, { projection: { _id: 0 } })
-      .toArray()) as unknown as Customer[];
     for (const customer of customers) {
       if (customer.birthDate) {
         const match = customer.birthDate.match(/^(?:\d{4})-(\d{2})-(\d{2})$/);
@@ -153,9 +163,10 @@ export async function runScheduler() {
           )) {
             const year = due.getFullYear();
             const id = `AUTO-BIRTHDAY-${customer.id}-${year}`;
-            const result = await db.collection(collections.careTasks).updateOne(
-              { id },
-              {
+            birthdayOperations.push({
+              updateOne: {
+                filter: { id },
+                update: {
                 $setOnInsert: {
                   id,
                   customerId: customer.id,
@@ -170,10 +181,10 @@ export async function runScheduler() {
                   source: "birthday",
                   createdAt: now.toISOString(),
                 },
+                },
+                upsert: true,
               },
-              { upsert: true },
-            );
-            birthdayCreated += result.upsertedCount;
+            });
           }
       }
       const localYear = Number(
@@ -208,9 +219,10 @@ export async function runScheduler() {
       for (const holiday of holidayDates) {
         const year = holiday.due.getFullYear();
         const id = `AUTO-HOLIDAY-${holiday.key}-${customer.id}-${year}`;
-        const result = await db.collection(collections.careTasks).updateOne(
-          { id },
-          {
+        holidayOperations.push({
+          updateOne: {
+            filter: { id },
+            update: {
             $setOnInsert: {
               id,
               customerId: customer.id,
@@ -225,12 +237,27 @@ export async function runScheduler() {
               source: "holiday",
               createdAt: now.toISOString(),
             },
+            },
+            upsert: true,
           },
-          { upsert: true },
-        );
-        holidayCreated += result.upsertedCount;
+        });
       }
     }
+    async function runBulk(operations: AnyBulkWriteOperation<Document>[]) {
+      let upserted = 0;
+      for (let offset = 0; offset < operations.length; offset += 500) {
+        const result = await db
+          .collection(collections.careTasks)
+          .bulkWrite(operations.slice(offset, offset + 500), { ordered: false });
+        upserted += result.upsertedCount;
+      }
+      return upserted;
+    }
+    [created, birthdayCreated, holidayCreated] = await Promise.all([
+      runBulk(orderOperations),
+      runBulk(birthdayOperations),
+      runBulk(holidayOperations),
+    ]);
     created += birthdayCreated + holidayCreated;
     const overdueResult = await db
       .collection(collections.careTasks)
