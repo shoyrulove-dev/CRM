@@ -7,6 +7,7 @@ import {
 } from "@/lib/integration-config";
 import { testHaravanConnection } from "@/lib/haravan";
 import { getHaravanSyncStatus, syncHaravanData } from "@/lib/haravan-sync";
+export const maxDuration = 300;
 async function allowed() {
   return (await getCurrentUser())?.role === "admin";
 }
