@@ -14,6 +14,7 @@ const fields = [
   ["orders", "Số đơn"],
   ["revenue", "Doanh thu"],
   ["lastOrder", "Đơn gần nhất"],
+  ["lastCare", "Lần chăm gần nhất"],
   ["nextCare", "Lịch chăm sóc"],
 ] as const;
 

@@ -49,8 +49,8 @@ export default async function CarePage({
   const tasks = allTasks.filter(
     (item) =>
       (!params.date || item.dueAt.startsWith(params.date)) &&
-      (!params.from || item.dueAt.slice(0, 10) >= params.from) &&
-      (!params.to || item.dueAt.slice(0, 10) <= params.to) &&
+      (!params.from || item.dueAt.slice(0, 10) >= `${params.from}-01`) &&
+      (!params.to || item.dueAt.slice(0, 10) <= `${params.to}-31`) &&
       (!params.owner || item.owner === params.owner) &&
       (!params.status || item.status === params.status) &&
       (!params.task || item.id === params.task),
@@ -124,17 +124,17 @@ export default async function CarePage({
           />
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="from"
             defaultValue={params.from}
-            aria-label="Từ ngày"
+            aria-label="Từ tháng"
           />
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="to"
             defaultValue={params.to}
-            aria-label="Đến ngày"
+            aria-label="Đến tháng"
           />
           {user?.role === "admin" && (
             <select

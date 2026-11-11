@@ -15,6 +15,7 @@ const columns = {
   orders: "Số đơn",
   revenue: "Doanh thu",
   lastOrder: "Đơn gần nhất",
+  lastCare: "Lần chăm gần nhất",
   nextCare: "Lịch chăm sóc",
 } as const;
 
@@ -25,13 +26,15 @@ export async function GET(request: NextRequest) {
       status: 403,
     });
   const p = request.nextUrl.searchParams;
+  const from = p.get("from") ? `${p.get("from")}-01` : "";
+  const to = p.get("to") ? `${p.get("to")}-31` : "";
   const all = await listCustomers(p.get("q") || undefined, user);
   const customers = all.filter(
     (item) =>
       (!p.get("owner") || item.owner === p.get("owner")) &&
       (!p.get("status") || item.status === p.get("status")) &&
-      (!p.get("from") || item.lastOrder >= String(p.get("from"))) &&
-      (!p.get("to") || item.lastOrder <= String(p.get("to"))),
+      (!from || item.lastOrder >= from) &&
+      (!to || item.lastOrder <= to),
   );
   const requested = p
     .getAll("fields")

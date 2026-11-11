@@ -13,6 +13,7 @@ export interface UserAccount {
   groupId?: string;
   sessionVersion?: number;
   lastLoginAt?: string;
+  archivedAt?: string;
 }
 export type PermissionKey =
   "customers" | "care" | "tickets" | "reports" | "accounts" | "settings";

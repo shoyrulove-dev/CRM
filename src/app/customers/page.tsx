@@ -30,6 +30,8 @@ export default async function CustomersPage({
     user?.role === "admin"
       ? (await listUsers()).filter((item) => item.active)
       : [];
+  const fromDate = params.from ? `${params.from}-01` : undefined;
+  const toDate = params.to ? `${params.to}-31` : undefined;
   const size = 20,
     requestedPage = Math.max(1, Number(params.page) || 1),
     result = await getCustomersPage(
@@ -37,8 +39,8 @@ export default async function CustomersPage({
         search: params.q,
         owner: params.owner,
         status: params.status,
-        from: params.from,
-        to: params.to,
+        from: fromDate,
+        to: toDate,
         page: requestedPage,
         size,
       },
@@ -102,17 +104,17 @@ export default async function CustomersPage({
           </select>
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="from"
             defaultValue={params.from}
-            aria-label="Từ ngày mua"
+            aria-label="Từ tháng mua"
           />
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="to"
             defaultValue={params.to}
-            aria-label="Đến ngày mua"
+            aria-label="Đến tháng mua"
           />
           <select
             className="ghost-select"
@@ -171,6 +173,7 @@ export default async function CustomersPage({
                 <th>ĐƠN HÀNG</th>
                 <th>DOANH THU</th>
                 <th>ĐƠN GẦN NHẤT</th>
+                <th>LẦN CHĂM GẦN NHẤT</th>
                 <th>LỊCH TIẾP THEO</th>
                 <th />
               </tr>
@@ -214,9 +217,32 @@ export default async function CustomersPage({
                   <td>
                     <strong>{money.format(item.revenue)}</strong>
                   </td>
-                  <td>{item.lastOrder}</td>
                   <td>
-                    <strong>{item.nextCare}</strong>
+                    {item.lastOrder
+                      ? new Date(
+                          `${item.lastOrder}T00:00:00+07:00`,
+                        ).toLocaleDateString("vi-VN")
+                      : "—"}
+                  </td>
+                  <td>
+                    {item.lastCare
+                      ? new Date(item.lastCare).toLocaleString("vi-VN", {
+                          timeZone: "Asia/Bangkok",
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                      : "—"}
+                  </td>
+                  <td>
+                    <strong>
+                      {item.nextCare
+                        ? new Date(item.nextCare).toLocaleString("vi-VN", {
+                            timeZone: "Asia/Bangkok",
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          })
+                        : "—"}
+                    </strong>
                     <StatusPill status={item.status} />
                   </td>
                   <td>

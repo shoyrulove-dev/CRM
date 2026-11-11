@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useMemo, useState } from "react";
-import { KeyRound, Lock, LockOpen, Pencil, Plus } from "lucide-react";
+import { Archive, KeyRound, Lock, LockOpen, Pencil, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { UserRole } from "@/lib/types";
@@ -11,9 +11,10 @@ type Row = {
   role: UserRole;
   active: boolean;
   groupId?: string;
+  archivedAt?: string;
 };
 type Group = { id: string; name: string };
-type Filter = "all" | UserRole;
+type Filter = "all" | UserRole | "archived";
 const labels: Record<UserRole, string> = {
   admin: "Quản trị",
   sales: "Bán hàng",
@@ -32,7 +33,12 @@ export function AccountManager({
     [error, setError] = useState(""),
     router = useRouter(),
     rows = useMemo(
-      () => (filter === "all" ? users : users.filter((x) => x.role === filter)),
+      () =>
+        filter === "all"
+          ? users.filter((x) => !x.archivedAt)
+          : filter === "archived"
+            ? users.filter((x) => x.archivedAt)
+            : users.filter((x) => x.role === filter && !x.archivedAt),
       [filter, users],
     );
   async function create(e: FormEvent<HTMLFormElement>) {
@@ -88,6 +94,19 @@ export function AccountManager({
     );
     if (password) await patch(u.id, { password });
   }
+  async function archive(u: Row) {
+    if (
+      !confirm(
+        `Lưu trữ tài khoản ${u.name}? Tài khoản sẽ không thể đăng nhập nhưng lịch sử vẫn được giữ lại.`,
+      )
+    )
+      return;
+    const response = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
+    const json = await response.json();
+    if (!response.ok)
+      return setError(json.error || "Không thể lưu trữ tài khoản");
+    router.refresh();
+  }
   return (
     <>
       <div className="account-head">
@@ -98,6 +117,7 @@ export function AccountManager({
               ["admin", "Quản trị"],
               ["sales", "Bán hàng"],
               ["care", "Chăm sóc"],
+              ["archived", "Đã lưu trữ"],
             ] as [Filter, string][]
           ).map(([key, text]) => (
             <button
@@ -108,8 +128,11 @@ export function AccountManager({
               {text}
               <b>
                 {key === "all"
-                  ? users.length
-                  : users.filter((x) => x.role === key).length}
+                  ? users.filter((x) => !x.archivedAt).length
+                  : key === "archived"
+                    ? users.filter((x) => x.archivedAt).length
+                    : users.filter((x) => x.role === key && !x.archivedAt)
+                        .length}
               </b>
             </button>
           ))}
@@ -142,7 +165,11 @@ export function AccountManager({
             <span>{u.email}</span>
             <span className="role-badge">{labels[u.role]}</span>
             <span className={`account-state ${u.active ? "on" : "off"}`}>
-              {u.active ? "Đang hoạt động" : "Đã khóa"}
+              {u.archivedAt
+                ? "Đã lưu trữ"
+                : u.active
+                  ? "Đang hoạt động"
+                  : "Đã khóa"}
             </span>
             <div className="row-buttons">
               <button
@@ -154,6 +181,12 @@ export function AccountManager({
                 <Pencil />
                 Sửa
               </button>
+              {!u.archivedAt && (
+                <button className="danger-action" onClick={() => archive(u)}>
+                  <Archive />
+                  Lưu trữ
+                </button>
+              )}
               <button onClick={() => reset(u)}>
                 <KeyRound />
                 Mật khẩu

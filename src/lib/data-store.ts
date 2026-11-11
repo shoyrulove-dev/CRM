@@ -344,3 +344,78 @@ export async function getReportData(user?: SessionUser | null) {
     tickets: ticketData.filter((x) => x.owner === user.name),
   };
 }
+
+function isoDate(value?: string) {
+  if (!value || value === "—") return "";
+  if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : "";
+}
+
+export async function reconcileCustomers() {
+  if (!hasDatabase()) return { updated: 0 };
+  const db = await getDatabase();
+  const [customerRows, orderRows, activityRows, taskRows] = await Promise.all([
+    listFromMongo<Customer>(collections.customers),
+    listFromMongo<SalesOrder>(collections.orders),
+    listFromMongo<CareActivity>(collections.careActivities),
+    listFromMongo<CareTask>(collections.careTasks),
+  ]);
+  const now = new Date().toISOString();
+  const operations = customerRows.map((customer) => {
+    const purchased = orderRows
+      .filter(
+        (order) =>
+          order.customerId === customer.id && order.status === "Mua hàng",
+      )
+      .sort((a, b) => isoDate(b.orderDate).localeCompare(isoDate(a.orderDate)));
+    const customerActivities = activityRows
+      .filter((activity) => activity.customerId === customer.id)
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+    const pendingTasks = taskRows
+      .filter(
+        (task) => task.customerId === customer.id && task.status !== "done",
+      )
+      .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
+    const lastCare =
+      customerActivities[0]?.occurredAt || customer.lastCare || "";
+    let nextCare = pendingTasks[0]?.dueAt || "";
+    if (!nextCare && lastCare) {
+      const next = new Date(lastCare);
+      next.setDate(next.getDate() + 30);
+      nextCare = next.toISOString();
+    }
+    const status = nextCare ? (nextCare < now ? "overdue" : "due") : "done";
+    const segment =
+      status === "overdue"
+        ? "Cần kéo lại"
+        : purchased.length >= 2
+          ? "Khách trung thành"
+          : purchased.length === 1
+            ? "Đang theo liệu trình"
+            : "Khách mới";
+    return {
+      updateOne: {
+        filter: { id: customer.id },
+        update: {
+          $set: {
+            orders: purchased.length,
+            revenue: purchased.reduce(
+              (sum, order) => sum + Number(order.total || 0),
+              0,
+            ),
+            lastOrder: purchased[0] ? isoDate(purchased[0].orderDate) : "",
+            lastCare,
+            nextCare,
+            status,
+            segment,
+            reconciledAt: now,
+          },
+        },
+      },
+    };
+  });
+  if (operations.length)
+    await db.collection(collections.customers).bulkWrite(operations);
+  return { updated: operations.length };
+}

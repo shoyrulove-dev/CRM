@@ -39,8 +39,8 @@ export default async function TicketsPage({
           .includes(needle)) &&
       (!params.status || item.status === params.status) &&
       (!params.owner || item.owner === params.owner) &&
-      (!params.from || item.createdAt.slice(0, 10) >= params.from) &&
-      (!params.to || item.createdAt.slice(0, 10) <= params.to),
+      (!params.from || item.createdAt.slice(0, 10) >= `${params.from}-01`) &&
+      (!params.to || item.createdAt.slice(0, 10) <= `${params.to}-31`),
   );
   const employees = allUsers
     .filter((item) => item.active)
@@ -78,17 +78,17 @@ export default async function TicketsPage({
           </select>
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="from"
             defaultValue={params.from}
-            aria-label="Từ ngày"
+            aria-label="Từ tháng"
           />
           <input
             className="ghost-select"
-            type="date"
+            type="month"
             name="to"
             defaultValue={params.to}
-            aria-label="Đến ngày"
+            aria-label="Đến tháng"
           />
           {user?.role === "admin" && (
             <select

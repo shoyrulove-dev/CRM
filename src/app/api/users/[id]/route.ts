@@ -66,3 +66,48 @@ export async function PATCH(
   await writeAudit(current, "update", "user", id, before, result);
   return NextResponse.json({ data: result });
 }
+
+export async function DELETE(
+  _: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const current = await getCurrentUser();
+  if (current?.role !== "admin")
+    return NextResponse.json(
+      { error: "Bạn không có quyền lưu trữ tài khoản." },
+      { status: 403 },
+    );
+  const { id } = await params;
+  if (id === current.id)
+    return NextResponse.json(
+      { error: "Bạn không thể tự lưu trữ tài khoản đang sử dụng." },
+      { status: 400 },
+    );
+  if (!hasDatabase())
+    return NextResponse.json(
+      { error: "Kho dữ liệu chưa sẵn sàng." },
+      { status: 503 },
+    );
+  const db = await getDatabase();
+  const before = await db
+    .collection(collections.users)
+    .findOne({ id }, { projection: { _id: 0, passwordHash: 0 } });
+  if (!before)
+    return NextResponse.json(
+      { error: "Không tìm thấy tài khoản." },
+      { status: 404 },
+    );
+  const archivedAt = new Date().toISOString();
+  const result = await db
+    .collection(collections.users)
+    .findOneAndUpdate(
+      { id },
+      {
+        $set: { active: false, archivedAt, updatedAt: archivedAt },
+        $inc: { sessionVersion: 1 },
+      },
+      { returnDocument: "after", projection: { _id: 0, passwordHash: 0 } },
+    );
+  await writeAudit(current, "archive", "user", id, before, result);
+  return NextResponse.json({ data: result });
+}

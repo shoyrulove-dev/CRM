@@ -1,4 +1,4 @@
-import { collections, ensureIndexes } from "./data-store";
+import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getDatabase, hasDatabase } from "./mongodb";
 import type { Customer, SalesOrder } from "./types";
 
@@ -238,12 +238,14 @@ export async function runScheduler() {
         { status: "due", dueAt: { $lt: now.toISOString() } },
         { $set: { status: "overdue", updatedAt: now.toISOString() } },
       );
+    const reconciliation = await reconcileCustomers();
     const outcome = {
       source: "mongodb",
       created,
       birthdayCreated,
       holidayCreated,
       overdue: overdueResult.modifiedCount,
+      customersUpdated: reconciliation.updated,
     };
     await db.collection(collections.jobRuns).insertOne({
       job: lockId,

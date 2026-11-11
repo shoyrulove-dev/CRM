@@ -40,7 +40,7 @@ test("hồ sơ khách hàng có đủ bốn tab", async ({ page }) => {
 test("quản trị thấy các công cụ nâng cấp mới", async ({ page }) => {
   await page.goto("/customers");
   await expect(page.getByRole("button", { name: "Xuất Excel" })).toBeVisible();
-  await expect(page.getByLabel("Từ ngày mua")).toBeVisible();
+  await expect(page.getByLabel("Từ tháng mua")).toBeVisible();
   await page.goto("/care");
   await expect(
     page.getByRole("button", { name: "Tạo hàng loạt" }),
@@ -62,4 +62,23 @@ test("nhân viên bán hàng không được xuất dữ liệu tổng", async (
   await expect(page).toHaveURL(/\/$/, { timeout: 20_000 });
   const response = await page.request.get("/api/customers/export");
   expect(response.status()).toBe(403);
+});
+
+test("danh sách khách và bộ lọc tháng hiển thị đúng yêu cầu", async ({
+  page,
+}) => {
+  await page.goto("/customers");
+  await expect(
+    page.getByText("LẦN CHĂM GẦN NHẤT", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Từ tháng mua")).toHaveAttribute(
+    "type",
+    "month",
+  );
+  await page.goto("/care");
+  await expect(page.getByLabel("Từ tháng")).toHaveAttribute("type", "month");
+  await page.goto("/tickets");
+  await expect(page.getByLabel("Từ tháng")).toHaveAttribute("type", "month");
+  await page.goto("/accounts");
+  await expect(page.getByRole("button", { name: /Đã lưu trữ/ })).toBeVisible();
 });
