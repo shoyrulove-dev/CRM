@@ -2,6 +2,7 @@
 import { FormEvent, useState } from "react";
 import { Cloud, Database, ShoppingBag } from "lucide-react";
 type Data = {
+  webhookUrl: string;
   haravanShop: string;
   r2Endpoint: string;
   r2Bucket: string;
@@ -44,6 +45,7 @@ export function IntegrationSettings({
     [testing, setTesting] = useState(false),
     [haravanTest, setHaravanTest] = useState<HaravanTest | null>(null),
     [syncing, setSyncing] = useState(false),
+    [testingR2, setTestingR2] = useState(false),
     [sync, setSync] = useState(initial.sync);
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -103,6 +105,22 @@ export function IntegrationSettings({
       json.data.complete
         ? `Đồng bộ hoàn tất ${json.data.totalCustomers} khách hàng và ${json.data.totalOrders} đơn hàng.`
         : `Đã nhập thêm ${json.data.customers} khách hàng và ${json.data.orders} đơn hàng. Chọn Đồng bộ dữ liệu ngay lần nữa để lấy đợt tiếp theo.`,
+    );
+  }
+  async function testR2() {
+    setTestingR2(true);
+    setMessage("Đang kiểm tra quyền đọc, ghi và xóa trên Cloudflare R2...");
+    const response = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "testR2" }),
+    });
+    const json = await response.json();
+    setTestingR2(false);
+    setMessage(
+      response.ok
+        ? `R2 hoạt động tốt. Đã kiểm tra bucket ${json.data.bucket}.`
+        : json.error || "Không thể kết nối Cloudflare R2.",
     );
   }
   return (
@@ -205,7 +223,7 @@ export function IntegrationSettings({
               <label>
                 Địa chỉ nhận dữ liệu
                 <input
-                  value="https://nichiei-crm.vercel.app/api/webhooks/haravan"
+                  value={initial.webhookUrl}
                   readOnly
                 />
               </label>
@@ -321,6 +339,14 @@ export function IntegrationSettings({
             </label>
             <footer>
               <button className="primary-button">Lưu cấu hình R2</button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={testingR2 || !status.r2}
+                onClick={testR2}
+              >
+                {testingR2 ? "Đang kiểm tra..." : "Kiểm tra R2"}
+              </button>
             </footer>
           </form>
         </section>

@@ -44,6 +44,23 @@ bash scripts/backup-mongodb-r2.sh
 
 Sau khi kiểm tra khôi phục thành công, đặt cron chạy mỗi ngày và thiết lập quy tắc lưu trữ trên R2, ví dụ giữ bản hằng ngày 30 ngày. Không lưu khóa R2 trong Git.
 
+Khôi phục thử từ một bản sao đã có (thực hiện trên máy thử trước, vì `--drop` thay thế dữ liệu hiện tại):
+
+```bash
+BACKUP_KEY=mongodb/daily/nichiei-crm-YYYY-MM-DDTHH-MM-SSZ.archive.gz \
+  bash scripts/restore-mongodb-r2.sh
+```
+
+## Lịch tự động khi chạy VPS
+
+Vercel Cron không chạy sau khi chuyển máy chủ. Thêm hai lịch sau vào cron của VPS, dùng cùng `CRON_SECRET` trong `.env`:
+
+```cron
+30 0 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://crm.example.com/api/internal/haravan-sync
+0 1 * * * curl -fsS -H "Authorization: Bearer YOUR_CRON_SECRET" https://crm.example.com/api/internal/scheduler
+30 1 * * * cd /opt/nichiei-crm && set -a && . ./.env && set +a && /usr/bin/bash scripts/backup-mongodb-r2.sh
+```
+
 ## An toàn thông tin
 
 - Đổi mật khẩu quản trị và tất cả khóa bí mật trước khi dùng thật.

@@ -4,12 +4,17 @@ import { getCurrentUser } from "@/lib/current-user";
 import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
 import { hasDatabase } from "@/lib/mongodb";
 import { getHaravanSyncStatus } from "@/lib/haravan-sync";
+import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   if ((await getCurrentUser())?.role !== "admin") redirect("/");
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "localhost:3000";
+  const protocol = requestHeaders.get("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "https");
   const c = await getIntegrationConfig(),
     status = configStatus(c),
     initial = {
+      webhookUrl: `${process.env.APP_URL || `${protocol}://${host}`}/api/webhooks/haravan`,
       haravanShop: c.haravanShop || "",
       r2Endpoint: c.r2Endpoint || "",
       r2Bucket: c.r2Bucket || "",

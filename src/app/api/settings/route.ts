@@ -7,6 +7,7 @@ import {
 } from "@/lib/integration-config";
 import { testHaravanConnection } from "@/lib/haravan";
 import { getHaravanSyncStatus, syncHaravanData } from "@/lib/haravan-sync";
+import { testR2Connection } from "@/lib/r2";
 export const maxDuration = 300;
 async function allowed() {
   return (await getCurrentUser())?.role === "admin";
@@ -21,6 +22,7 @@ export async function GET() {
   return NextResponse.json({
     data: {
       haravanShop: c.haravanShop || "",
+      webhookUrl: `${process.env.APP_URL || "https://nichiei-crm.vercel.app"}/api/webhooks/haravan`,
       r2Endpoint: c.r2Endpoint || "",
       r2Bucket: c.r2Bucket || "",
       r2AccessKeyId: c.r2AccessKeyId ? `••••${c.r2AccessKeyId.slice(-4)}` : "",
@@ -55,12 +57,14 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   const body = await request.json().catch(() => null);
-  if (!body || !["testHaravan", "syncHaravan"].includes(body.action))
+  if (!body || !["testHaravan", "syncHaravan", "testR2"].includes(body.action))
     return NextResponse.json(
       { error: "Yêu cầu không hợp lệ." },
       { status: 400 },
     );
   try {
+    if (body.action === "testR2")
+      return NextResponse.json({ data: await testR2Connection() });
     if (body.action === "syncHaravan")
       return NextResponse.json({ data: await syncHaravanData() });
     const result = await testHaravanConnection();
