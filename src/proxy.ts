@@ -11,6 +11,10 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/internal/") ||
     pathname === "/api/webhooks/haravan" ||
     pathname.startsWith("/brand/") ||
+    pathname.startsWith("/icons/") ||
+    pathname === "/manifest.webmanifest" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   )
