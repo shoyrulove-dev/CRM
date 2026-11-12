@@ -14,7 +14,15 @@ trap 'rm -rf -- "$backup_dir"' EXIT
 stamp="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
 archive="$backup_dir/nichiei-crm-$stamp.archive.gz"
 
-mongodump --uri="$MONGODB_URI" --archive="$archive" --gzip
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  docker compose exec -T mongodb \
+    mongodump --uri="$MONGODB_URI" --archive --gzip > "$archive"
+elif command -v mongodump >/dev/null 2>&1; then
+  mongodump --uri="$MONGODB_URI" --archive="$archive" --gzip
+else
+  echo "Không tìm thấy Docker Compose hoặc mongodump." >&2
+  exit 1
+fi
 AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
 AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
 AWS_DEFAULT_REGION=auto \

@@ -24,5 +24,13 @@ AWS_DEFAULT_REGION=auto \
 aws s3 cp "s3://$R2_BUCKET/$BACKUP_KEY" "$archive" \
   --endpoint-url "$R2_ENDPOINT" --only-show-errors
 
-mongorestore --uri="$MONGODB_URI" --archive="$archive" --gzip --drop
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  docker compose exec -T mongodb \
+    mongorestore --uri="$MONGODB_URI" --archive --gzip --drop < "$archive"
+elif command -v mongorestore >/dev/null 2>&1; then
+  mongorestore --uri="$MONGODB_URI" --archive="$archive" --gzip --drop
+else
+  echo "Không tìm thấy Docker Compose hoặc mongorestore." >&2
+  exit 1
+fi
 echo "Đã khôi phục MongoDB từ: $BACKUP_KEY"

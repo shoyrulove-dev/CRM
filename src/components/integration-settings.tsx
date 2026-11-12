@@ -207,7 +207,7 @@ export function IntegrationSettings({
               />
             </label>
             <details className="full config-advanced">
-              <summary>Đồng bộ tự động bằng webhook (tùy chọn)</summary>
+              <summary>Nhận thông báo thay đổi từ Haravan (tùy chọn)</summary>
               <label>
                 Webhook authentication secret
                 <input
@@ -226,6 +226,10 @@ export function IntegrationSettings({
                   value={initial.webhookUrl}
                   readOnly
                 />
+                <small>
+                  Webhook ghi nhận thay đổi ngay; lịch đồng bộ hằng ngày vẫn là
+                  lớp bảo đảm dữ liệu đầy đủ.
+                </small>
               </label>
             </details>
             <footer>

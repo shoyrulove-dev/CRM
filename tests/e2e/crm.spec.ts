@@ -97,7 +97,7 @@ test("cấu hình Haravan chỉ yêu cầu một Token", async ({ page }) => {
     page.getByText("Cửa hàng nhận diện tự động", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Đồng bộ tự động bằng webhook (tùy chọn)", { exact: true }),
+    page.getByText("Nhận thông báo thay đổi từ Haravan (tùy chọn)", { exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Lưu Token" })).toBeVisible();
   await expect(
