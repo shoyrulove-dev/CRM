@@ -215,6 +215,14 @@
   text-decoration: none;
 }
 .login-pagination a.active { background: var(--blue); color: #fff; }
+.list-limit-note {
+  margin: 0;
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
 @media (max-width: 720px) {
   .login-pagination { align-items: flex-start; flex-direction: column; }
   .login-pagination div { flex-wrap: wrap; }

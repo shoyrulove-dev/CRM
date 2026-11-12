@@ -55,6 +55,7 @@ export default async function CarePage({
       (!params.status || item.status === params.status) &&
       (!params.task || item.id === params.task),
   );
+  const displayedTasks = tasks.slice(0, 100);
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
@@ -161,7 +162,7 @@ export default async function CarePage({
           <button className="secondary-button">Lọc nhiệm vụ</button>
         </form>
         <div className="care-list">
-          {tasks.map((item) => (
+          {displayedTasks.map((item) => (
             <article key={item.id} className={`care-row ${item.status}`}>
               <div className="care-time">
                 <strong>{careDate(item.dueAt).time}</strong>
@@ -192,6 +193,12 @@ export default async function CarePage({
               </div>
             </article>
           ))}
+          {tasks.length > displayedTasks.length && (
+            <p className="list-limit-note">
+              Đang hiển thị 100 nhiệm vụ ưu tiên đầu tiên trong {tasks.length} kết quả.
+              Hãy chọn thời gian, nhân viên hoặc trạng thái để thu gọn danh sách.
+            </p>
+          )}
         </div>
       </section>
     </>
