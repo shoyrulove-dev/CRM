@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import { NotificationBell } from "@/components/notification-bell";
 import { NichieiBrand } from "@/components/nichiei-brand";
+import { UserMenu } from "@/components/user-menu";
 import { hasPermission, type SessionUser } from "@/lib/session";
 import type { UserRole } from "@/lib/types";
 const roleLabel = (role: UserRole) =>
@@ -170,19 +171,7 @@ export function AppShell({
           </form>
           <div className="top-actions">
             <NotificationBell />
-            <form action="/api/auth/logout" method="post">
-              <button className="user-chip" title="Đăng xuất">
-                <div className="avatar small">
-                  {user?.name
-                    .split(" ")
-                    .slice(-2)
-                    .map((x) => x[0])
-                    .join("") || "N"}
-                </div>
-                <span>{user?.name || "Nichiei"}</span>
-                <ChevronDown size={16} />
-              </button>
-            </form>
+            <UserMenu name={user?.name || "Nichiei"} />
           </div>
         </header>
         <div className="page-content">{children}</div>

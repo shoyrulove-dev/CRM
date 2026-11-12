@@ -104,3 +104,20 @@ test("cấu hình Haravan chỉ yêu cầu một Token", async ({ page }) => {
     page.getByRole("button", { name: "Đồng bộ dữ liệu ngay" }),
   ).toBeVisible();
 });
+
+test("người dùng có thể mở biểu mẫu đổi mật khẩu cá nhân", async ({ page }) => {
+  await page.locator(".user-chip").click();
+  await page.getByRole("button", { name: "Đổi mật khẩu" }).click();
+  await expect(page.getByRole("heading", { name: "Đổi mật khẩu" })).toBeVisible();
+  await expect(page.getByLabel("Mật khẩu hiện tại")).toBeVisible();
+  await expect(page.getByLabel("Mật khẩu mới", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Nhập lại mật khẩu mới")).toBeVisible();
+});
+
+test("quản trị có biểu mẫu đặt lại mật khẩu cho tài khoản", async ({ page }) => {
+  await page.goto("/accounts");
+  await page.getByLabel(/Đặt lại mật khẩu/).first().click();
+  await expect(page.getByRole("heading", { name: "Đặt lại mật khẩu" })).toBeVisible();
+  await expect(page.getByLabel("Mật khẩu mới", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Nhập lại mật khẩu mới")).toBeVisible();
+});

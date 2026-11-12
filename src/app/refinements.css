@@ -911,6 +911,39 @@
 .sync-card small,
 .sidebar-user span { color: #cfc3a7; }
 .sidebar-user { border-top-color: #fbd6652b; }
+.user-menu-wrap { position: relative; }
+.user-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 9px);
+  width: 180px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 45px #39201e24;
+  z-index: 60;
+}
+.user-menu button {
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  text-align: left;
+}
+.user-menu button:hover { background: var(--gold-soft); }
+.form-success {
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: #e5f7ef;
+  color: #17663b;
+  font-size: 10px;
+}
 .topbar {
   background: #fff;
   border-bottom-color: var(--line);

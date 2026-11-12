@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/session";
 import { authenticateUser } from "@/lib/users";
 import { collections } from "@/lib/data-store";
@@ -36,9 +36,14 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     });
   };
+  const authentication = authenticateUser(email, body.password);
+  let user: Awaited<ReturnType<typeof authenticateUser>>;
   if (hasDatabase()) {
-    const db = await getDatabase(),
-      attempt = await db.collection(collections.loginAttempts).findOne({ key });
+    const db = await getDatabase();
+    const [attempt, authenticated] = await Promise.all([
+      db.collection(collections.loginAttempts).findOne({ key }),
+      authentication,
+    ]);
     if (
       attempt &&
       Number(attempt.count) >= 5 &&
@@ -50,8 +55,8 @@ export async function POST(request: NextRequest) {
         { status: 429 },
       );
     }
-  }
-  const user = await authenticateUser(email, body.password);
+    user = authenticated;
+  } else user = await authentication;
   if (!user) {
     if (hasDatabase())
       await (
@@ -80,19 +85,22 @@ export async function POST(request: NextRequest) {
       { status: 401 },
     );
   }
-  await recordLogin(true, "Đăng nhập thành công", user);
-  if (hasDatabase()) {
-    const db = await getDatabase();
-    await Promise.all([
-      db.collection(collections.loginAttempts).deleteOne({ key }),
-      db
-        .collection(collections.users)
-        .updateOne(
-          { id: user.id },
+  after(async () => {
+    const jobs: Promise<unknown>[] = [
+      recordLogin(true, "Đăng nhập thành công", user!),
+    ];
+    if (hasDatabase()) {
+      const db = await getDatabase();
+      jobs.push(
+        db.collection(collections.loginAttempts).deleteOne({ key }),
+        db.collection(collections.users).updateOne(
+          { id: user!.id },
           { $set: { lastLoginAt: now.toISOString() } },
         ),
-    ]);
-  }
+      );
+    }
+    await Promise.all(jobs);
+  });
   const token = await createSessionToken(user),
     response = NextResponse.json({ ok: true, user });
   response.cookies.set(SESSION_COOKIE, token, {

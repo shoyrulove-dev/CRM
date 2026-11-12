@@ -28,7 +28,7 @@ export function AccountManager({
   groups?: Group[];
 }) {
   const [filter, setFilter] = useState<Filter>("all"),
-    [mode, setMode] = useState<"create" | "edit" | null>(null),
+    [mode, setMode] = useState<"create" | "edit" | "password" | null>(null),
     [selected, setSelected] = useState<Row | null>(null),
     [error, setError] = useState(""),
     router = useRouter(),
@@ -88,11 +88,13 @@ export function AccountManager({
     )
       close();
   }
-  async function reset(u: Row) {
-    const password = prompt(
-      `Nhập mật khẩu mới cho ${u.name} (ít nhất 8 ký tự)`,
-    );
-    if (password) await patch(u.id, { password });
+  async function reset(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!selected) return;
+    const values = Object.fromEntries(new FormData(e.currentTarget).entries());
+    if (values.password !== values.confirmPassword)
+      return setError("Mật khẩu xác nhận chưa khớp.");
+    if (await patch(selected.id, { password: values.password })) close();
   }
   async function archive(u: Row) {
     if (
@@ -197,7 +199,7 @@ export function AccountManager({
                 className="icon-action"
                 title="Đặt lại mật khẩu"
                 aria-label={`Đặt lại mật khẩu ${u.name}`}
-                onClick={() => reset(u)}
+                onClick={() => { setSelected(u); setMode("password"); }}
               >
                 <KeyRound />
               </button>
@@ -282,6 +284,25 @@ export function AccountManager({
                 Hủy
               </button>
               <button className="primary-button">Lưu thay đổi</button>
+            </footer>
+          </form>
+        </Modal>
+      )}
+      {mode === "password" && selected && (
+        <Modal
+          title="Đặt lại mật khẩu"
+          description={`Tạo mật khẩu mới cho ${selected.name}. Các phiên đăng nhập cũ sẽ được thu hồi.`}
+          onClose={close}
+        >
+          <form className="entity-form" onSubmit={reset}>
+            <div className="form-grid">
+              <label className="full">Mật khẩu mới<input name="password" type="password" minLength={8} required /></label>
+              <label className="full">Nhập lại mật khẩu mới<input name="confirmPassword" type="password" minLength={8} required /></label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <footer>
+              <button type="button" className="secondary-button" onClick={close}>Hủy</button>
+              <button className="primary-button">Lưu mật khẩu mới</button>
             </footer>
           </form>
         </Modal>

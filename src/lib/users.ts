@@ -71,10 +71,35 @@ export async function authenticateUser(email: string, password: string) {
       ? { id: item.id, name: item.name, email: item.email, role: item.role }
       : null;
   }
-  await ensureDefaultUsers();
-  const user = await (await getDatabase())
+  const db = await getDatabase();
+  let user = await db
     .collection<UserAccount>(collections.users)
     .findOne({ email: email.toLowerCase(), active: true });
+  if (!user) {
+    const initial = defaults.find((item) => item.email === email.toLowerCase());
+    if (initial) {
+      const passwordHash = await hash(initial.password, 10);
+      await db.collection(collections.users).updateOne(
+        { email: initial.email },
+        {
+          $setOnInsert: {
+            id: initial.id,
+            name: initial.name,
+            email: initial.email,
+            role: initial.role,
+            passwordHash,
+            active: true,
+            sessionVersion: 0,
+            createdAt: new Date().toISOString(),
+          },
+        },
+        { upsert: true },
+      );
+      user = await db
+        .collection<UserAccount>(collections.users)
+        .findOne({ email: initial.email, active: true });
+    }
+  }
   if (!user || !(await compare(password, user.passwordHash))) return null;
   return {
     id: user.id,
