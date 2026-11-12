@@ -840,3 +840,155 @@
     flex-wrap: wrap;
   }
 }
+
+/* Nichiei Asia brand system — shared with Nichiei Hub */
+.sidebar {
+  background: linear-gradient(180deg, #292715 0%, #3d3519 58%, #251f11 100%);
+  color: #fffdf8;
+}
+.brand {
+  padding: 0 4px;
+  border-bottom-color: #fbd66533;
+}
+.nichiei-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.nichiei-logo {
+  width: 48px;
+  height: 44px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #ddcba3;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 5px 18px #17110822;
+}
+.nichiei-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 3px;
+}
+.nichiei-wordmark {
+  min-width: 0;
+}
+.nichiei-wordmark strong,
+.nichiei-wordmark small {
+  display: block;
+}
+.nichiei-wordmark strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .09em;
+  white-space: nowrap;
+}
+.nichiei-wordmark small {
+  color: #e4c579;
+  font-size: 6px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.nav-label { color: #c4a968; }
+.nav-item { color: #eee8da; }
+.nav-item:hover,
+.nav-item.active {
+  color: #fff;
+  background: #fff7dc17;
+}
+.nav-item.active:before { background: var(--gold); }
+.sync-card {
+  background: #fff7dc0d;
+  border-color: #fbd66530;
+}
+.sync-card small,
+.sidebar-user span { color: #cfc3a7; }
+.sidebar-user { border-top-color: #fbd6652b; }
+.topbar {
+  background: #fff;
+  border-bottom-color: var(--line);
+}
+.page-heading .eyebrow,
+.login-form .eyebrow { color: var(--gold-deep); }
+.primary-button,
+.login-submit {
+  background: linear-gradient(135deg, #c99d2c, #87620f);
+  color: #fff;
+  box-shadow: 0 6px 18px #9a71172b;
+}
+.primary-button:hover,
+.login-submit:hover { background: linear-gradient(135deg, #b88c21, #6f500d); }
+.secondary-button:hover,
+.icon-button:hover { background: var(--gold-soft); }
+.stat-card,
+.panel { border-color: var(--line); box-shadow: 0 8px 24px #6d500d0b; }
+.stat-icon.blue,
+.stat-icon.violet {
+  background: #fff3cf;
+  color: #80611f;
+}
+.avatar {
+  background: #fff3cf;
+  color: #755819;
+}
+.dashboard-welcome {
+  background: linear-gradient(115deg, #292715 0%, #6f571d 72%, #a47d1d 100%);
+  box-shadow: 0 16px 34px #6d500d1f;
+}
+.dashboard-welcome h1 { color: #fff; }
+.dashboard-welcome p,
+.dashboard-welcome span { color: #efe3c5; }
+.dashboard-welcome .secondary-button {
+  color: #4a390e;
+  border-color: #e3c66f;
+  background: #fff9e8;
+}
+.account-tabs,
+.customer-tabs { background: #f3eee4; }
+.account-tabs button.active,
+.customer-tabs a.active {
+  color: var(--gold-deep);
+  box-shadow: 0 2px 8px #6d500d16;
+}
+.account-tabs button.active b,
+.customer-tabs a.active b { background: #fff3cf; }
+.login-page { background: #fffdf8; }
+.login-brand {
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 15% 20%, #fff7dc 0, transparent 30%),
+    linear-gradient(145deg, #fffdf4, #fbd665 62%, #e9bd45);
+}
+.login-brand:after {
+  border-color: #6f500d1c;
+  box-shadow: 0 0 0 70px #ffffff2e, 0 0 0 140px #ffffff1c;
+}
+.brand-lockup { margin-bottom: 92px; }
+.brand-lockup .nichiei-logo { width: 62px; height: 56px; flex-basis: 62px; }
+.brand-lockup .nichiei-wordmark strong { color: #252a2b; font-size: 17px; }
+.brand-lockup .nichiei-wordmark small { color: #6f500d; font-size: 7px; }
+.login-brand > div > p { color: #403713; }
+.login-quote { border-left-color: #87620f; }
+.login-quote i { color: #87620f; }
+.login-quote span { color: #6f500d; }
+.login-form-wrap { background: linear-gradient(135deg, #fff, #fffaf0); }
+.login-form label > div:focus-within {
+  border-color: #c29a43;
+  box-shadow: 0 0 0 3px #fff3cf;
+}
+.demo-hint {
+  background: #fffaf0;
+  border-color: #d8c18f;
+}
+@media (max-width: 800px) {
+  .mobile-logo { margin-bottom: 28px; }
+  .mobile-logo .nichiei-wordmark strong { color: var(--ink); }
+  .mobile-logo .nichiei-wordmark small { color: var(--gold-deep); }
+}

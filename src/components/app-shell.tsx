@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { NotificationBell } from "@/components/notification-bell";
+import { NichieiBrand } from "@/components/nichiei-brand";
 import { hasPermission, type SessionUser } from "@/lib/session";
 import type { UserRole } from "@/lib/types";
 const roleLabel = (role: UserRole) =>
@@ -57,11 +58,7 @@ export function AppShell({
     <div className="app-frame">
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">
-          <div className="brand-mark">N</div>
-          <div>
-            <strong>NICHIEI</strong>
-            <span>Customer Care</span>
-          </div>
+          <NichieiBrand compact />
           <button
             className="icon-button mobile-only"
             onClick={() => setOpen(false)}

@@ -10,6 +10,7 @@ export async function proxy(request: NextRequest) {
     publicPaths.includes(pathname) ||
     pathname.startsWith("/api/internal/") ||
     pathname === "/api/webhooks/haravan" ||
+    pathname.startsWith("/brand/") ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico"
   )

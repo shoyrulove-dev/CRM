@@ -3,6 +3,7 @@
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { NichieiBrand } from "@/components/nichiei-brand";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,11 +39,7 @@ export default function LoginPage() {
       <section className="login-brand">
         <div className="login-brand-inner">
           <div className="brand-lockup">
-            <span>N</span>
-            <div>
-              <strong>NICHIEI</strong>
-              <small>Customer Care</small>
-            </div>
+            <NichieiBrand />
           </div>
           <h1>
             Chăm sóc đúng lúc.
@@ -65,7 +62,7 @@ export default function LoginPage() {
       </section>
       <section className="login-form-wrap">
         <form className="login-form" onSubmit={submit}>
-          <div className="mobile-logo">NICHIEI</div>
+          <div className="mobile-logo"><NichieiBrand compact /></div>
           <p className="eyebrow">CHÀO MỪNG TRỞ LẠI</p>
           <h2>Đăng nhập hệ thống</h2>
           <p className="form-note">Sử dụng tài khoản được cấp để tiếp tục.</p>
