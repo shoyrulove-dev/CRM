@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { StatusPill } from "@/components/status-pill";
 import { money } from "@/lib/demo-data";
-import { getReportData } from "@/lib/data-store";
+import { getDashboardData } from "@/lib/data-store";
 import { hasPermission, roleLabel } from "@/lib/session";
 import { getCurrentUser } from "@/lib/current-user";
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ function displayDue(value: string) {
 }
 export default async function Dashboard() {
   const user = await getCurrentUser(),
-    sourceData = await getReportData(user),
+    sourceData = await getDashboardData(user),
     canViewCustomers = hasPermission(user, "customers") || hasPermission(user, "reports"),
     canViewCare = hasPermission(user, "care") || hasPermission(user, "reports"),
     canOpenCustomers = hasPermission(user, "customers"),
@@ -68,7 +68,7 @@ export default async function Dashboard() {
       .reduce((s, x) => s + x.total, 0);
   const contactRate = activities.length ? contacted / activities.length : 0,
     closeRate = activities.length ? closed / activities.length : 0,
-    done = data.tasks.filter((x) => x.status === "done").length;
+    done = sourceData.doneCount;
   const stats =
     user?.role === "sales"
       ? [

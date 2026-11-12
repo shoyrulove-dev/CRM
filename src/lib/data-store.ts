@@ -351,6 +351,63 @@ export async function getReportData(user?: SessionUser | null) {
   };
 }
 
+export async function getDashboardData(user?: SessionUser | null) {
+  if (!hasDatabase()) {
+    const report = await getReportData(user);
+    return {
+      ...report,
+      doneCount: report.tasks.filter((item) => item.status === "done").length,
+    };
+  }
+  const db = await getDatabase();
+  const month = new Date().toISOString().slice(0, 7);
+  const ownerFilter = user && user.role !== "admin" ? { owner: user.name } : {};
+  const activityFilter =
+    user && user.role !== "admin"
+      ? { occurredAt: { $regex: `^${month}` }, employee: user.name }
+      : { occurredAt: { $regex: `^${month}` } };
+  const orderFilter =
+    user && user.role !== "admin"
+      ? { orderDate: { $regex: `^${month}` }, $or: [{ owner: user.name }, { salesperson: user.name }] }
+      : { orderDate: { $regex: `^${month}` } };
+  const [customerData, taskData, doneCount, activityData, orderData] =
+    await Promise.all([
+      db.collection(collections.customers).find(ownerFilter, {
+        projection: { _id: 0, id: 1, status: 1, owner: 1 },
+      }).toArray(),
+      db.collection(collections.careTasks).find(
+        { ...ownerFilter, status: { $ne: "done" } },
+        {
+          projection: {
+            _id: 0,
+            id: 1,
+            customer: 1,
+            phone: 1,
+            purpose: 1,
+            channel: 1,
+            dueAt: 1,
+            status: 1,
+          },
+        },
+      ).sort({ dueAt: 1 }).limit(100).toArray(),
+      db.collection(collections.careTasks).countDocuments({ ...ownerFilter, status: "done" }),
+      db.collection(collections.careActivities).find(activityFilter, {
+        projection: { _id: 0, occurredAt: 1, contactStatus: 1, result: 1, adverseReaction: 1 },
+      }).toArray(),
+      db.collection(collections.orders).find(orderFilter, {
+        projection: { _id: 0, orderDate: 1, status: 1, total: 1, purchaseType: 1 },
+      }).toArray(),
+    ]);
+  return {
+    customers: customerData as unknown as Customer[],
+    tasks: taskData as unknown as CareTask[],
+    activities: activityData as unknown as CareActivity[],
+    orders: orderData as unknown as SalesOrder[],
+    tickets: [] as ServiceTicket[],
+    doneCount,
+  };
+}
+
 function isoDate(value?: string) {
   if (!value || value === "—") return "";
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);

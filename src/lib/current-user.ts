@@ -8,7 +8,9 @@ import {
 import { getDatabase, hasDatabase } from "./mongodb";
 import { collections } from "./data-store";
 import type { PermissionGroup, UserAccount } from "./types";
-export async function getCurrentUser(): Promise<SessionUser | null> {
+import { cache } from "react";
+
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   try {
@@ -41,4 +43,4 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   } catch {
     return null;
   }
-}
+});
