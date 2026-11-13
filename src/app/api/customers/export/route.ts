@@ -45,7 +45,9 @@ export async function GET(request: NextRequest) {
   const file = await createExcelFile(
     "Khách hàng",
     selected.map((key) => columns[key]),
-    customers.map((item) => selected.map((key) => item[key] ?? "")),
+    customers.map((item) => selected.map((key) =>
+      key === "owner" ? item.haravanEmployee || item.owner : item[key] ?? "",
+    )),
   );
   return excelResponse(file, `danh-sach-khach-hang-${vietnamDateStamp()}.xlsx`);
 }

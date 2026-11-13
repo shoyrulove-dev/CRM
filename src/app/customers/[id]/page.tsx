@@ -11,7 +11,7 @@ import {
   ShoppingBag,
   UserRound,
 } from "lucide-react";
-import { getCustomerProfile } from "@/lib/data-store";
+import { getCustomerProfile, listProductCatalog } from "@/lib/data-store";
 import { money } from "@/lib/demo-data";
 import { CreateActivityButton } from "@/components/create-activity-button";
 import { CreateTicketButton } from "@/components/create-ticket-button";
@@ -37,8 +37,8 @@ export default async function CustomerProfilePage({
     query = await searchParams,
     user = await getCurrentUser();
   if (!hasPermission(user, "customers")) notFound();
-  const [{ customer, activities, orders, tickets, tasks }, allUsers] =
-    await Promise.all([getCustomerProfile(id, user), listUsers()]);
+  const [{ customer, activities, orders, tickets, tasks }, allUsers, productCatalog] =
+    await Promise.all([getCustomerProfile(id, user), listUsers(), listProductCatalog()]);
   if (!customer) notFound();
   const employees = allUsers
     .filter((item) => item.active)
@@ -95,6 +95,7 @@ export default async function CustomerProfilePage({
             employees={employees}
             customerId={customer.id}
             orders={orders}
+            products={productCatalog}
           />
           <CreateActivityButton customerId={customer.id} orders={orders} />
         </div>
@@ -209,6 +210,7 @@ export default async function CustomerProfilePage({
                         customerId={customer.id}
                         orderCode={order.code}
                         orders={orders}
+                        products={productCatalog}
                         compact
                       />
                     </footer>
@@ -332,6 +334,7 @@ export default async function CustomerProfilePage({
                   employees={employees}
                   customerId={customer.id}
                   orders={orders}
+                  products={productCatalog}
                 />
               </div>
               {tickets.map((ticket) => (

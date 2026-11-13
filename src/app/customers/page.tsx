@@ -1,6 +1,7 @@
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { StatusPill } from "@/components/status-pill";
+import { formatDate } from "@/lib/format-date";
 import { money } from "@/lib/demo-data";
 import { getCustomersPage } from "@/lib/data-store";
 import { CreateCustomerButton } from "@/components/create-customer-button";
@@ -207,9 +208,10 @@ export default async function CustomersPage({
                   </td>
                   <td>
                     <span className="person">
-                      <i>{item.owner.slice(-2).toUpperCase()}</i>
-                      {item.owner}
+                      <i>{(item.haravanEmployee || item.owner).slice(-2).toUpperCase()}</i>
+                      {item.haravanEmployee || item.owner}
                     </span>
+                    {item.haravanEmployee && item.owner !== item.haravanEmployee && item.owner !== "Chưa phân công" && <small>CRM: {item.owner}</small>}
                   </td>
                   <td>
                     <strong>{item.orders}</strong>
@@ -235,13 +237,7 @@ export default async function CustomersPage({
                   </td>
                   <td>
                     <strong>
-                      {item.nextCare
-                        ? new Date(item.nextCare).toLocaleString("vi-VN", {
-                            timeZone: "Asia/Bangkok",
-                            dateStyle: "short",
-                            timeStyle: "short",
-                          })
-                        : "—"}
+                      {formatDate(item.nextCare)}
                     </strong>
                     <StatusPill status={item.status} />
                   </td>

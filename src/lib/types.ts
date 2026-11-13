@@ -30,6 +30,8 @@ export interface Customer {
   name: string;
   phone: string;
   owner: string;
+  haravanEmployee?: string;
+  haravanUserId?: string;
   segment: string;
   orders: number;
   revenue: number;
@@ -143,4 +145,9 @@ export interface SalesOrder {
   returnRevenue?: number;
   returnReceivedAt?: string;
   loyaltyNote?: string;
+}
+
+export interface ProductOption {
+  sku: string;
+  name: string;
 }

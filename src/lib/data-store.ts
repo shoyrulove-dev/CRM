@@ -6,6 +6,7 @@ import type {
   Customer,
   SalesOrder,
   ServiceTicket,
+  ProductOption,
 } from "./types";
 import type { SessionUser } from "./session";
 
@@ -123,6 +124,25 @@ async function listFromMongo<T>(collection: string, filter = {}, sort = {}) {
     .find(filter, { projection: { _id: 0 } })
     .sort(sort)
     .toArray() as unknown as T[];
+}
+
+export async function listProductCatalog(): Promise<ProductOption[]> {
+  if (!hasDatabase()) {
+    const map = new Map<string, ProductOption>();
+    orders.flatMap((order) => order.products).forEach((product) => {
+      if (product.sku) map.set(product.sku, { sku: product.sku, name: product.name });
+    });
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  }
+  const rows = await (await getDatabase()).collection(collections.orders).aggregate([
+    { $unwind: "$products" },
+    { $match: { "products.sku": { $type: "string", $ne: "" } } },
+    { $sort: { orderDate: -1 } },
+    { $group: { _id: "$products.sku", name: { $first: "$products.name" } } },
+    { $project: { _id: 0, sku: "$_id", name: 1 } },
+    { $sort: { name: 1 } },
+  ]).toArray();
+  return rows as ProductOption[];
 }
 
 export async function listCustomers(

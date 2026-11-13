@@ -52,7 +52,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Đơn hàng không thuộc khách hàng đã chọn." }, { status: 400 });
   const products = (relatedOrder?.products || []) as Array<{ sku?: string; name?: string; quantity?: number }>;
   const returned = body.returnProductSku ? products.find((item) => item.sku === body.returnProductSku) : null;
-  const exchanged = body.exchangeProductSku ? products.find((item) => item.sku === body.exchangeProductSku) : null;
+  const exchangeOrder = body.exchangeProductSku
+    ? await db.collection(collections.orders).findOne({ "products.sku": body.exchangeProductSku }, { projection: { products: 1 } })
+    : null;
+  const exchanged = body.exchangeProductSku
+    ? ((exchangeOrder?.products || []) as Array<{ sku?: string; name?: string }>).find((item) => item.sku === body.exchangeProductSku)
+    : null;
   if ((body.returnProductSku && !returned) || (body.exchangeProductSku && !exchanged))
     return NextResponse.json({ error: "Sản phẩm không thuộc đơn hàng đã chọn." }, { status: 400 });
   const document = {

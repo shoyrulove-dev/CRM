@@ -35,6 +35,7 @@ type HaravanOrder = {
   user_name?: string | null;
   staff_name?: string | null;
   salesperson_name?: string | null;
+  user_id?: number | string | null;
   customer?: HaravanCustomer | null;
   billing_address?: { name?: string; phone?: string } | null;
   shipping_address?: { name?: string; phone?: string } | null;
@@ -48,6 +49,13 @@ type HaravanOrder = {
   }>;
 };
 
+type HaravanUser = {
+  id: number | string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+};
+
 const API = "https://apis.haravan.com/com";
 
 function phoneOf(customer?: HaravanCustomer | null) {
@@ -55,12 +63,27 @@ function phoneOf(customer?: HaravanCustomer | null) {
 }
 
 function customerName(customer?: HaravanCustomer | null) {
-  // Haravan stores Vietnamese names as first_name = given/title and
-  // last_name = family + middle name. Display the family name first.
-  return [customer?.last_name, customer?.first_name]
+  return [customer?.first_name, customer?.last_name]
     .filter(Boolean)
     .join(" ")
     .trim();
+}
+
+async function fetchHaravanUsers(token: string) {
+  try {
+    const response = await fetch(`${API}/users.json`, {
+      headers: { authorization: `Bearer ${token}`, accept: "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!response.ok) return [] as HaravanUser[];
+    const payload = (await response.json()) as { users?: HaravanUser[] };
+    return payload.users || [];
+  } catch {
+    // The Users API is limited to eligible Haravan plans. Order sync must
+    // continue even when the shop cannot read this endpoint.
+    return [] as HaravanUser[];
+  }
 }
 
 async function fetchPages<T>(
@@ -195,7 +218,7 @@ export async function syncHaravanData() {
   const startedAt = new Date();
   // Version 2 corrects Vietnamese name order. The first sync after this
   // deployment intentionally scans all records once, then returns to incremental sync.
-  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 2);
+  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 3);
   const updatedAtMin = incremental
     ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
@@ -205,7 +228,7 @@ export async function syncHaravanData() {
     { upsert: true },
   );
   try {
-    const [customerBatch, orderBatch] = await Promise.all([
+    const [customerBatch, orderBatch, haravanUsers] = await Promise.all([
       fetchPages<HaravanCustomer>(
         "customers",
         config.haravanAccessToken,
@@ -218,11 +241,14 @@ export async function syncHaravanData() {
         updatedAtMin,
         incremental ? 1 : Number(previous?.orderPage || 1),
       ),
+      fetchHaravanUsers(config.haravanAccessToken),
     ]);
     const customers = customerBatch.rows;
     const orders = orderBatch.rows;
-    const activeUsers = await db.collection(collections.users).find({ active: true }).project({ name: 1 }).toArray();
+    const activeUsers = await db.collection(collections.users).find({ active: true }).project({ name: 1, email: 1 }).toArray();
     const userByName = new Map(activeUsers.map((item) => [String(item.name).trim().toLocaleLowerCase("vi"), String(item.name)]));
+    const userByEmail = new Map(activeUsers.map((item) => [String(item.email).trim().toLowerCase(), String(item.name)]));
+    const haravanUserById = new Map(haravanUsers.map((item) => [String(item.id), item]));
     const customerMap = new Map<string, { id: string; owner: string }>();
     for (let offset = 0; offset < customers.length; offset += 10) {
       const batch = customers.slice(offset, offset + 10);
@@ -256,14 +282,35 @@ export async function syncHaravanData() {
         : ["refunded", "partially_refunded"].includes(order.financial_status || "")
           ? "Trả hàng"
           : "Mua hàng";
-      const haravanEmployee = [order.salesperson_name, order.staff_name, order.user_name]
+      const haravanUser = order.user_id ? haravanUserById.get(String(order.user_id)) : undefined;
+      const haravanEmployee = [
+        haravanUser ? [haravanUser.first_name, haravanUser.last_name].filter(Boolean).join(" ").trim() : "",
+        order.salesperson_name,
+        order.staff_name,
+        order.user_name,
+      ]
         .map((value) => String(value || "").trim()).find(Boolean);
-      const matchedEmployee = haravanEmployee
-        ? userByName.get(haravanEmployee.toLocaleLowerCase("vi"))
-        : undefined;
-      if (matchedEmployee && mapped.owner === "Chưa phân công") {
-        mapped.owner = matchedEmployee;
-        await db.collection(collections.customers).updateOne({ id: mapped.id }, { $set: { owner: matchedEmployee } });
+      const matchedEmployee =
+        (haravanUser?.email ? userByEmail.get(haravanUser.email.trim().toLowerCase()) : undefined) ||
+        (haravanEmployee ? userByName.get(haravanEmployee.toLocaleLowerCase("vi")) : undefined);
+      if (haravanEmployee || matchedEmployee) {
+        const assignment = await db.collection(collections.customers).updateOne(
+          {
+            id: mapped.id,
+            $or: [
+              { owner: "Chưa phân công" },
+              { ownerSource: "haravan" },
+            ],
+          },
+          {
+            $set: {
+              ...(matchedEmployee ? { owner: matchedEmployee, ownerSource: "haravan" } : {}),
+              haravanEmployee: haravanEmployee || matchedEmployee,
+              haravanUserId: order.user_id ? String(order.user_id) : "",
+            },
+          },
+        );
+        if (matchedEmployee && assignment.modifiedCount) mapped.owner = matchedEmployee;
       }
       const document = {
         id: `HRV-DH-${order.id}`,
@@ -348,7 +395,7 @@ export async function syncHaravanData() {
           customerPage: result.complete ? 1 : customerBatch.nextPage,
           orderPage: result.complete ? 1 : orderBatch.nextPage,
           lastSuccessAt: finishedAt.toISOString(),
-          mappingVersion: result.complete ? 2 : Number(previous?.mappingVersion || 0),
+          mappingVersion: result.complete ? 3 : Number(previous?.mappingVersion || 0),
         },
         $unset: { error: "" },
       },
