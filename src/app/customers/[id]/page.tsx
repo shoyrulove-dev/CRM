@@ -22,6 +22,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { listUsers } from "@/lib/users";
 import { AssignCustomerOwner } from "@/components/assign-customer-owner";
+import { formatDateTime } from "@/lib/format-date";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -93,6 +94,7 @@ export default async function CustomerProfilePage({
             customers={[customer]}
             employees={employees}
             customerId={customer.id}
+            orders={orders}
           />
           <CreateActivityButton customerId={customer.id} orders={orders} />
         </div>
@@ -123,7 +125,7 @@ export default async function CustomerProfilePage({
           <CalendarPlus />
           <div>
             <span>Chăm sóc tiếp theo</span>
-            <strong>{customer.nextCare}</strong>
+            <strong>{formatDateTime(customer.nextCare)}</strong>
           </div>
         </article>
       </section>
@@ -196,6 +198,8 @@ export default async function CustomerProfilePage({
                           id: order.id,
                           code: order.code,
                           orderDate: order.orderDate,
+                          customerId: order.customerId,
+                          products: order.products,
                         }}
                         compact
                       />
@@ -204,6 +208,7 @@ export default async function CustomerProfilePage({
                         employees={employees}
                         customerId={customer.id}
                         orderCode={order.code}
+                        orders={orders}
                         compact
                       />
                     </footer>
@@ -224,6 +229,7 @@ export default async function CustomerProfilePage({
                   customers={[customer]}
                   employees={employees}
                   customerId={customer.id}
+                  orders={orders}
                 />
               </div>
               <div className="profile-reminders">
@@ -325,6 +331,7 @@ export default async function CustomerProfilePage({
                   customers={[customer]}
                   employees={employees}
                   customerId={customer.id}
+                  orders={orders}
                 />
               </div>
               {tickets.map((ticket) => (
@@ -381,7 +388,7 @@ export default async function CustomerProfilePage({
                   <CalendarPlus />
                   Lịch tiếp theo
                 </dt>
-                <dd>{customer.nextCare}</dd>
+                <dd>{formatDateTime(customer.nextCare)}</dd>
               </div>
             </dl>
           </section>

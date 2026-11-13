@@ -1,11 +1,12 @@
-import { Search } from "lucide-react";
-import { listCustomers, listTickets } from "@/lib/data-store";
+import { Download, Search } from "lucide-react";
+import { getReportData, listCustomers, listTickets } from "@/lib/data-store";
 import { CreateTicketButton } from "@/components/create-ticket-button";
 import { TicketActions } from "@/components/ticket-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
+import { TicketDetailButton } from "@/components/ticket-detail-button";
 
 export const dynamic = "force-dynamic";
 export default async function TicketsPage({
@@ -17,14 +18,16 @@ export default async function TicketsPage({
     owner?: string;
     from?: string;
     to?: string;
+    resolution?: string;
   }>;
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTickets, customers, allUsers] = await Promise.all([
+    [allTickets, customers, allUsers, reportData] = await Promise.all([
       listTickets(user),
       listCustomers(undefined, user),
       listUsers(),
+      getReportData(user),
     ]),
     needle = (params.q || "").toLowerCase();
   if (!hasPermission(user, "tickets")) redirect("/");
@@ -39,6 +42,7 @@ export default async function TicketsPage({
           .includes(needle)) &&
       (!params.status || item.status === params.status) &&
       (!params.owner || item.owner === params.owner) &&
+      (!params.resolution || item.resolution === params.resolution) &&
       (!params.from || item.createdAt.slice(0, 10) >= `${params.from}-01`) &&
       (!params.to || item.createdAt.slice(0, 10) <= `${params.to}-31`),
   );
@@ -53,7 +57,7 @@ export default async function TicketsPage({
           <h1>Phiếu yêu cầu</h1>
           <p>Tạo, phân loại và đóng/mở từng phiếu theo khách hàng.</p>
         </div>
-        <CreateTicketButton customers={customers} employees={employees} />
+        <div className="page-actions"><a className="secondary-button" href={`/api/tickets/export?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as [string, string][]).toString()}`}><Download size={17} />Xuất Excel</a><CreateTicketButton customers={customers} employees={employees} orders={reportData.orders} /></div>
       </div>
       <section className="panel list-panel">
         <form className="list-toolbar" method="get">
@@ -75,6 +79,9 @@ export default async function TicketsPage({
             <option>Đang xử lý</option>
             <option>Chờ khách</option>
             <option>Đã đóng</option>
+          </select>
+          <select className="ghost-select" name="resolution" defaultValue={params.resolution || ""}>
+            <option value="">Mọi hướng xử lý</option><option>Thu hàng - Hoàn tiền</option><option>Đổi hàng</option><option>Điều chỉnh cách dùng</option><option>Khác</option>
           </select>
           <input
             className="ghost-select"
@@ -122,7 +129,7 @@ export default async function TicketsPage({
               {tickets.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <strong>{item.id}</strong>
+                    <TicketDetailButton ticket={item} phone={phoneByCustomer.get(item.customerId) || ""} />
                   </td>
                   <td>
                     <strong>{item.title}</strong>

@@ -3,7 +3,6 @@ import {
   CalendarCheck2,
   CheckCircle2,
   ContactRound,
-  Download,
   PhoneCall,
   ShoppingCart,
 } from "lucide-react";
@@ -12,6 +11,7 @@ import { money } from "@/lib/demo-data";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
+import { ReportExportButton } from "@/components/report-export-button";
 
 export const dynamic = "force-dynamic";
 const inRange = (value: string, from: string, to: string) => {
@@ -204,13 +204,7 @@ export default async function ReportsPage({
             trước
           </p>
         </div>
-        <a
-          className="secondary-button"
-          href={`/api/reports/export?from=${from}&to=${to}${params.owner ? `&owner=${encodeURIComponent(params.owner)}` : ""}`}
-        >
-          <Download size={17} />
-          Tải báo cáo Excel
-        </a>
+        <ReportExportButton from={from} to={to} owner={params.owner} />
       </div>
       <form className="panel report-filter" method="get">
         <label>

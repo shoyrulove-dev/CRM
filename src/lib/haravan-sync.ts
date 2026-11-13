@@ -32,6 +32,9 @@ type HaravanOrder = {
   gateway?: string | null;
   source_name?: string | null;
   landing_site_ref?: string | null;
+  user_name?: string | null;
+  staff_name?: string | null;
+  salesperson_name?: string | null;
   customer?: HaravanCustomer | null;
   billing_address?: { name?: string; phone?: string } | null;
   shipping_address?: { name?: string; phone?: string } | null;
@@ -52,7 +55,9 @@ function phoneOf(customer?: HaravanCustomer | null) {
 }
 
 function customerName(customer?: HaravanCustomer | null) {
-  return [customer?.first_name, customer?.last_name]
+  // Haravan stores Vietnamese names as first_name = given/title and
+  // last_name = family + middle name. Display the family name first.
+  return [customer?.last_name, customer?.first_name]
     .filter(Boolean)
     .join(" ")
     .trim();
@@ -181,7 +186,9 @@ export async function syncHaravanData() {
     .collection(collections.settings)
     .findOne({ id: "haravan_sync" });
   const startedAt = new Date();
-  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt);
+  // Version 2 corrects Vietnamese name order. The first sync after this
+  // deployment intentionally scans all records once, then returns to incremental sync.
+  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 2);
   const updatedAtMin = incremental
     ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
@@ -207,6 +214,8 @@ export async function syncHaravanData() {
     ]);
     const customers = customerBatch.rows;
     const orders = orderBatch.rows;
+    const activeUsers = await db.collection(collections.users).find({ active: true }).project({ name: 1 }).toArray();
+    const userByName = new Map(activeUsers.map((item) => [String(item.name).trim().toLocaleLowerCase("vi"), String(item.name)]));
     const customerMap = new Map<string, { id: string; owner: string }>();
     for (let offset = 0; offset < customers.length; offset += 10) {
       const batch = customers.slice(offset, offset + 10);
@@ -240,6 +249,15 @@ export async function syncHaravanData() {
         : ["refunded", "partially_refunded"].includes(order.financial_status || "")
           ? "Trả hàng"
           : "Mua hàng";
+      const haravanEmployee = [order.salesperson_name, order.staff_name, order.user_name]
+        .map((value) => String(value || "").trim()).find(Boolean);
+      const matchedEmployee = haravanEmployee
+        ? userByName.get(haravanEmployee.toLocaleLowerCase("vi"))
+        : undefined;
+      if (matchedEmployee && mapped.owner === "Chưa phân công") {
+        mapped.owner = matchedEmployee;
+        await db.collection(collections.customers).updateOne({ id: mapped.id }, { $set: { owner: matchedEmployee } });
+      }
       const document = {
         id: `HRV-DH-${order.id}`,
         haravanId: String(order.id),
@@ -261,7 +279,7 @@ export async function syncHaravanData() {
         promotion: Number(order.total_discounts || 0) ? "Có giảm giá" : "",
         total: Number(order.total_price || 0),
         owner: mapped.owner,
-        salesperson: mapped.owner,
+        salesperson: matchedEmployee || mapped.owner,
         paymentMethod: order.gateway || "",
         haravanUpdatedAt: order.updated_at || "",
         source: "haravan",
@@ -323,6 +341,7 @@ export async function syncHaravanData() {
           customerPage: result.complete ? 1 : customerBatch.nextPage,
           orderPage: result.complete ? 1 : orderBatch.nextPage,
           lastSuccessAt: finishedAt.toISOString(),
+          mappingVersion: result.complete ? 2 : Number(previous?.mappingVersion || 0),
         },
         $unset: { error: "" },
       },

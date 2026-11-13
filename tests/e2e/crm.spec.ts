@@ -121,3 +121,25 @@ test("quản trị có biểu mẫu đặt lại mật khẩu cho tài khoản",
   await expect(page.getByLabel("Mật khẩu mới", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Nhập lại mật khẩu mới")).toBeVisible();
 });
+
+test("lịch chăm sóc và phiếu yêu cầu chọn được đơn, sản phẩm", async ({ page }) => {
+  await page.goto("/care");
+  await page.getByRole("button", { name: "Tạo lịch chăm sóc" }).click();
+  await expect(page.getByLabel("Đơn hàng")).toBeVisible();
+  await expect(page.getByLabel("Sản phẩm")).toBeVisible();
+  await page.getByRole("button", { name: "Hủy" }).click();
+
+  await page.goto("/tickets");
+  await page.getByRole("button", { name: "Tạo phiếu yêu cầu" }).click();
+  await expect(page.getByLabel("Sản phẩm thu/đổi")).toBeVisible();
+  await expect(page.getByLabel("Sản phẩm đổi sang")).toBeVisible();
+});
+
+test("báo cáo có nhiều mẫu Excel và phiếu có bộ lọc hướng xử lý", async ({ page }) => {
+  await page.goto("/reports");
+  await expect(page.getByLabel("Mẫu báo cáo")).toHaveValue("detail");
+  await expect(page.getByLabel("Mẫu báo cáo").locator("option")).toHaveCount(4);
+  await page.goto("/tickets");
+  await expect(page.locator('select[name="resolution"]')).toBeVisible();
+  await expect(page.getByRole("link", { name: "Xuất Excel" })).toBeVisible();
+});

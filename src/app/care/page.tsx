@@ -78,7 +78,7 @@ export default async function CarePage({
           {user?.role === "admin" && (
             <BulkCareButton products={products} employees={employees} />
           )}
-          <CreateCareButton customers={customers} employees={employees} />
+          <CreateCareButton customers={customers} employees={employees} orders={reportData.orders} />
         </div>
       </div>
       <section className="calendar-summary">
@@ -177,6 +177,8 @@ export default async function CarePage({
                   <h3>{item.purpose}</h3>
                   <p>
                     {item.customer} · {item.phone}
+                    {item.orderCode ? ` · Đơn ${item.orderCode}` : ""}
+                    {item.productName ? ` · ${item.productName}` : ""}
                     {item.recurrence && item.recurrence !== "none"
                       ? ` · Lặp ${item.recurrence === "monthly" ? "hàng tháng" : "hàng năm"}`
                       : ""}

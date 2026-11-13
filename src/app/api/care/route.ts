@@ -48,6 +48,16 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
       { status: 403 },
     );
+  const relatedOrder = body.orderId
+    ? await db.collection(collections.orders).findOne({ id: body.orderId, customerId: customer.id })
+    : null;
+  if (body.orderId && !relatedOrder)
+    return NextResponse.json({ error: "Đơn hàng không thuộc khách hàng đã chọn." }, { status: 400 });
+  const relatedProduct = body.productSku && relatedOrder
+    ? (relatedOrder.products || []).find((item: { sku?: string }) => item.sku === body.productSku)
+    : null;
+  if (body.productSku && !relatedProduct)
+    return NextResponse.json({ error: "Sản phẩm không thuộc đơn hàng đã chọn." }, { status: 400 });
   let dueAt = body.dueAt;
   if (!dueAt && body.baseDate) {
     const date = new Date(`${body.baseDate}T09:00:00+07:00`);
@@ -85,7 +95,10 @@ export async function POST(request: NextRequest) {
     recurrence: ["monthly", "yearly"].includes(body.recurrence)
       ? body.recurrence
       : "none",
-    orderId: body.orderId || "",
+    orderId: relatedOrder?.id || "",
+    orderCode: relatedOrder?.code || "",
+    productSku: relatedProduct?.sku || "",
+    productName: relatedProduct?.name || "",
     status: "due",
     createdAt: new Date().toISOString(),
   };

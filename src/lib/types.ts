@@ -52,6 +52,9 @@ export interface CareTask {
   channel: string;
   status: CareStatus;
   orderId?: string;
+  orderCode?: string;
+  productSku?: string;
+  productName?: string;
   recurrence?: "none" | "monthly" | "yearly";
   offsetDays?: number;
   completedAt?: string;
@@ -92,6 +95,12 @@ export interface ServiceTicket {
   updatedAt?: string;
   closedAt?: string;
   orderCode?: string;
+  returnProductSku?: string;
+  returnProductName?: string;
+  returnQuantity?: number;
+  exchangeProductSku?: string;
+  exchangeProductName?: string;
+  exchangeQuantity?: number;
   resolution?:
     "Thu hàng - Hoàn tiền" | "Đổi hàng" | "Điều chỉnh cách dùng" | "Khác";
 }

@@ -14,6 +14,27 @@
   --red: #df4d56;
   --violet: #7454d8;
 }
+.page-actions,
+.export-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.text-button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--primary, #174a73);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.text-button:hover { text-decoration: underline; }
+.detail-list { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0; }
+.detail-list > div { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.detail-list > div:nth-child(odd) { padding-right: 18px; }
+.detail-list dt { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.detail-list dd { margin: 0; font-weight: 650; }
 * {
   box-sizing: border-box;
 }

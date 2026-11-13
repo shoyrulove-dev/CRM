@@ -45,6 +45,16 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
       { status: 403 },
     );
+  const relatedOrder = body.orderCode
+    ? await db.collection(collections.orders).findOne({ code: body.orderCode, customerId: customer.id })
+    : null;
+  if (body.orderCode && !relatedOrder)
+    return NextResponse.json({ error: "Đơn hàng không thuộc khách hàng đã chọn." }, { status: 400 });
+  const products = (relatedOrder?.products || []) as Array<{ sku?: string; name?: string; quantity?: number }>;
+  const returned = body.returnProductSku ? products.find((item) => item.sku === body.returnProductSku) : null;
+  const exchanged = body.exchangeProductSku ? products.find((item) => item.sku === body.exchangeProductSku) : null;
+  if ((body.returnProductSku && !returned) || (body.exchangeProductSku && !exchanged))
+    return NextResponse.json({ error: "Sản phẩm không thuộc đơn hàng đã chọn." }, { status: 400 });
   const document = {
     id: `YC-${Date.now().toString().slice(-6)}`,
     customerId: body.customerId,
@@ -57,7 +67,13 @@ export async function POST(request: NextRequest) {
       user?.role === "admin"
         ? body.owner || user.name
         : user?.name || "Chưa phân công",
-    orderCode: body.orderCode || "",
+    orderCode: relatedOrder?.code || "",
+    returnProductSku: returned?.sku || "",
+    returnProductName: returned?.name || "",
+    returnQuantity: returned ? Math.max(1, Math.min(Number(body.returnQuantity || 1), Number(returned.quantity || 1))) : undefined,
+    exchangeProductSku: exchanged?.sku || "",
+    exchangeProductName: exchanged?.name || "",
+    exchangeQuantity: exchanged ? Math.max(1, Number(body.exchangeQuantity || 1)) : undefined,
     resolution: [
       "Thu hàng - Hoàn tiền",
       "Đổi hàng",
