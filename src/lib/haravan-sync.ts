@@ -63,7 +63,9 @@ function phoneOf(customer?: HaravanCustomer | null) {
 }
 
 function customerName(customer?: HaravanCustomer | null) {
-  return [customer?.first_name, customer?.last_name]
+  // Haravan stores the Vietnamese given name in first_name and the
+  // family/title portion in last_name for this shop.
+  return [customer?.last_name, customer?.first_name]
     .filter(Boolean)
     .join(" ")
     .trim();
@@ -218,7 +220,7 @@ export async function syncHaravanData() {
   const startedAt = new Date();
   // Version 2 corrects Vietnamese name order. The first sync after this
   // deployment intentionally scans all records once, then returns to incremental sync.
-  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 3);
+  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 4);
   const updatedAtMin = incremental
     ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
@@ -395,7 +397,7 @@ export async function syncHaravanData() {
           customerPage: result.complete ? 1 : customerBatch.nextPage,
           orderPage: result.complete ? 1 : orderBatch.nextPage,
           lastSuccessAt: finishedAt.toISOString(),
-          mappingVersion: result.complete ? 3 : Number(previous?.mappingVersion || 0),
+          mappingVersion: result.complete ? 4 : Number(previous?.mappingVersion || 0),
         },
         $unset: { error: "" },
       },
