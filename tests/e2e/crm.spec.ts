@@ -125,8 +125,8 @@ test("quản trị có biểu mẫu đặt lại mật khẩu cho tài khoản",
 test("lịch chăm sóc và phiếu yêu cầu chọn được đơn, sản phẩm", async ({ page }) => {
   await page.goto("/care");
   await page.getByRole("button", { name: "Tạo lịch chăm sóc" }).click();
-  await expect(page.getByLabel("Đơn hàng", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Sản phẩm", { exact: true })).toBeVisible();
+  await expect(page.locator(".entity-form label").filter({ hasText: /^Đơn hàng/ }).locator("select")).toBeVisible();
+  await expect(page.locator(".entity-form label").filter({ hasText: /^Sản phẩm/ }).locator("select")).toBeVisible();
   await page.getByRole("button", { name: "Hủy" }).click();
 
   await page.goto("/tickets");
