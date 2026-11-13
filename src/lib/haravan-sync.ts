@@ -132,7 +132,11 @@ async function upsertCustomer(
   const byHaravanId = haravanId
     ? await customerCollection.findOne({ haravanId })
     : null;
-  const byPhone = !byHaravanId && phone
+  const generatedId = haravanId ? `HRV-KH-${haravanId}` : "";
+  const byGeneratedId = !byHaravanId && generatedId
+    ? await customerCollection.findOne({ id: generatedId })
+    : null;
+  const byPhone = !byHaravanId && !byGeneratedId && phone
     ? await customerCollection.findOne({
         $and: [
           { $or: [{ haravanId: { $exists: false } }, { haravanId: "" }, { haravanId: null }] },
@@ -140,13 +144,13 @@ async function upsertCustomer(
         ],
       })
     : null;
-  const existing = byHaravanId || byPhone;
+  const existing = byHaravanId || byGeneratedId || byPhone;
   const match = existing?._id
     ? { _id: existing._id }
     : haravanId
       ? { haravanId }
       : { phone };
-  const id = String(existing?.id || `HRV-KH-${haravanId || Date.now()}`);
+  const id = String(existing?.id || generatedId || `HRV-KH-${Date.now()}`);
   await customerCollection.updateOne(
     match,
     {
