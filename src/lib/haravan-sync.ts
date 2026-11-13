@@ -128,23 +128,26 @@ async function upsertCustomer(
   const phone = phoneOf(raw) || String(fallback?.phone || "").trim();
   const phoneNormalized = phone.replace(/\D/g, "");
   const name = customerName(raw) || fallback?.name || phone || "Khách Haravan";
-  const match = haravanId
-    ? {
-        $or: [
-          { haravanId },
-          ...(phone
-            ? [
-                { phone },
-                { phoneNormalized },
-                { phone: { $regex: `^${phoneNormalized.split("").join("\\D*")}$` } },
-              ]
-            : []),
+  const customerCollection = db.collection(collections.customers);
+  const byHaravanId = haravanId
+    ? await customerCollection.findOne({ haravanId })
+    : null;
+  const byPhone = !byHaravanId && phone
+    ? await customerCollection.findOne({
+        $and: [
+          { $or: [{ haravanId: { $exists: false } }, { haravanId: "" }, { haravanId: null }] },
+          { $or: [{ phone }, { phoneNormalized }, { phone: { $regex: `^${phoneNormalized.split("").join("\\D*")}$` } }] },
         ],
-      }
-    : { phone };
-  const existing = await db.collection(collections.customers).findOne(match);
+      })
+    : null;
+  const existing = byHaravanId || byPhone;
+  const match = existing?._id
+    ? { _id: existing._id }
+    : haravanId
+      ? { haravanId }
+      : { phone };
   const id = String(existing?.id || `HRV-KH-${haravanId || Date.now()}`);
-  await db.collection(collections.customers).updateOne(
+  await customerCollection.updateOne(
     match,
     {
       $set: {
