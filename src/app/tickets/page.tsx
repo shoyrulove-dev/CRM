@@ -1,5 +1,6 @@
 import { Download, Search } from "lucide-react";
-import { listCustomers, listTickets } from "@/lib/data-store";
+import { listCustomerContacts, getTicketsPage } from "@/lib/data-store";
+import { Pagination } from "@/components/pagination";
 import { LazyCreateButton } from "@/components/lazy-create-button";
 import { TicketActions } from "@/components/ticket-actions";
 import { getCurrentUser } from "@/lib/current-user";
@@ -19,32 +20,21 @@ export default async function TicketsPage({
     from?: string;
     to?: string;
     resolution?: string;
+    page?: string;
   }>;
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTickets, customers, allUsers] = await Promise.all([
-      listTickets(user),
-      listCustomers(undefined, user),
+    [result, allUsers] = await Promise.all([
+      getTicketsPage(params, user),
       listUsers(),
-    ]),
-    needle = (params.q || "").toLowerCase();
+    ]);
   if (!hasPermission(user, "tickets")) redirect("/");
+  const customers = await listCustomerContacts(result.items.map((item) => item.customerId), user);
   const phoneByCustomer = new Map(
     customers.map((item) => [item.id, item.phone]),
   );
-  const tickets = allTickets.filter(
-    (item) =>
-      (!needle ||
-        `${item.id} ${item.customer} ${item.title} ${phoneByCustomer.get(item.customerId) || ""}`
-          .toLowerCase()
-          .includes(needle)) &&
-      (!params.status || item.status === params.status) &&
-      (!params.owner || item.owner === params.owner) &&
-      (!params.resolution || item.resolution === params.resolution) &&
-      (!params.from || item.createdAt.slice(0, 10) >= `${params.from}-01`) &&
-      (!params.to || item.createdAt.slice(0, 10) <= `${params.to}-31`),
-  );
+  const tickets = result.items;
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
@@ -153,6 +143,7 @@ export default async function TicketsPage({
             </tbody>
           </table>
         </div>
+        <Pagination page={result.page} size={result.size} total={result.total} pathname="/tickets" params={params} />
       </section>
     </>
   );

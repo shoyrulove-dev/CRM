@@ -272,10 +272,34 @@ export async function getCustomersPage(
   };
 }
 
+export async function listCustomerContacts(ids: string[], user: SessionUser | null) {
+  if (!ids.length) return [];
+  if (!hasDatabase()) return customers.filter((c) => ids.includes(c.id) && (!user || ["admin", "super_admin"].includes(user.role) || c.owner === user.name)).map(({ id, phone }) => ({ id, phone }));
+  const db = await getDatabase();
+  return await db.collection(collections.customers).find({ id: { $in: ids }, ...(user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {}) }, { projection: { _id: 0, id: 1, phone: 1 } }).toArray() as unknown as { id: string; phone: string }[];
+}
+
 export async function getCustomerProfile(
   id: string,
   user?: SessionUser | null,
+  history?: { tab: "orders" | "reminders" | "care" | "tickets"; page: number; size: number },
 ) {
+  if (history && hasDatabase()) {
+    const db = await getDatabase();
+    const customer = await db.collection(collections.customers).findOne({ id, ...(user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {}) }, { projection: { _id: 0 } }) as unknown as Customer | null;
+    const empty = { customer: null, activities: [] as CareActivity[], orders: [] as SalesOrder[], tickets: [] as ServiceTicket[], tasks: [] as CareTask[], counts: { orders: 0, reminders: 0, care: 0, tickets: 0 }, page: 1 };
+    if (!customer) return empty;
+    const names = { orders: collections.orders, reminders: collections.careTasks, care: collections.careActivities, tickets: collections.tickets };
+    const countsArray = await Promise.all(Object.values(names).map((name) => db.collection(name).countDocuments({ customerId: id })));
+    const counts = { orders: countsArray[0], reminders: countsArray[1], care: countsArray[2], tickets: countsArray[3] };
+    const page = Math.min(history.page, Math.max(1, Math.ceil(counts[history.tab] / history.size)));
+    const field = history.tab === "orders" ? "orderDate" : history.tab === "reminders" ? "dueAt" : history.tab === "care" ? "occurredAt" : "createdAt";
+    const rows = await db.collection(names[history.tab]).find({ customerId: id }, { projection: { _id: 0 } }).sort({ [field]: -1, id: -1 }).skip((page - 1) * history.size).limit(history.size).toArray();
+    // Only the active history tab is rendered. Order selectors keep this
+    // customer's orders available for creating activities, tickets and care.
+    const orderOptions = await db.collection(collections.orders).find({ customerId: id }, { projection: { _id: 0 } }).sort({ orderDate: -1 }).toArray();
+    return { customer, counts, page, orderOptions: orderOptions as unknown as SalesOrder[], orders: (history.tab === "orders" ? rows : []) as unknown as SalesOrder[], activities: (history.tab === "care" ? rows : []) as unknown as CareActivity[], tasks: (history.tab === "reminders" ? rows : []) as unknown as CareTask[], tickets: (history.tab === "tickets" ? rows : []) as unknown as ServiceTicket[] };
+  }
   if (!hasDatabase())
     return {
       customer: customers.find((c) => c.id === id) || null,
@@ -334,7 +358,9 @@ export async function getCustomerProfile(
   };
 }
 
-export async function getCarePageData(params: { date?: string; from?: string; to?: string; owner?: string; status?: string; task?: string }, user: SessionUser | null) {
+export async function getCarePageData(params: { date?: string; from?: string; to?: string; owner?: string; status?: string; task?: string; page?: string }, user: SessionUser | null) {
+  const size = 20;
+  const requestedPage = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
   const base = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   const filter = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
@@ -344,15 +370,40 @@ export async function getCarePageData(params: { date?: string; from?: string; to
   if (!hasDatabase()) {
     const all = await listCareTasks(user);
     const selected = all.filter((task) => (!params.owner || task.owner === params.owner) && (!params.status || task.status === params.status) && (!params.task || task.id === params.task) && (!params.date || task.dueAt.startsWith(params.date)) && (!params.from || task.dueAt >= `${params.from}-01`) && (!params.to || task.dueAt <= `${params.to}-31T23:59:59.999Z`));
-    return { tasks: selected.slice(0, 100), total: selected.length, overdue: all.filter((task) => task.status === "overdue").length, done: all.filter((task) => task.status === "done").length, today: all.filter((task) => task.status !== "done" && task.dueAt.startsWith(today)).length };
+    const page = Math.min(requestedPage, Math.max(1, Math.ceil(selected.length / size)));
+    return { tasks: selected.slice((page - 1) * size, page * size), page, size, total: selected.length, overdue: all.filter((task) => task.status === "overdue").length, done: all.filter((task) => task.status === "done").length, today: all.filter((task) => task.status !== "done" && task.dueAt.startsWith(today)).length };
   }
   const col = (await getDatabase()).collection(collections.careTasks);
-  const [rows, total, overdue, done, dueToday] = await Promise.all([
-    col.find(filter, { projection: { _id: 0 } }).sort({ dueAt: 1 }).limit(100).toArray(), col.countDocuments(filter),
+  const [total, overdue, done, dueToday] = await Promise.all([
+    col.countDocuments(filter),
     col.countDocuments({ ...base, status: "overdue" }), col.countDocuments({ ...base, status: "done" }),
     col.countDocuments({ ...base, status: { $ne: "done" }, dueAt: { $gte: new Date(`${today}T00:00:00+07:00`).toISOString(), $lte: new Date(`${today}T23:59:59+07:00`).toISOString() } }),
   ]);
-  return { tasks: rows as unknown as CareTask[], total, overdue, done, today: dueToday };
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / size)));
+  const rows = await col.find(filter, { projection: { _id: 0 } }).sort({ dueAt: 1, id: 1 }).skip((page - 1) * size).limit(size).toArray();
+  return { tasks: rows as unknown as CareTask[], page, size, total, overdue, done, today: dueToday };
+}
+
+export async function getTicketsPage(params: { q?: string; status?: string; owner?: string; resolution?: string; from?: string; to?: string; page?: string }, user: SessionUser | null) {
+  const size = 20, requested = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
+  const scope = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : params.owner ? { owner: params.owner } : {};
+  if (!hasDatabase()) {
+    const needle = (params.q || "").toLocaleLowerCase("vi");
+    const selected = (await listTickets(user)).filter((item) => (!params.owner || item.owner === params.owner) && (!params.status || item.status === params.status) && (!params.resolution || item.resolution === params.resolution) && (!params.from || item.createdAt >= `${params.from}-01`) && (!params.to || item.createdAt <= `${params.to}-31T23:59:59Z`) && (!needle || `${item.id} ${item.customer} ${item.title} ${customers.find((c) => c.id === item.customerId)?.phone || ""}`.toLocaleLowerCase("vi").includes(needle)));
+    const page = Math.min(requested, Math.max(1, Math.ceil(selected.length / size)));
+    return { items: selected.slice((page - 1) * size, page * size), total: selected.length, page, size };
+  }
+  const db = await getDatabase();
+  const filter: Record<string, unknown> = { ...scope, ...(params.status ? { status: params.status } : {}), ...(params.resolution ? { resolution: params.resolution } : {}), ...(params.from || params.to ? { createdAt: { ...(params.from ? { $gte: `${params.from}-01` } : {}), ...(params.to ? { $lte: `${params.to}-31T23:59:59Z` } : {}) } } : {}) };
+  if (params.q?.trim()) {
+    const pattern = params.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const customerIds = await db.collection(collections.customers).distinct("id", { ...(user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {}), phone: { $regex: pattern, $options: "i" } });
+    filter.$or = [...["id", "customer", "title"].map((field) => ({ [field]: { $regex: pattern, $options: "i" } })), { customerId: { $in: customerIds } }];
+  }
+  const col = db.collection(collections.tickets), total = await col.countDocuments(filter);
+  const page = Math.min(requested, Math.max(1, Math.ceil(total / size)));
+  const items = await col.find(filter, { projection: { _id: 0 } }).sort({ createdAt: -1, id: -1 }).skip((page - 1) * size).limit(size).toArray();
+  return { items: items as unknown as ServiceTicket[], total, page, size };
 }
 
 export async function listCareTasks(

@@ -24,6 +24,7 @@ import { listUsers } from "@/lib/users";
 import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 import { formatDateTime } from "@/lib/format-date";
 import { CustomerClassificationEditor } from "@/components/customer-classification-editor";
+import { Pagination, pageNumber } from "@/components/pagination";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -32,28 +33,29 @@ export default async function CustomerProfilePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; page?: string }>;
 }) {
   const { id } = await params,
     query = await searchParams,
     user = await getCurrentUser();
   if (!hasPermission(user, "customers")) notFound();
-  const [{ customer, activities, orders, tickets, tasks }, allUsers, productCatalog] =
-    await Promise.all([getCustomerProfile(id, user), listUsers(), listProductCatalog()]);
+  const selected: Tab = (["orders", "reminders", "care", "tickets"].includes(query.tab || "") ? query.tab : "orders") as Tab;
+  const size = 10;
+  const [profile, allUsers, productCatalog] =
+    await Promise.all([getCustomerProfile(id, user, { tab: selected, page: pageNumber(query.page), size }), listUsers(), listProductCatalog()]);
+  const { customer, activities, orders, tickets, tasks } = profile;
+  const orderOptions = "orderOptions" in profile ? profile.orderOptions! : orders;
   if (!customer) notFound();
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
-  const selected: Tab = (
-    ["orders", "reminders", "care", "tickets"].includes(query.tab || "")
-      ? query.tab
-      : "orders"
-  ) as Tab;
+  const counts = "counts" in profile ? profile.counts! : { orders: orders.length, reminders: tasks.length, care: activities.length, tickets: tickets.length };
+  const page = "page" in profile ? profile.page! : Math.min(pageNumber(query.page), Math.max(1, Math.ceil(counts[selected] / size)));
   const tabs: Array<[Tab, string, number]> = [
-    ["orders", "Lịch sử bán hàng", orders.length],
-    ["reminders", "Lịch nhắc chăm sóc", tasks.length],
-    ["care", "Lịch sử chăm sóc", activities.length],
-    ["tickets", "Phiếu yêu cầu", tickets.length],
+    ["orders", "Lịch sử bán hàng", counts.orders],
+    ["reminders", "Lịch nhắc chăm sóc", counts.reminders],
+    ["care", "Lịch sử chăm sóc", counts.care],
+    ["tickets", "Phiếu yêu cầu", counts.tickets],
   ];
   return (
     <>
@@ -95,10 +97,10 @@ export default async function CustomerProfilePage({
             customers={[customer]}
             employees={employees}
             customerId={customer.id}
-            orders={orders}
+            orders={orderOptions}
             products={productCatalog}
           />
-          <CreateActivityButton customerId={customer.id} orders={orders} />
+          <CreateActivityButton customerId={customer.id} orders={orderOptions} />
         </div>
       </div>
       <section className="profile-stats">
@@ -210,7 +212,7 @@ export default async function CustomerProfilePage({
                         employees={employees}
                         customerId={customer.id}
                         orderCode={order.code}
-                        orders={orders}
+                        orders={[order]}
                         products={productCatalog}
                         compact
                       />
@@ -232,7 +234,7 @@ export default async function CustomerProfilePage({
                   customers={[customer]}
                   employees={employees}
                   customerId={customer.id}
-                  orders={orders}
+                  orders={orderOptions}
                 />
               </div>
               <div className="profile-reminders">
@@ -267,7 +269,7 @@ export default async function CustomerProfilePage({
                 </div>
                 <CreateActivityButton
                   customerId={customer.id}
-                  orders={orders}
+                  orders={orderOptions}
                 />
               </div>
               <div className="timeline">
@@ -334,7 +336,7 @@ export default async function CustomerProfilePage({
                   customers={[customer]}
                   employees={employees}
                   customerId={customer.id}
-                  orders={orders}
+                  orders={orderOptions}
                   products={productCatalog}
                 />
               </div>
@@ -359,6 +361,7 @@ export default async function CustomerProfilePage({
               )}
             </section>
           )}
+          <Pagination page={page} size={size} total={counts[selected]} pathname={`/customers/${id}`} params={{ tab: selected }} />
         </main>
         <aside className="profile-side">
           <section className="panel info-card">

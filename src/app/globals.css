@@ -14,6 +14,9 @@
   --red: #df4d56;
   --violet: #7454d8;
 }
+.list-pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--line); color: var(--muted); }
+.list-pagination > div { display: flex; align-items: center; gap: 16px; }
+.list-pagination a { padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px; text-decoration: none; color: var(--ink); background: white; }
 .ticket-history { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
 .ticket-history h3 { margin: 0 0 10px; font-size: 1rem; }
 .ticket-history article { padding: 10px 0; border-bottom: 1px solid var(--line); }

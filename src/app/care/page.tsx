@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { BulkCareButton } from "@/components/bulk-care-button";
+import { Pagination } from "@/components/pagination";
 
 export const dynamic = "force-dynamic";
 function careDate(value: string) {
@@ -34,6 +35,7 @@ export default async function CarePage({
     owner?: string;
     status?: string;
     task?: string;
+    page?: string;
   }>;
 }) {
   const params = await searchParams,
@@ -174,13 +176,9 @@ export default async function CarePage({
               </div>
             </article>
           ))}
-          {careData.total > displayedTasks.length && (
-            <p className="list-limit-note">
-              Đang hiển thị 100 nhiệm vụ ưu tiên đầu tiên trong {careData.total} kết quả.
-              Hãy chọn thời gian, nhân viên hoặc trạng thái để thu gọn danh sách.
-            </p>
-          )}
+          {!displayedTasks.length && <p className="no-data">Chưa có lịch phù hợp với bộ lọc.</p>}
         </div>
+        <Pagination page={careData.page} size={careData.size} total={careData.total} pathname="/care" params={params} />
       </section>
     </>
   );
