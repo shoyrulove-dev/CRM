@@ -11,11 +11,13 @@ type Row = {
   role: UserRole;
   active: boolean;
   groupId?: string;
+  canManageUsers?: boolean;
   archivedAt?: string;
 };
 type Group = { id: string; name: string };
 type Filter = "all" | UserRole | "archived";
 const labels: Record<UserRole, string> = {
+  super_admin: "Super admin",
   admin: "Quản trị",
   sales: "Bán hàng",
   care: "Chăm sóc khách hàng",
@@ -23,9 +25,11 @@ const labels: Record<UserRole, string> = {
 export function AccountManager({
   users,
   groups = [],
+  currentRole,
 }: {
   users: Row[];
   groups?: Group[];
+  currentRole: UserRole;
 }) {
   const [filter, setFilter] = useState<Filter>("all"),
     [mode, setMode] = useState<"create" | "edit" | "password" | null>(null),
@@ -47,9 +51,10 @@ export function AccountManager({
     const res = await fetch("/api/users", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(
-          Object.fromEntries(new FormData(e.currentTarget).entries()),
-        ),
+        body: JSON.stringify((() => {
+          const values = Object.fromEntries(new FormData(e.currentTarget).entries());
+          return { ...values, canManageUsers: values.canManageUsers === "on" };
+        })()),
       }),
       json = await res.json();
     if (!res.ok) return setError(json.error || "Không thể tạo tài khoản");
@@ -84,6 +89,7 @@ export function AccountManager({
         name: form.name,
         role: form.role,
         groupId: form.groupId,
+        canManageUsers: form.canManageUsers === "on",
       })
     )
       close();
@@ -225,7 +231,7 @@ export function AccountManager({
           onClose={close}
         >
           <form className="entity-form" onSubmit={create}>
-            <AccountFields />
+            <AccountFields currentRole={currentRole} />
             {error && <p className="form-error">{error}</p>}
             <footer>
               <button
@@ -259,7 +265,7 @@ export function AccountManager({
               <label className="full">
                 Nhóm quyền
                 <select name="role" defaultValue={selected.role}>
-                  <RoleOptions />
+                  <RoleOptions currentRole={currentRole} />
                 </select>
               </label>
               <label className="full">
@@ -273,6 +279,9 @@ export function AccountManager({
                   ))}
                 </select>
               </label>
+              {currentRole === "super_admin" && selected.role === "admin" && (
+                <label className="full"><input name="canManageUsers" type="checkbox" defaultChecked={selected.canManageUsers} /> Được tạo và quản lý tài khoản bán hàng/CSKH</label>
+              )}
             </div>
             {error && <p className="form-error">{error}</p>}
             <footer>
@@ -310,7 +319,7 @@ export function AccountManager({
     </>
   );
 }
-function RoleOptions() {
+function RoleOptions({ currentRole }: { currentRole: UserRole }) {
   return (
     <>
       <option value="admin">Quản trị</option>
@@ -319,7 +328,7 @@ function RoleOptions() {
     </>
   );
 }
-function AccountFields() {
+function AccountFields({ currentRole }: { currentRole: UserRole }) {
   return (
     <div className="form-grid">
       <label className="full">
@@ -333,13 +342,16 @@ function AccountFields() {
       <label>
         Nhóm quyền
         <select name="role">
-          <RoleOptions />
+          <RoleOptions currentRole={currentRole} />
         </select>
       </label>
       <label className="full">
         Mật khẩu tạm thời
         <input name="password" type="password" minLength={8} required />
       </label>
+      {currentRole === "super_admin" && (
+        <label className="full"><input name="canManageUsers" type="checkbox" /> Cho phép admin tạo và quản lý tài khoản bán hàng/CSKH</label>
+      )}
     </div>
   );
 }

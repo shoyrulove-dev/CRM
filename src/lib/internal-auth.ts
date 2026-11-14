@@ -20,7 +20,7 @@ export async function isInternalOrAdminRequest(request: Request) {
     ?.slice(SESSION_COOKIE.length + 1);
   if (!token) return false;
   try {
-    return (await verifySessionToken(token)).role === "admin";
+    return ["admin", "super_admin"].includes((await verifySessionToken(token)).role);
   } catch {
     return false;
   }

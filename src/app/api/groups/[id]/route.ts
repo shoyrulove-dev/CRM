@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const user = await getCurrentUser();
-  if (user?.role !== "admin")
+  if (user?.role !== "super_admin")
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   const { id } = await params,
     b = await r.json(),
@@ -35,7 +35,7 @@ export async function DELETE(
   _: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if ((await getCurrentUser())?.role !== "admin")
+  if ((await getCurrentUser())?.role !== "super_admin")
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   const { id } = await params,
     db = await getDatabase();

@@ -152,7 +152,7 @@ export async function listCustomers(
   if (!hasDatabase())
     return customers.filter(
       (c) =>
-        (!user || user.role === "admin" || c.owner === user.name) &&
+        (!user || ["admin", "super_admin"].includes(user.role) || c.owner === user.name) &&
         (!search ||
           `${c.name} ${c.phone} ${c.id}`
             .toLowerCase()
@@ -167,7 +167,7 @@ export async function listCustomers(
         { id: { $regex: search, $options: "i" } },
       ],
     });
-  if (user && user.role !== "admin") clauses.push({ owner: user.name });
+  if (user && !["admin", "super_admin"].includes(user.role)) clauses.push({ owner: user.name });
   const filter = clauses.length ? { $and: clauses } : {};
   return listFromMongo<Customer>(collections.customers, filter, { name: 1 });
 }
@@ -189,7 +189,7 @@ export async function getCustomersPage(
   if (!hasDatabase()) {
     const filtered = customers.filter(
       (item) =>
-        (!user || user.role === "admin" || item.owner === user.name) &&
+        (!user || ["admin", "super_admin"].includes(user.role) || item.owner === user.name) &&
         (!input.search ||
           `${item.name} ${item.phone} ${item.id}`
             .toLowerCase()
@@ -207,7 +207,7 @@ export async function getCustomersPage(
     };
   }
   const filter: Record<string, unknown> = {};
-  if (user && user.role !== "admin") filter.owner = user.name;
+  if (user && !["admin", "super_admin"].includes(user.role)) filter.owner = user.name;
   else if (input.owner) filter.owner = input.owner;
   if (input.status) filter.status = input.status;
   if (input.from || input.to)
@@ -298,7 +298,7 @@ export async function getCustomerProfile(
     ),
   ]);
   const visible = customer as unknown as Customer | null;
-  if (visible && user && user.role !== "admin" && visible.owner !== user.name)
+  if (visible && user && !["admin", "super_admin"].includes(user.role) && visible.owner !== user.name)
     return {
       customer: null,
       activities: [],
@@ -318,23 +318,23 @@ export async function getCustomerProfile(
 export async function listCareTasks(
   user?: SessionUser | null,
 ): Promise<CareTask[]> {
-  const filter = user && user.role !== "admin" ? { owner: user.name } : {};
+  const filter = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   return hasDatabase()
     ? listFromMongo<CareTask>(collections.careTasks, filter, { dueAt: 1 })
     : tasks.filter(
-        (x) => !user || user.role === "admin" || x.owner === user.name,
+        (x) => !user || ["admin", "super_admin"].includes(user.role) || x.owner === user.name,
       );
 }
 export async function listTickets(
   user?: SessionUser | null,
 ): Promise<ServiceTicket[]> {
-  const filter = user && user.role !== "admin" ? { owner: user.name } : {};
+  const filter = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   return hasDatabase()
     ? listFromMongo<ServiceTicket>(collections.tickets, filter, {
         createdAt: -1,
       })
     : tickets.filter(
-        (x) => !user || user.role === "admin" || x.owner === user.name,
+        (x) => !user || ["admin", "super_admin"].includes(user.role) || x.owner === user.name,
       );
 }
 export async function getReportData(user?: SessionUser | null) {
@@ -347,7 +347,7 @@ export async function getReportData(user?: SessionUser | null) {
       listFromMongo<SalesOrder>(collections.orders),
       listFromMongo<ServiceTicket>(collections.tickets),
     ]);
-  if (!user || user.role === "admin")
+  if (!user || ["admin", "super_admin"].includes(user.role))
     return {
       customers: customerData,
       tasks: taskData,
@@ -381,13 +381,13 @@ export async function getDashboardData(user?: SessionUser | null) {
   }
   const db = await getDatabase();
   const month = new Date().toISOString().slice(0, 7);
-  const ownerFilter = user && user.role !== "admin" ? { owner: user.name } : {};
+  const ownerFilter = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   const activityFilter =
-    user && user.role !== "admin"
+    user && !["admin", "super_admin"].includes(user.role)
       ? { occurredAt: { $regex: `^${month}` }, employee: user.name }
       : { occurredAt: { $regex: `^${month}` } };
   const orderFilter =
-    user && user.role !== "admin"
+    user && !["admin", "super_admin"].includes(user.role)
       ? { orderDate: { $regex: `^${month}` }, $or: [{ owner: user.name }, { salesperson: user.name }] }
       : { orderDate: { $regex: `^${month}` } };
   const [customerData, taskData, doneCount, activityData, orderData] =

@@ -8,7 +8,7 @@ const defaults = [
     id: "demo-admin",
     name: "Vân Anh",
     email: "admin@nichiei.vn",
-    role: "admin" as UserRole,
+    role: "super_admin" as UserRole,
     password: "Nichiei@2026",
   },
   {
@@ -107,6 +107,7 @@ export async function authenticateUser(email: string, password: string) {
     email: user.email,
     role: user.role,
     sessionVersion: user.sessionVersion || 0,
+    canManageUsers: user.role === "super_admin" || Boolean(user.canManageUsers),
   };
 }
 

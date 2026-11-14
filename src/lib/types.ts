@@ -1,5 +1,5 @@
 export type CareStatus = "due" | "overdue" | "done";
-export type UserRole = "admin" | "sales" | "care";
+export type UserRole = "super_admin" | "admin" | "sales" | "care";
 
 export interface UserAccount {
   id: string;
@@ -11,6 +11,7 @@ export interface UserAccount {
   createdAt: string;
   updatedAt?: string;
   groupId?: string;
+  canManageUsers?: boolean;
   sessionVersion?: number;
   lastLoginAt?: string;
   archivedAt?: string;

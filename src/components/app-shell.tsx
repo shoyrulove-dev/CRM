@@ -23,7 +23,9 @@ import { UserMenu } from "@/components/user-menu";
 import { hasPermission, type SessionUser } from "@/lib/session";
 import type { UserRole } from "@/lib/types";
 const roleLabel = (role: UserRole) =>
-  role === "admin"
+  role === "super_admin"
+    ? "Super admin"
+    : role === "admin"
     ? "Quản trị viên"
     : role === "sales"
       ? "Nhân viên bán hàng"
@@ -95,7 +97,7 @@ export function AppShell({
               );
             })}
           <p className="nav-label nav-section">HỆ THỐNG</p>
-          {user?.role === "admin" && (
+          {(user?.role === "super_admin" || (user?.role === "admin" && user.canManageUsers)) && (
             <Link
               href="/accounts"
               className={
@@ -108,7 +110,7 @@ export function AppShell({
               <span>Tài khoản</span>
             </Link>
           )}
-          {user?.role === "admin" && (
+          {user?.role === "super_admin" && (
             <Link href="/settings" className="nav-item">
               <Settings size={19} />
               <span>Cài đặt</span>

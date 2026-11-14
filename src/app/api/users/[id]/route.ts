@@ -4,12 +4,13 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
+import { canManageAccount, canCreateRole } from "@/lib/account-access";
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const current = await getCurrentUser();
-  if (current?.role !== "admin")
+  if (!current || !["super_admin", "admin"].includes(current.role))
     return NextResponse.json(
       { error: "Bạn không có quyền cập nhật tài khoản." },
       { status: 403 },
@@ -30,11 +31,19 @@ export async function PATCH(
       { error: "Không tìm thấy tài khoản." },
       { status: 404 },
     );
+  if (!canManageAccount(current, before as never))
+    return NextResponse.json({ error: "Bạn không được quản lý tài khoản này." }, { status: 403 });
   const update: Record<string, unknown> = {
     updatedAt: new Date().toISOString(),
   };
   if (body?.name) update.name = String(body.name).trim();
-  if (["admin", "sales", "care"].includes(body?.role)) update.role = body.role;
+  if (["admin", "sales", "care"].includes(body?.role)) {
+    if (!canCreateRole(current, body.role))
+      return NextResponse.json({ error: "Bạn không được chuyển sang vai trò này." }, { status: 403 });
+    update.role = body.role;
+  }
+  if (current.role === "super_admin" && before.role === "admin" && typeof body?.canManageUsers === "boolean")
+    update.canManageUsers = body.canManageUsers;
   if (typeof body?.groupId === "string") update.groupId = body.groupId;
   let revoke = false;
   if (typeof body?.active === "boolean") {
@@ -72,7 +81,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const current = await getCurrentUser();
-  if (current?.role !== "admin")
+  if (!current || !["super_admin", "admin"].includes(current.role))
     return NextResponse.json(
       { error: "Bạn không có quyền lưu trữ tài khoản." },
       { status: 403 },
@@ -97,6 +106,8 @@ export async function DELETE(
       { error: "Không tìm thấy tài khoản." },
       { status: 404 },
     );
+  if (!canManageAccount(current, before as never))
+    return NextResponse.json({ error: "Bạn không được quản lý tài khoản này." }, { status: 403 });
   const archivedAt = new Date().toISOString();
   const result = await db
     .collection(collections.users)

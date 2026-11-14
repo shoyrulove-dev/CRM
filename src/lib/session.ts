@@ -9,6 +9,7 @@ export interface SessionUser {
   email: string;
   role: UserRole;
   permissions?: PermissionKey[];
+  canManageUsers?: boolean;
   sessionVersion?: number;
 }
 
@@ -39,10 +40,12 @@ export async function verifySessionToken(token: string) {
 }
 
 export function canSeeAll(user: SessionUser | null) {
-  return user?.role === "admin";
+  return user?.role === "admin" || user?.role === "super_admin";
 }
 export function roleLabel(role: UserRole) {
-  return role === "admin"
+  return role === "super_admin"
+    ? "Super admin"
+    : role === "admin"
     ? "Quản trị viên"
     : role === "sales"
       ? "Nhân viên bán hàng"
@@ -51,6 +54,7 @@ export function roleLabel(role: UserRole) {
 export function hasPermission(user: SessionUser | null, key: PermissionKey) {
   if (!user) return false;
   return (
+    user?.role === "super_admin" ||
     user?.role === "admin" ||
     !user?.permissions ||
     user.permissions.includes(key)

@@ -26,7 +26,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     )
       return null;
     let permissions = session.permissions;
-    if (account.role !== "admin" && account.groupId) {
+    if (!["admin", "super_admin"].includes(account.role) && account.groupId) {
       const group = await db
         .collection<PermissionGroup>(collections.permissionGroups)
         .findOne({ id: account.groupId });
@@ -39,6 +39,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       role: account.role,
       sessionVersion: account.sessionVersion || 0,
       permissions,
+      canManageUsers: account.role === "super_admin" || Boolean(account.canManageUsers),
     };
   } catch {
     return null;

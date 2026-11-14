@@ -10,7 +10,7 @@ import { getHaravanSyncStatus, syncHaravanData } from "@/lib/haravan-sync";
 import { testR2Connection } from "@/lib/r2";
 export const maxDuration = 300;
 async function allowed() {
-  return (await getCurrentUser())?.role === "admin";
+  return (await getCurrentUser())?.role === "super_admin";
 }
 export async function GET() {
   if (!(await allowed()))

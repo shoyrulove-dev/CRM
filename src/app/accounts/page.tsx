@@ -6,6 +6,7 @@ import { listUsers } from "@/lib/users";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { collections } from "@/lib/data-store";
 import type { PermissionGroup } from "@/lib/types";
+import { canOpenAccounts } from "@/lib/account-access";
 export const dynamic = "force-dynamic";
 export default async function AccountsPage({
   searchParams,
@@ -13,13 +14,13 @@ export default async function AccountsPage({
   searchParams: Promise<{ loginPage?: string }>;
 }) {
   const current = await getCurrentUser();
-  if (current?.role !== "admin") redirect("/");
+  if (!canOpenAccounts(current)) redirect("/");
   const requestedPage = Number((await searchParams).loginPage || 1);
   const loginPage = Number.isFinite(requestedPage)
     ? Math.max(1, requestedPage)
     : 1;
   const pageSize = 15;
-  const [users, groups, loginData] = await Promise.all([
+  const [allUsers, groups, loginData] = await Promise.all([
     listUsers(),
     hasDatabase()
       ? getDatabase().then((db) =>
@@ -42,6 +43,9 @@ export default async function AccountsPage({
         }))
       : Promise.resolve({ events: [], total: 0 }),
   ]);
+  const users = current?.role === "super_admin"
+    ? allUsers
+    : allUsers.filter((user) => ["sales", "care"].includes(user.role));
   const loginEvents = loginData.events;
   const totalPages = Math.max(1, Math.ceil(loginData.total / pageSize));
   if (loginPage > totalPages) redirect(`/accounts?loginPage=${totalPages}`);
@@ -54,8 +58,8 @@ export default async function AccountsPage({
           <p>Tạo tài khoản, nhóm quyền và kiểm soát truy cập theo công việc.</p>
         </div>
       </div>
-      <AccountManager users={users as never} groups={groups as never} />
-      <GroupManager initial={groups as unknown as PermissionGroup[]} />
+      <AccountManager users={users as never} groups={groups as never} currentRole={current!.role} />
+      {current?.role === "super_admin" && <GroupManager initial={groups as unknown as PermissionGroup[]} />}
       <section className="panel login-history">
         <div className="panel-head">
           <div>

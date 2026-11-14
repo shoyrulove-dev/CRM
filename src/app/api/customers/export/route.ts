@@ -21,7 +21,7 @@ const columns = {
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (user?.role !== "admin" || !hasPermission(user, "customers"))
+  if (!user || !["admin", "super_admin"].includes(user.role) || !hasPermission(user, "customers"))
     return new Response("Chỉ quản trị viên được xuất dữ liệu tổng.", {
       status: 403,
     });

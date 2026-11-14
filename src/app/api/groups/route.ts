@@ -4,7 +4,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase } from "@/lib/mongodb";
 const valid = ["customers", "care", "tickets", "reports"];
 async function admin() {
-  return (await getCurrentUser())?.role === "admin";
+  return (await getCurrentUser())?.role === "super_admin";
 }
 export async function GET() {
   if (!(await admin()))

@@ -7,7 +7,7 @@ import { getHaravanSyncStatus } from "@/lib/haravan-sync";
 import { headers } from "next/headers";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
-  if ((await getCurrentUser())?.role !== "admin") redirect("/");
+  if ((await getCurrentUser())?.role !== "super_admin") redirect("/");
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host") || "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "https");

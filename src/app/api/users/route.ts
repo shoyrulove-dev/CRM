@@ -4,10 +4,11 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { listUsers } from "@/lib/users";
+import { canCreateRole, canOpenAccounts } from "@/lib/account-access";
 
 async function admin() {
   const user = await getCurrentUser();
-  return user?.role === "admin";
+  return canOpenAccounts(user);
 }
 export async function GET() {
   if (!(await admin()))
@@ -39,6 +40,9 @@ export async function POST(request: NextRequest) {
       { error: "Vui lòng nhập đủ họ tên, email, mật khẩu và nhóm quyền." },
       { status: 400 },
     );
+  const current = await getCurrentUser();
+  if (!current || !canCreateRole(current, body.role))
+    return NextResponse.json({ error: "Bạn không được tạo tài khoản thuộc vai trò này." }, { status: 403 });
   if (String(body.password).length < 8)
     return NextResponse.json(
       { error: "Mật khẩu cần ít nhất 8 ký tự." },
@@ -57,6 +61,7 @@ export async function POST(request: NextRequest) {
     email,
     role: body.role,
     groupId: body.groupId || "",
+    canManageUsers: current.role === "super_admin" && body.role === "admin" && body.canManageUsers === true,
     active: true,
     sessionVersion: 0,
     passwordHash: await hash(String(body.password), 10),
