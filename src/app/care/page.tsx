@@ -187,7 +187,6 @@ export default async function CarePage({
                 <div className="care-meta">
                   <span>{item.channel}</span>
                   <span className="person">
-                    <i>{item.owner.slice(-2).toUpperCase()}</i>
                     {item.owner}
                   </span>
                   <CareTaskActions task={item} employees={employees} />
