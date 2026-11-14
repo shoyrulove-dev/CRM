@@ -481,13 +481,16 @@ export async function reconcileCustomers() {
       .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
     const lastCare =
       customerActivities[0]?.occurredAt || customer.lastCare || "";
-    let nextCare = pendingTasks[0]?.dueAt || "";
+    const upcomingTask = pendingTasks.find((task) => task.dueAt >= now);
+    let nextCare = upcomingTask?.dueAt || pendingTasks.at(-1)?.dueAt || "";
     if (!nextCare && lastCare) {
       const next = new Date(lastCare);
       next.setDate(next.getDate() + 30);
       nextCare = next.toISOString();
     }
-    const status = nextCare ? (nextCare < now ? "overdue" : "due") : "done";
+    const status = pendingTasks.some((task) => task.dueAt < now) || (nextCare && nextCare < now)
+      ? "overdue"
+      : nextCare ? "due" : "done";
     return {
       updateOne: {
         filter: { id: customer.id },
