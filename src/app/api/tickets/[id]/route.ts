@@ -25,7 +25,7 @@ export async function PATCH(
   const before = await db.collection(collections.tickets).findOne(scope, { projection: { _id: 0 } });
   if (!before)
     return NextResponse.json({ error: "Không tìm thấy phiếu hoặc phiếu không thuộc phạm vi của bạn." }, { status: 404 });
-  if (before.status === "Đã đóng" && user?.role !== "super_admin")
+  if (before.status === "Đã đóng")
     return NextResponse.json({ error: "Phiếu đã đóng và không thể chỉnh sửa." }, { status: 409 });
   if (body?.note) {
     const content = cleanText(body.note, 1000);
@@ -54,8 +54,6 @@ export async function PATCH(
     );
   if (update.status === "Đã đóng" && !(update.resolution || before.resolution))
     return NextResponse.json({ error: "Vui lòng chọn hướng xử lý trước khi đóng phiếu." }, { status: 400 });
-  if (before.status === "Đã đóng" && update.status !== "Mới")
-    return NextResponse.json({ error: "Super Admin chỉ có thể mở lại phiếu về trạng thái Mới." }, { status: 400 });
   const now = new Date().toISOString();
   const result = await db
     .collection(collections.tickets)
