@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   const body = await request.json().catch(() => null);
-  if (hasBrokenText(body?.name))
+  if (hasBrokenText(body?.name) || (typeof body?.name === "string" && body.name.includes("?")))
     return NextResponse.json({ error: "Họ tên có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (
     !body?.name ||

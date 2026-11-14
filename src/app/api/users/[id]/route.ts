@@ -24,7 +24,7 @@ export async function PATCH(
   const { id } = await params,
     body = await request.json().catch(() => null),
     db = await getDatabase();
-  if (hasBrokenText(body?.name))
+  if (hasBrokenText(body?.name) || (typeof body?.name === "string" && body.name.includes("?")))
     return NextResponse.json({ error: "Họ tên có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const before = await db
     .collection(collections.users)

@@ -30,6 +30,8 @@ test("tạo phiếu từ hồ sơ giữ đúng khách và lưu tiếng Việt", 
   await form.getByLabel("Nội dung", { exact: true }).fill(title);
   await form.getByLabel("Mô tả", { exact: true }).fill("Khách muốn được hướng dẫn sử dụng đúng cách.");
   await form.getByLabel("Hướng xử lý").selectOption("Khác");
+  await page.clock.install();
+  await page.clock.fastForward("20:00");
   const createdResponse = page.waitForResponse((response) => response.url().endsWith("/api/tickets") && response.request().method() === "POST");
   await form.getByRole("button", { name: "Tạo phiếu", exact: true }).click();
   const response = await createdResponse;
@@ -59,6 +61,7 @@ test("chặn ký tự hỏng và chặn nhân viên sửa phiếu ngoài phạm 
     const customer = (await (await sales.get("/api/customers")).json()).data[0];
     const corrupted = await page.request.post("/api/tickets", { data: { customerId: customer.id, title: "Kiểm th\uFFFD", owner: salesperson.name } });
     expect(corrupted.status()).toBe(400);
+    expect((await page.request.post("/api/users", { data: { name: "Admin ki?m th?" } })).status()).toBe(400);
     const created = await sales.post("/api/tickets", { data: { customerId: customer.id, title: "Kiểm thử phạm vi phụ trách", resolution: "Khác" } });
     expect(created.status()).toBe(201);
     const ticket = (await created.json()).data; id = ticket.id;
