@@ -1,6 +1,6 @@
 "use client";
 import { Plus, TicketPlus } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { Customer, ProductOption, SalesOrder } from "@/lib/types";
@@ -8,6 +8,19 @@ type Employee = { id: string; name: string };
 export function CreateTicketButton({ customers, employees = [], customerId, orderCode, orders = [], products = [], compact = false }: { customers: Customer[]; employees?: Employee[]; customerId?: string; orderCode?: string; orders?: SalesOrder[]; products?: ProductOption[]; compact?: boolean }) {
   const [open, setOpen] = useState(false), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(customerId || customers[0]?.id || ""), [order, setOrder] = useState(orderCode || "");
+  const formRef = useRef<HTMLFormElement>(null);
+  const draftKey = `nichiei-ticket-draft-${customerId || "all"}`;
+  useEffect(() => {
+    if (!open || !formRef.current) return;
+    try {
+      const draft = JSON.parse(sessionStorage.getItem(draftKey) || "null") as Record<string, string> | null;
+      if (!draft) return;
+      for (const [name, value] of Object.entries(draft).filter(([name]) => ["title", "description"].includes(name))) {
+        const field = formRef.current?.elements.namedItem(name);
+        if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) field.value = value;
+      }
+    } catch { /* A damaged browser draft must not block the form. */ }
+  }, [open, draftKey, customerId, orderCode]);
   const router = useRouter();
   const available = useMemo(() => orders.filter((item) => item.customerId === customer), [orders, customer]);
   const current = available.find((item) => item.code === order);
@@ -16,15 +29,25 @@ export function CreateTicketButton({ customers, employees = [], customerId, orde
     const selected = customers.find((item) => item.id === form.get("customerId"));
     const returned = current?.products.find((item) => item.sku === form.get("returnProductSku"));
     const exchanged = products.find((item) => item.sku === form.get("exchangeProductSku"));
+    try {
     const response = await fetch("/api/tickets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
       customerId: selected?.id, title: form.get("title"), description: form.get("description"), priority: form.get("priority"), owner: form.get("owner"), resolution: form.get("resolution"), orderCode: order,
       returnProductSku: returned?.sku || "", returnProductName: returned?.name || "", returnQuantity: form.get("returnQuantity"), exchangeProductSku: exchanged?.sku || "", exchangeProductName: exchanged?.name || "", exchangeQuantity: form.get("exchangeQuantity"),
     }) });
     const json = await response.json(); if (!response.ok) { setError(json.error || "Không thể tạo phiếu"); setLoading(false); return; }
+    sessionStorage.removeItem(draftKey);
     setOpen(false); setLoading(false); router.refresh();
+    } catch {
+      setError("Kết nối bị gián đoạn. Nội dung vẫn còn trên màn hình, vui lòng thử lưu lại.");
+      setLoading(false);
+    }
   }
   return <><button className={compact ? "order-action" : "primary-button"} onClick={() => setOpen(true)}>{compact ? <TicketPlus size={14} /> : <Plus size={18} />}Tạo phiếu yêu cầu</button>
-    {open && <Modal title={orderCode ? `Tạo phiếu từ đơn ${orderCode}` : "Tạo phiếu yêu cầu"} description="Theo dõi phản ánh, đổi trả hoặc yêu cầu phối hợp." onClose={() => setOpen(false)}><form className="entity-form" onSubmit={submit}><div className="form-grid">
+    {open && <Modal title={orderCode ? `Tạo phiếu từ đơn ${orderCode}` : "Tạo phiếu yêu cầu"} description="Theo dõi phản ánh, đổi trả hoặc yêu cầu phối hợp." onClose={() => setOpen(false)}><form ref={formRef} className="entity-form" onSubmit={submit} onChange={(event) => {
+      const form = event.currentTarget;
+      const values = Object.fromEntries(new FormData(form).entries());
+      sessionStorage.setItem(draftKey, JSON.stringify({ ...values, orderCode: order }));
+    }}><div className="form-grid">
       <label className="full">Khách hàng<select name="customerId" required value={customer} onChange={(e) => { setCustomer(e.target.value); setOrder(""); }} disabled={Boolean(customerId)}>{customers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.phone}</option>)}</select></label>
       <label className="full">Đơn hàng<select value={order} onChange={(e) => setOrder(e.target.value)} disabled={Boolean(orderCode)}><option value="">Không gắn đơn hàng</option>{available.map((item) => <option key={item.id} value={item.code}>{item.code} · {item.orderDate}</option>)}</select></label>
       <label className="full">Nội dung<input name="title" required defaultValue={orderCode ? `Yêu cầu liên quan đơn ${orderCode}` : ""} placeholder="Tóm tắt yêu cầu" /></label>
