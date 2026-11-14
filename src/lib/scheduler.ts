@@ -132,8 +132,7 @@ export async function runScheduler() {
           updateOne: {
             filter: { id },
             update: {
-            $setOnInsert: {
-              id,
+            $set: {
               customerId: order.customerId,
               customer: customer.name,
               phone: customer.phone,
@@ -141,9 +140,13 @@ export async function runScheduler() {
               owner: order.owner || customer.owner,
               dueAt: due.toISOString(),
               channel: rule.channel,
+              orderId: order.id,
+              updatedAt: now.toISOString(),
+            },
+            $setOnInsert: {
+              id,
               status: "due",
               source: "order-rule",
-              orderId: order.id,
               createdAt: now.toISOString(),
             },
             },
