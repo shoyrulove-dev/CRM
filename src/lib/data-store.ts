@@ -28,6 +28,20 @@ export const collections = {
   loginEvents: "login_events",
 } as const;
 
+const requiredProducts: ProductOption[] = [
+  "Mozuku seaweed extract processed food, EX Fucoidan", "BH Collagen Rich",
+  "DHA.EPA+SQ", "Intestines Beauty Queen", "Nano Liver Hydrolyzate EX",
+  "NANO OYSTER GOLD", "NANO Premium SHARK CARTILAGE", "NANO GROWTH HABIT EX",
+  "OKINAWA FUCOIDAN", "PREMIUM HIGH GUARD", "NANO NMN + ALL IN ONE GEL",
+  "NANO NMN + FOAMING SOAP", "NANO NMN + PEELING GEL", "NANO NMN + 3D FACE MASK",
+  "NANO NMN + UV ESSENCE", "NANO NMN + UV ESSENCE LUXURY", "Liver Hydrolyzate Plus",
+  "NANO FUCOIDAN KENGEN", "NICHIEI NMN+27000 (black package)",
+  "NICHIEI NMN+27000 (white package)", "GLUCHON GEL",
+  "DILI Okinawa Osake Wo Kaiteki No Densetu", "Okinawa Fucoidan Plus",
+  "NANO NATTOKINASE PREMIUM 120 viên", "NANO NATTOKINASE PREMIUM 60 viên",
+  "ANSERINE PREMIUM",
+].map((name, index) => ({ sku: `NIC-${String(index + 1).padStart(3, "0")}`, name }));
+
 export async function ensureIndexes() {
   if (!hasDatabase()) return false;
   const db = await getDatabase();
@@ -127,12 +141,17 @@ async function listFromMongo<T>(collection: string, filter = {}, sort = {}) {
 }
 
 export async function listProductCatalog(): Promise<ProductOption[]> {
+  const mergeRequired = (items: ProductOption[]) => {
+    const map = new Map(requiredProducts.map((item) => [item.name.toLocaleLowerCase("vi"), item]));
+    items.forEach((item) => map.set(item.name.toLocaleLowerCase("vi"), item));
+    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+  };
   if (!hasDatabase()) {
     const map = new Map<string, ProductOption>();
     orders.flatMap((order) => order.products).forEach((product) => {
       if (product.sku) map.set(product.sku, { sku: product.sku, name: product.name });
     });
-    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
+    return mergeRequired([...map.values()]);
   }
   const rows = await (await getDatabase()).collection(collections.orders).aggregate([
     { $unwind: "$products" },
@@ -142,7 +161,7 @@ export async function listProductCatalog(): Promise<ProductOption[]> {
     { $project: { _id: 0, sku: "$_id", name: 1 } },
     { $sort: { name: 1 } },
   ]).toArray();
-  return rows as ProductOption[];
+  return mergeRequired(rows as ProductOption[]);
 }
 
 export async function listCustomers(
@@ -469,14 +488,6 @@ export async function reconcileCustomers() {
       nextCare = next.toISOString();
     }
     const status = nextCare ? (nextCare < now ? "overdue" : "due") : "done";
-    const segment =
-      status === "overdue"
-        ? "Cần kéo lại"
-        : purchased.length >= 2
-          ? "Khách trung thành"
-          : purchased.length === 1
-            ? "Đang theo liệu trình"
-            : "Khách mới";
     return {
       updateOne: {
         filter: { id: customer.id },
@@ -491,7 +502,7 @@ export async function reconcileCustomers() {
             lastCare,
             nextCare,
             status,
-            segment,
+            segment: customer.segment || "Chưa xác định",
             reconciledAt: now,
           },
         },

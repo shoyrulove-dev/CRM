@@ -98,7 +98,7 @@ export default async function TicketsPage({
             defaultValue={params.to}
             aria-label="Đến tháng"
           />
-          {user?.role === "admin" && (
+          {user && ["admin", "super_admin"].includes(user.role) && (
             <select
               className="ghost-select"
               name="owner"
@@ -146,7 +146,7 @@ export default async function TicketsPage({
                     </span>
                   </td>
                   <td>
-                    <TicketActions id={item.id} status={item.status} />
+                    <TicketActions id={item.id} status={item.status} resolution={item.resolution} />
                   </td>
                   <td>{item.resolution || "Chưa chọn"}</td>
                   <td>{item.owner}</td>

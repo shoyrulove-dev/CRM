@@ -15,6 +15,13 @@
   --violet: #7454d8;
 }
 .page-actions,
+.ticket-history { margin-top: 18px; border-top: 1px solid var(--border); padding-top: 14px; }
+.ticket-history h3 { margin: 0 0 10px; font-size: 1rem; }
+.ticket-history article { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.ticket-history article b { margin-right: 8px; }
+.ticket-history article time { color: var(--muted); font-size: .82rem; }
+.ticket-history article p { margin: 5px 0 0; white-space: pre-wrap; }
+
 .export-picker {
   display: flex;
   align-items: center;

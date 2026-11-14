@@ -106,6 +106,12 @@ export interface ServiceTicket {
   exchangeQuantity?: number;
   resolution?:
     "Thu hàng - Hoàn tiền" | "Đổi hàng" | "Điều chỉnh cách dùng" | "Khác";
+  updates?: Array<{
+    id: string;
+    content: string;
+    author: string;
+    createdAt: string;
+  }>;
 }
 
 export interface LoginEvent {

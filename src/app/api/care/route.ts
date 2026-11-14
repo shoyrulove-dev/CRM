@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections, listCareTasks } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, oneOf, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 const channels = ["Gọi điện", "Zalo", "Facebook", "SMS", "Trực tiếp"] as const;
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       .collection(collections.customers)
       .findOne({
         id: body.customerId,
-        ...(user?.role === "admin" ? {} : { owner: user?.name }),
+        ...(canSeeAll(user) ? {} : { owner: user!.name }),
       });
   if (!customer)
     return NextResponse.json(
@@ -70,8 +70,8 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   const owner =
-    user?.role === "admin"
-      ? cleanText(body.owner || user.name, 120)
+    canSeeAll(user)
+      ? cleanText(body.owner || user!.name, 120)
       : user?.name || "Chưa phân công";
   if (
     !(await db

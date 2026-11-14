@@ -193,7 +193,7 @@ async function upsertCustomer(
       $setOnInsert: {
         id,
         owner: "Chưa phân công",
-        segment: "Khách mới",
+        segment: "Chưa xác định",
         orders: Number(raw.orders_count || 0),
         revenue: Number(raw.total_spent || 0),
         lastOrder: raw.last_order_date?.slice(0, 10) || "",

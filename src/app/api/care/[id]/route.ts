@@ -3,7 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import type { CareTask } from "@/lib/types";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 
 export async function PATCH(
   request: NextRequest,
@@ -42,7 +42,7 @@ export async function PATCH(
   const db = await getDatabase();
   const now = new Date().toISOString();
   const result = (await db.collection(collections.careTasks).findOneAndUpdate(
-    { id, ...(user?.role === "admin" ? {} : { owner: user?.name }) },
+    { id, ...(canSeeAll(user) ? {} : { owner: user?.name }) },
     {
       $set: {
         ...update,
@@ -106,7 +106,7 @@ export async function DELETE(
     .collection(collections.careTasks)
     .deleteOne({
       id,
-      ...(user?.role === "admin" ? {} : { owner: user?.name }),
+      ...(canSeeAll(user) ? {} : { owner: user?.name }),
     });
   return result.deletedCount
     ? NextResponse.json({ ok: true })

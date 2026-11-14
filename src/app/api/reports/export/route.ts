@@ -10,7 +10,16 @@ export async function GET(request: NextRequest) {
   const data = await getReportData(user), p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"), owner = p.get("owner"), template = p.get("template") || "detail";
   const inRange = (value: string) => (!from || value.slice(0, 10) >= from) && (!to || value.slice(0, 10) <= to);
   let name = "Chi tiết chăm sóc", headers: string[], rows: ExcelCell[][];
-  if (template === "employee") {
+  if (template === "orders") {
+    name = "Đơn hàng Haravan";
+    headers = ["Ngày", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tổng thanh toán", "Nhân viên phụ trách"];
+    const customerById = new Map(data.customers.map((item) => [item.id, item]));
+    rows = data.orders.filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner)).flatMap((item) => {
+      const customer = customerById.get(item.customerId);
+      const products = item.products.length ? item.products : [{ name: "", quantity: 0 }];
+      return products.map((product) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, item.total, item.owner]);
+    });
+  } else if (template === "employee") {
     name = "Hiệu quả nhân viên"; headers = ["Nhân viên", "Lượt chăm sóc", "Số khách", "Liên lạc được", "Mua lại / hẹn mua", "Phản ứng bất thường"];
     const items = data.activities.filter((item) => inRange(item.occurredAt) && (!owner || item.employee === owner));
     const employees = [...new Set(items.map((item) => item.employee))];

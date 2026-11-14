@@ -138,7 +138,7 @@ test("lịch chăm sóc và phiếu yêu cầu chọn được đơn, sản ph�
 test("báo cáo có nhiều mẫu Excel và phiếu có bộ lọc hướng xử lý", async ({ page }) => {
   await page.goto("/reports");
   await expect(page.getByLabel("Mẫu báo cáo")).toHaveValue("detail");
-  await expect(page.getByLabel("Mẫu báo cáo").locator("option")).toHaveCount(4);
+  await expect(page.getByLabel("Mẫu báo cáo").locator("option")).toHaveCount(5);
   await page.goto("/tickets");
   await expect(page.locator('select[name="resolution"]')).toBeVisible();
   await expect(page.getByRole("link", { name: "Xuất Excel" })).toBeVisible();

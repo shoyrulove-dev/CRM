@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { collections, listTickets } from "@/lib/data-store";
+import { collections, listProductCatalog, listTickets } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 import { writeAudit } from "@/lib/audit";
 
 export async function GET() {
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   const db = await getDatabase();
   const customer = await db.collection(collections.customers).findOne({
     id: body.customerId,
-    ...(user?.role === "admin" ? {} : { owner: user?.name }),
+    ...(canSeeAll(user) ? {} : { owner: user!.name }),
   });
   if (!customer)
     return NextResponse.json(
@@ -52,11 +52,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Đơn hàng không thuộc khách hàng đã chọn." }, { status: 400 });
   const products = (relatedOrder?.products || []) as Array<{ sku?: string; name?: string; quantity?: number }>;
   const returned = body.returnProductSku ? products.find((item) => item.sku === body.returnProductSku) : null;
-  const exchangeOrder = body.exchangeProductSku
-    ? await db.collection(collections.orders).findOne({ "products.sku": body.exchangeProductSku }, { projection: { products: 1 } })
-    : null;
   const exchanged = body.exchangeProductSku
-    ? ((exchangeOrder?.products || []) as Array<{ sku?: string; name?: string }>).find((item) => item.sku === body.exchangeProductSku)
+    ? (await listProductCatalog()).find((item) => item.sku === body.exchangeProductSku)
     : null;
   if ((body.returnProductSku && !returned) || (body.exchangeProductSku && !exchanged))
     return NextResponse.json({ error: "Sản phẩm không thuộc đơn hàng đã chọn." }, { status: 400 });
@@ -69,8 +66,8 @@ export async function POST(request: NextRequest) {
     priority: body.priority || "Bình thường",
     status: "Mới",
     owner:
-      user?.role === "admin"
-        ? body.owner || user.name
+      canSeeAll(user)
+        ? body.owner || user!.name
         : user?.name || "Chưa phân công",
     orderCode: relatedOrder?.code || "",
     returnProductSku: returned?.sku || "",
@@ -88,6 +85,7 @@ export async function POST(request: NextRequest) {
       ? body.resolution
       : "Khác",
     createdAt: new Date().toISOString(),
+    updates: [],
   };
   await db.collection(collections.tickets).insertOne(document);
   await writeAudit(user, "create", "ticket", document.id, null, document);
