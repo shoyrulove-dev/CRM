@@ -4,6 +4,7 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
 import { canSeeAll, hasPermission } from "@/lib/session";
+import { hasBrokenText } from "@/lib/validation";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -12,6 +13,8 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   const body = await request.json().catch(() => null);
+  if (hasBrokenText([body?.purpose, body?.note, body?.employee, body?.result, body?.noPurchaseReason, body?.healthGoal]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (
     !body?.customerId ||
     !body?.purpose ||

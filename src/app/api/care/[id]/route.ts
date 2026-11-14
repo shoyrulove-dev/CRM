@@ -4,6 +4,7 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import type { CareTask } from "@/lib/types";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
+import { hasBrokenText, oneOf, validDate } from "@/lib/validation";
 
 export async function PATCH(
   request: NextRequest,
@@ -22,6 +23,14 @@ export async function PATCH(
       { status: 403 },
     );
   const body = await request.json().catch(() => null);
+  if (hasBrokenText([body?.purpose, body?.owner, body?.channel, body?.customer]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
+  if (body?.owner && !canSeeAll(user) && body.owner !== user?.name)
+    return NextResponse.json({ error: "Bạn không có quyền chuyển lịch cho nhân viên khác." }, { status: 403 });
+  if (body?.status && !oneOf(body.status, ["due", "overdue", "done"] as const))
+    return NextResponse.json({ error: "Trạng thái lịch không hợp lệ." }, { status: 400 });
+  if (body?.dueAt !== undefined && !validDate(body.dueAt))
+    return NextResponse.json({ error: "Ngày chăm sóc không hợp lệ." }, { status: 400 });
   const allowed = [
     "status",
     "owner",
@@ -46,6 +55,7 @@ export async function PATCH(
     {
       $set: {
         ...update,
+        ...(["dueAt", "purpose", "channel", "owner"].some((field) => field in update) ? { scheduleCustomized: true } : {}),
         updatedAt: now,
         ...(update.status === "done" ? { completedAt: now } : {}),
       },
@@ -60,7 +70,8 @@ export async function PATCH(
   if (
     update.status === "done" &&
     result.recurrence &&
-    result.recurrence !== "none"
+    result.recurrence !== "none" &&
+    result.source !== "birthday" && result.source !== "holiday"
   ) {
     const nextDue = new Date(result.dueAt);
     if (result.recurrence === "monthly")

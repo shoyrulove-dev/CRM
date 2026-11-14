@@ -61,6 +61,8 @@ export interface CareTask {
   recurrence?: "none" | "monthly" | "yearly";
   offsetDays?: number;
   completedAt?: string;
+  source?: "manual" | "order-rule" | "birthday" | "holiday";
+  scheduleCustomized?: boolean;
 }
 
 export interface CareActivity {

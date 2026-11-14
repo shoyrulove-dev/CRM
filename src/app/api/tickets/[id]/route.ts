@@ -3,7 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
-import { cleanText } from "@/lib/validation";
+import { cleanText, hasBrokenText, oneOf } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 
 export async function PATCH(
@@ -20,6 +20,8 @@ export async function PATCH(
   if (!hasPermission(user, "tickets"))
     return NextResponse.json({ error: "Bạn không có quyền sửa phiếu." }, { status: 403 });
   const body = await request.json().catch(() => null);
+  if (hasBrokenText([body?.title, body?.description, body?.note, body?.owner, body?.resolution, body?.status]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const db = await getDatabase();
   const scope = { id, ...(canSeeAll(user) ? {} : { owner: user?.name }) };
   const before = await db.collection(collections.tickets).findOne(scope, { projection: { _id: 0 } });
@@ -27,11 +29,24 @@ export async function PATCH(
     return NextResponse.json({ error: "Không tìm thấy phiếu hoặc phiếu không thuộc phạm vi của bạn." }, { status: 404 });
   if (before.status === "Đã đóng")
     return NextResponse.json({ error: "Phiếu đã đóng và không thể chỉnh sửa." }, { status: 409 });
+  if (body?.owner && !canSeeAll(user) && body.owner !== user?.name)
+    return NextResponse.json({ error: "Bạn không có quyền chuyển phiếu cho nhân viên khác." }, { status: 403 });
+  if (body?.status && !oneOf(body.status, ["Mới", "Đang xử lý", "Chờ khách", "Đã đóng"] as const))
+    return NextResponse.json({ error: "Trạng thái phiếu không hợp lệ." }, { status: 400 });
+  if (body?.resolution && !oneOf(body.resolution, ["Thu hàng - Hoàn tiền", "Đổi hàng", "Điều chỉnh cách dùng", "Khác"] as const))
+    return NextResponse.json({ error: "Hướng xử lý không hợp lệ." }, { status: 400 });
+  if (body?.priority && !oneOf(body.priority, ["Bình thường", "Cao", "Khẩn cấp"] as const))
+    return NextResponse.json({ error: "Mức ưu tiên không hợp lệ." }, { status: 400 });
+  if (body?.owner && !(await db.collection(collections.users).findOne({ name: body.owner, active: true })))
+    return NextResponse.json({ error: "Nhân viên phụ trách không tồn tại hoặc đã bị khóa." }, { status: 400 });
+  const openScope = { ...scope, status: { $ne: "Đã đóng" } };
   if (body?.note) {
     const content = cleanText(body.note, 1000);
     if (!content) return NextResponse.json({ error: "Nội dung cập nhật không được để trống." }, { status: 400 });
     const entry = { id: `CN-${Date.now()}`, content, author: user?.name || "Hệ thống", createdAt: new Date().toISOString() };
-    await db.collection<{ updates?: typeof entry[]; updatedAt?: string }>(collections.tickets).updateOne(scope, { $push: { updates: entry }, $set: { updatedAt: entry.createdAt } });
+    const result = await db.collection<{ updates?: typeof entry[]; updatedAt?: string }>(collections.tickets).updateOne(openScope, { $push: { updates: entry }, $set: { updatedAt: entry.createdAt } });
+    if (!result.matchedCount)
+      return NextResponse.json({ error: "Phiếu đã đóng. Vui lòng tải lại trang." }, { status: 409 });
     await writeAudit(user, "update", "ticket", id, before, { note: entry });
     return NextResponse.json({ data: entry });
   }
@@ -41,7 +56,6 @@ export async function PATCH(
     "priority",
     "title",
     "description",
-    "customer",
     "resolution",
   ];
   const update = Object.fromEntries(
@@ -58,7 +72,7 @@ export async function PATCH(
   const result = await db
     .collection(collections.tickets)
     .findOneAndUpdate(
-      scope,
+      openScope,
       {
         $set: {
           ...update,

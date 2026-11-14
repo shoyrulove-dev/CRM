@@ -23,6 +23,7 @@ import { hasPermission } from "@/lib/session";
 import { listUsers } from "@/lib/users";
 import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 import { formatDateTime } from "@/lib/format-date";
+import { CustomerClassificationEditor } from "@/components/customer-classification-editor";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -363,6 +364,7 @@ export default async function CustomerProfilePage({
           <section className="panel info-card">
             <div className="panel-head">
               <h2>Thông tin khách hàng</h2>
+              <CustomerClassificationEditor id={customer.id} segment={customer.segment} healthGoal={customer.healthGoal} />
             </div>
             <dl>
               <div>

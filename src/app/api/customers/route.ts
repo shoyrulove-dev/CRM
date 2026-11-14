@@ -3,7 +3,7 @@ import { listCustomers, collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
-import { cleanText, validDate, validPhone } from "@/lib/validation";
+import { cleanText, hasBrokenText, validDate, validPhone } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
     );
   const body = await request.json().catch(() => null),
     user = await getCurrentUser();
+  if (hasBrokenText([body?.name, body?.owner, body?.segment, body?.healthGoal]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (!hasPermission(user, "customers"))
     return NextResponse.json(
       { error: "Bạn không có quyền tạo khách hàng." },

@@ -56,7 +56,7 @@ export default async function TicketsPage({
         <div>
           <p className="eyebrow">HỖ TRỢ KHÁCH HÀNG</p>
           <h1>Phiếu yêu cầu</h1>
-          <p>Tạo, phân loại và đóng/mở từng phiếu theo khách hàng.</p>
+          <p>Theo dõi và xử lý yêu cầu của khách hàng. Phiếu đã đóng được giữ nguyên lịch sử.</p>
         </div>
         <div className="page-actions"><a className="secondary-button" href={`/api/tickets/export?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as [string, string][]).toString()}`}><Download size={17} />Xuất Excel</a><CreateTicketButton customers={customers} employees={employees} orders={reportData.orders} products={productCatalog} /></div>
       </div>

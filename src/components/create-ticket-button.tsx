@@ -26,7 +26,7 @@ export function CreateTicketButton({ customers, employees = [], customerId, orde
   const current = available.find((item) => item.code === order);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setError(""); const form = new FormData(event.currentTarget);
-    const selected = customers.find((item) => item.id === form.get("customerId"));
+    const selected = customers.find((item) => item.id === customer);
     const returned = current?.products.find((item) => item.sku === form.get("returnProductSku"));
     const exchanged = products.find((item) => item.sku === form.get("exchangeProductSku"));
     try {
@@ -34,7 +34,7 @@ export function CreateTicketButton({ customers, employees = [], customerId, orde
       customerId: selected?.id, title: form.get("title"), description: form.get("description"), priority: form.get("priority"), owner: form.get("owner"), resolution: form.get("resolution"), orderCode: order,
       returnProductSku: returned?.sku || "", returnProductName: returned?.name || "", returnQuantity: form.get("returnQuantity"), exchangeProductSku: exchanged?.sku || "", exchangeProductName: exchanged?.name || "", exchangeQuantity: form.get("exchangeQuantity"),
     }) });
-    const json = await response.json(); if (!response.ok) { setError(json.error || "Không thể tạo phiếu"); setLoading(false); return; }
+    const json = await response.json(); if (!response.ok) { setError(response.status === 401 ? "Phiên đăng nhập đã hết hạn. Nội dung đã được giữ lại; hãy đăng nhập rồi mở lại biểu mẫu." : json.error || "Không thể tạo phiếu"); setLoading(false); return; }
     sessionStorage.removeItem(draftKey);
     setOpen(false); setLoading(false); router.refresh();
     } catch {
@@ -52,7 +52,7 @@ export function CreateTicketButton({ customers, employees = [], customerId, orde
       <label className="full">Đơn hàng<select value={order} onChange={(e) => setOrder(e.target.value)} disabled={Boolean(orderCode)}><option value="">Không gắn đơn hàng</option>{available.map((item) => <option key={item.id} value={item.code}>{item.code} · {item.orderDate}</option>)}</select></label>
       <label className="full">Nội dung<input name="title" required defaultValue={orderCode ? `Yêu cầu liên quan đơn ${orderCode}` : ""} placeholder="Tóm tắt yêu cầu" /></label>
       <label className="full">Mô tả<textarea name="description" rows={3} /></label>
-      <label>Ưu tiên<select name="priority"><option>Bình thường</option><option>Cao</option><option>Khẩn cấp</option></select></label><label>Phụ trách<select name="owner" defaultValue={employees[0]?.name || ""}>{employees.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
+      <label>Ưu tiên<select name="priority"><option>Bình thường</option><option>Cao</option><option>Khẩn cấp</option></select></label><label>Phụ trách<select key={customer} name="owner" defaultValue={customers.find((item) => item.id === customer)?.owner || employees[0]?.name || ""}>{employees.map((item) => <option key={item.id}>{item.name}</option>)}</select></label>
       <label className="full">Hướng xử lý<select name="resolution" defaultValue="Điều chỉnh cách dùng"><option>Thu hàng - Hoàn tiền</option><option>Đổi hàng</option><option>Điều chỉnh cách dùng</option><option>Khác</option></select></label>
       <label>Sản phẩm thu/đổi<select name="returnProductSku" disabled={!current}><option value="">Không chọn</option>{current?.products.map((item, i) => <option key={`${item.sku}-${i}`} value={item.sku}>{item.name}</option>)}</select></label><label>Số lượng<input name="returnQuantity" type="number" min="1" defaultValue="1" /></label>
       <label>Sản phẩm đổi sang<select name="exchangeProductSku"><option value="">Không chọn</option>{products.map((item) => <option key={item.sku} value={item.sku}>{item.name}{item.sku ? ` · ${item.sku}` : ""}</option>)}</select></label><label>Số lượng đổi<input name="exchangeQuantity" type="number" min="1" defaultValue="1" /></label>

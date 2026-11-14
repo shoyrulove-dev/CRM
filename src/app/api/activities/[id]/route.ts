@@ -3,6 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
+import { hasBrokenText } from "@/lib/validation";
 const allowed = [
   "channel",
   "purpose",
@@ -36,6 +37,8 @@ export async function PATCH(
     };
   if (!hasPermission(user, "care"))
     return NextResponse.json({ error: "Bạn không có quyền sửa nhật ký." }, { status: 403 });
+  if (hasBrokenText(Object.values(update)))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const result = await (await getDatabase())
     .collection(collections.careActivities)
     .findOneAndUpdate(

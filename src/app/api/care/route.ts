@@ -3,7 +3,7 @@ import { collections, listCareTasks } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
-import { cleanText, oneOf, validDate } from "@/lib/validation";
+import { cleanText, hasBrokenText, oneOf, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 const channels = ["Gọi điện", "Zalo", "Facebook", "SMS", "Trực tiếp"] as const;
 export async function GET() {
@@ -26,6 +26,8 @@ export async function POST(request: NextRequest) {
     );
   const body = await request.json().catch(() => null),
     user = await getCurrentUser();
+  if (hasBrokenText([body?.purpose, body?.owner, body?.channel]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (!hasPermission(user, "care"))
     return NextResponse.json(
       { error: "Bạn không có quyền tạo lịch chăm sóc." },

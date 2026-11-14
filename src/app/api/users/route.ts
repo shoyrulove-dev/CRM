@@ -5,6 +5,7 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { listUsers } from "@/lib/users";
 import { canCreateRole, canOpenAccounts } from "@/lib/account-access";
+import { hasBrokenText } from "@/lib/validation";
 
 async function admin() {
   const user = await getCurrentUser();
@@ -30,6 +31,8 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   const body = await request.json().catch(() => null);
+  if (hasBrokenText(body?.name))
+    return NextResponse.json({ error: "Họ tên có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (
     !body?.name ||
     !body?.email ||

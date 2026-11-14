@@ -4,6 +4,8 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { writeAudit } from "@/lib/audit";
+import { randomUUID } from "node:crypto";
+import { cleanText, hasBrokenText, oneOf } from "@/lib/validation";
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -35,6 +37,12 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng và nội dung là bắt buộc." },
       { status: 400 },
     );
+  if (hasBrokenText([body.title, body.description, body.owner, body.resolution]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
+  if (body.priority && !oneOf(body.priority, ["Bình thường", "Cao", "Khẩn cấp"] as const))
+    return NextResponse.json({ error: "Mức ưu tiên không hợp lệ." }, { status: 400 });
+  if (body.resolution && !oneOf(body.resolution, ["Thu hàng - Hoàn tiền", "Đổi hàng", "Điều chỉnh cách dùng", "Khác"] as const))
+    return NextResponse.json({ error: "Hướng xử lý không hợp lệ." }, { status: 400 });
   const db = await getDatabase();
   const customer = await db.collection(collections.customers).findOne({
     id: body.customerId,
@@ -45,6 +53,9 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
       { status: 403 },
     );
+  const owner = canSeeAll(user) ? cleanText(body.owner || customer.owner || user!.name, 120) : user!.name;
+  if (!(await db.collection(collections.users).findOne({ name: owner, active: true, archivedAt: { $exists: false } })))
+    return NextResponse.json({ error: "Nhân viên phụ trách không tồn tại hoặc đã bị khóa." }, { status: 400 });
   const relatedOrder = body.orderCode
     ? await db.collection(collections.orders).findOne({ code: body.orderCode, customerId: customer.id })
     : null;
@@ -58,17 +69,14 @@ export async function POST(request: NextRequest) {
   if ((body.returnProductSku && !returned) || (body.exchangeProductSku && !exchanged))
     return NextResponse.json({ error: "Sản phẩm không thuộc đơn hàng đã chọn." }, { status: 400 });
   const document = {
-    id: `YC-${Date.now().toString().slice(-6)}`,
+    id: `YC-${randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`,
     customerId: body.customerId,
-    customer: body.customer || "",
-    title: body.title,
-    description: body.description || "",
+    customer: customer.name,
+    title: cleanText(body.title, 200),
+    description: cleanText(body.description, 5000),
     priority: body.priority || "Bình thường",
     status: "Mới",
-    owner:
-      canSeeAll(user)
-        ? body.owner || user!.name
-        : user?.name || "Chưa phân công",
+    owner,
     orderCode: relatedOrder?.code || "",
     returnProductSku: returned?.sku || "",
     returnProductName: returned?.name || "",

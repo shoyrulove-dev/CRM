@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { cleanText, validDate } from "@/lib/validation";
+import { cleanText, hasBrokenText, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 import { canSeeAll } from "@/lib/session";
 
@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   const body = await request.json().catch(() => null);
+  if (hasBrokenText([body?.purpose, body?.owner, body?.channel]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   if (!body?.purpose || !validDate(body?.dueAt))
     return NextResponse.json(
       { error: "Vui lòng nhập nội dung và thời gian chăm sóc." },

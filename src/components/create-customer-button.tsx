@@ -60,6 +60,7 @@ export function CreateCustomerButton() {
               <label>
                 Phân nhóm
                 <select name="segment">
+                  <option>Chưa xác định</option>
                   <option>Khách mới</option>
                   <option>Khách trung thành</option>
                   <option>Đang theo liệu trình</option>
@@ -69,6 +70,7 @@ export function CreateCustomerButton() {
               <label>
                 Mục tiêu sức khỏe
                 <select name="healthGoal">
+                  <option>Chưa xác định</option>
                   <option>Tiêu hóa</option>
                   <option>Xương khớp</option>
                   <option>Tim mạch</option>

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { collections } from "@/lib/data-store";
 import { getDatabase } from "@/lib/mongodb";
 import { writeAudit } from "@/lib/audit";
+import { hasBrokenText } from "@/lib/validation";
 const valid = ["customers", "care", "tickets", "reports"];
 export async function PATCH(
   r: NextRequest,
@@ -14,6 +15,8 @@ export async function PATCH(
   const { id } = await params,
     b = await r.json(),
     set: Record<string, unknown> = { updatedAt: new Date().toISOString() };
+  if (hasBrokenText(b?.name))
+    return NextResponse.json({ error: "Tên nhóm có ký tự bị lỗi. Vui lòng nhập lại." }, { status: 400 });
   if (b.name) set.name = String(b.name).trim();
   if (Array.isArray(b.permissions))
     set.permissions = b.permissions.filter((x: string) => valid.includes(x));

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { collections } from "@/lib/data-store";
 import { getDatabase } from "@/lib/mongodb";
+import { hasBrokenText } from "@/lib/validation";
 const valid = ["customers", "care", "tickets", "reports"];
 async function admin() {
   return (await getCurrentUser())?.role === "super_admin";
@@ -22,6 +23,8 @@ export async function POST(r: NextRequest) {
   if (!(await admin()))
     return NextResponse.json({ error: "Không có quyền." }, { status: 403 });
   const b = await r.json().catch(() => null);
+  if (hasBrokenText(b?.name))
+    return NextResponse.json({ error: "Tên nhóm có ký tự bị lỗi. Vui lòng nhập lại." }, { status: 400 });
   if (!b?.name)
     return NextResponse.json(
       { error: "Vui lòng nhập tên nhóm." },

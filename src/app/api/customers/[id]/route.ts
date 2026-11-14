@@ -3,6 +3,8 @@ import { collections, getCustomerProfile } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
+import { cleanText, hasBrokenText } from "@/lib/validation";
+import { writeAudit } from "@/lib/audit";
 
 export async function GET(
   _: Request,
@@ -32,6 +34,8 @@ export async function PATCH(
     );
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
+  if (hasBrokenText([body?.name, body?.owner, body?.segment, body?.healthGoal]))
+    return NextResponse.json({ error: "Nội dung có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers"))
     return NextResponse.json({ error: "Bạn không có quyền sửa khách hàng." }, { status: 403 });
@@ -53,6 +57,8 @@ export async function PATCH(
       { error: "Không có thông tin hợp lệ để cập nhật." },
       { status: 400 },
     );
+  for (const field of ["segment", "healthGoal"])
+    if (field in update) update[field] = cleanText(update[field], field === "segment" ? 80 : 120) || "Chưa xác định";
   const result = await (await getDatabase())
     .collection(collections.customers)
     .findOneAndUpdate(
@@ -77,6 +83,7 @@ export async function PATCH(
       ),
     ]);
   }
+  if (result) await writeAudit(user, "update", "customer", id, null, result);
   return result
     ? NextResponse.json({ data: result })
     : NextResponse.json(

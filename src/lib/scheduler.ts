@@ -111,6 +111,8 @@ export async function runScheduler() {
       .find({}, { projection: { _id: 0 } })
       .toArray()) as unknown as Customer[];
     const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
+    const customizedTasks = new Set((await db.collection(collections.careTasks)
+      .find({ scheduleCustomized: true }, { projection: { id: 1 } }).toArray()).map((task) => task.id));
     const orderOperations: AnyBulkWriteOperation<Document>[] = [];
     const birthdayOperations: AnyBulkWriteOperation<Document>[] = [];
     const holidayOperations: AnyBulkWriteOperation<Document>[] = [];
@@ -128,6 +130,7 @@ export async function runScheduler() {
         const due = new Date(`${order.orderDate}T09:00:00+07:00`);
         due.setUTCDate(due.getUTCDate() + rule.offset);
         const id = `AUTO-${order.id}-${rule.offset}-${rule.purpose.slice(0, 8).replace(/\s/g, "")}`;
+        if (customizedTasks.has(id)) continue;
         orderOperations.push({
           updateOne: {
             filter: { id },

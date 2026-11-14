@@ -5,6 +5,7 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
 import { canManageAccount, canCreateRole } from "@/lib/account-access";
+import { hasBrokenText } from "@/lib/validation";
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -23,6 +24,8 @@ export async function PATCH(
   const { id } = await params,
     body = await request.json().catch(() => null),
     db = await getDatabase();
+  if (hasBrokenText(body?.name))
+    return NextResponse.json({ error: "Họ tên có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const before = await db
     .collection(collections.users)
     .findOne({ id }, { projection: { _id: 0, passwordHash: 0 } });
