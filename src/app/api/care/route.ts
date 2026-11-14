@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, hasBrokenText, oneOf, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
+import { randomUUID } from "node:crypto";
 const channels = ["Gọi điện", "Zalo", "Facebook", "SMS", "Trực tiếp"] as const;
 export async function GET() {
   const user = await getCurrentUser();
@@ -71,6 +72,7 @@ export async function POST(request: NextRequest) {
       { error: "Ngày hoặc kênh chăm sóc không hợp lệ." },
       { status: 400 },
     );
+  dueAt = new Date(dueAt).toISOString();
   const owner =
     canSeeAll(user)
       ? cleanText(body.owner || user!.name, 120)
@@ -85,7 +87,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   const document = {
-    id: `CS-${Date.now().toString().slice(-6)}`,
+    id: `CS-${randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`,
     customerId: customer.id,
     customer: customer.name,
     phone: customer.phone,
@@ -102,6 +104,7 @@ export async function POST(request: NextRequest) {
     productSku: relatedProduct?.sku || "",
     productName: relatedProduct?.name || "",
     status: "due",
+    source: "manual",
     createdAt: new Date().toISOString(),
   };
   await db.collection(collections.careTasks).insertOne(document);

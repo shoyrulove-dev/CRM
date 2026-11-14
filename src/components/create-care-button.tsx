@@ -19,14 +19,19 @@ export function CreateCareButton({ customers, employees = [], customerId, order,
   const currentOrder = availableOrders.find((item) => item.id === selectedOrder);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setLoading(true); setError("");
-    const form = new FormData(event.currentTarget), selected = customers.find((item) => item.id === form.get("customerId"));
+    const form = new FormData(event.currentTarget), selected = customers.find((item) => item.id === selectedCustomer);
     const product = currentOrder?.products.find((item) => item.sku === form.get("productSku"));
+    const localDueAt = String(form.get("dueAt") || "");
+    try {
     const response = await fetch("/api/care", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({
       customerId: selected?.id, orderId: currentOrder?.id || "", orderCode: currentOrder?.code || "", productSku: product?.sku || "", productName: product?.name || "",
-      purpose: form.get("purpose"), owner: form.get("owner"), dueAt: form.get("dueAt"), baseDate: form.get("baseDate"), offsetDays: form.get("offsetDays"), channel: form.get("channel"), recurrence: form.get("recurrence"),
+      purpose: form.get("purpose"), owner: form.get("owner"), dueAt: localDueAt ? new Date(localDueAt).toISOString() : "", baseDate: form.get("baseDate"), offsetDays: form.get("offsetDays"), channel: form.get("channel"), recurrence: form.get("recurrence"),
     }) });
     const json = await response.json(); if (!response.ok) { setError(json.error || "Không thể tạo lịch"); setLoading(false); return; }
     setOpen(false); setLoading(false); router.refresh();
+    } catch {
+      setError("Kết nối bị gián đoạn. Vui lòng thử lưu lại."); setLoading(false);
+    }
   }
   return <>
     <button className={compact ? "order-action" : "primary-button"} onClick={() => setOpen(true)}>{compact ? <CalendarPlus size={14} /> : <Plus size={18} />}Tạo lịch chăm sóc</button>
@@ -37,7 +42,7 @@ export function CreateCareButton({ customers, employees = [], customerId, order,
         <label>Sản phẩm<select name="productSku" disabled={!currentOrder}><option value="">Không chọn sản phẩm</option>{currentOrder?.products.map((item, index) => <option key={`${item.sku}-${index}`} value={item.sku}>{item.name}{item.sku ? ` · ${item.sku}` : ""}</option>)}</select></label>
         <label className="full">Mục đích<select name="purpose" defaultValue="Khảo sát tình trạng sử dụng"><option>Hướng dẫn sử dụng</option><option>Khảo sát tình trạng sử dụng</option><option>Hỏi thăm cảm nhận</option><option>Nhắc tái mua</option><option>Chăm sóc khách trung thành</option><option>Xử lý phản ánh</option><option>Sinh nhật</option><option>Ngày lễ</option><option>Gửi chương trình khuyến mãi mới</option></select></label>
         <label>Kênh<select name="channel"><option>Gọi điện</option><option>Zalo</option><option>Facebook</option><option>SMS</option><option>Trực tiếp</option></select></label>
-        <label>Phụ trách<select name="owner" defaultValue={employees[0]?.name || ""}>{employees.map((employee) => <option key={employee.id} value={employee.name}>{employee.name}</option>)}</select></label>
+        <label>Phụ trách<select key={selectedCustomer} name="owner" defaultValue={customers.find((item) => item.id === selectedCustomer)?.owner || employees[0]?.name || ""}>{employees.map((employee) => <option key={employee.id} value={employee.name}>{employee.name}</option>)}</select></label>
         <label>Ngày giờ cụ thể<input name="dueAt" type="datetime-local" step="300" /></label><label>Ngày làm mốc<input name="baseDate" type="date" defaultValue={order?.orderDate || ""} /></label>
         <label>Số ngày sau mốc<select name="offsetDays" defaultValue={order ? "7" : "0"}><option value="0">Cùng ngày</option><option value="7">7 ngày</option><option value="25">25 ngày</option><option value="45">45 ngày</option></select></label>
         <label>Lặp lại<select name="recurrence"><option value="none">Không lặp</option><option value="monthly">Hàng tháng</option><option value="yearly">Hàng năm</option></select></label>

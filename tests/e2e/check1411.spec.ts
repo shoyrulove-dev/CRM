@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import ExcelJS from "exceljs";
 
 const damaged = /\uFFFD|[\u00C3\u00C4\u00C6][\u0080-\u00BF]|\u00E1[\u00BA\u00BB]|\u00E2[\u0080\u20AC]/;
+test.use({ timezoneId: "Asia/Bangkok" });
 test.beforeEach(async ({ page }) => {
   const login = await page.request.post("/api/auth/login", { data: {
     email: process.env.E2E_ADMIN_EMAIL || "admin@nichiei.vn",
@@ -47,6 +48,25 @@ test("tạo phiếu từ hồ sơ giữ đúng khách và lưu tiếng Việt", 
     const locked = await page.request.patch(`/api/tickets/${ticket.id}`, { data: { note: "Không được thay đổi phiếu đã đóng" } });
     expect(locked.status()).toBe(409);
   } finally { await expect(await page.request.delete(`/api/tickets/${ticket.id}`)).toBeOK(); }
+});
+
+test("tạo lịch từ hồ sơ đúng khách, người phụ trách và giờ Việt Nam", async ({ page }) => {
+  const customers = await (await page.request.get("/api/customers")).json();
+  const customer = customers.data.find((item: { owner: string }) => item.owner === "Vân Anh");
+  await page.goto(`/customers/${customer.id}?tab=reminders`);
+  await page.getByRole("button", { name: "Tạo lịch chăm sóc", exact: true }).first().click();
+  const form = page.locator(".modal-card .entity-form");
+  await form.getByLabel("Ngày giờ cụ thể").fill("2026-12-01T09:30");
+  const createdResponse = page.waitForResponse((response) => response.url().endsWith("/api/care") && response.request().method() === "POST");
+  await form.getByRole("button", { name: "Tạo lịch", exact: true }).click();
+  const response = await createdResponse;
+  expect(response.status()).toBe(201);
+  const { data: task } = await response.json();
+  try {
+    expect(task.customerId).toBe(customer.id);
+    expect(task.owner).toBe(customer.owner);
+    expect(task.dueAt).toBe("2026-12-01T02:30:00.000Z");
+  } finally { await expect(await page.request.delete(`/api/care/${task.id}`)).toBeOK(); }
 });
 
 test("chặn ký tự hỏng và chặn nhân viên sửa phiếu ngoài phạm vi", async ({ page, playwright, baseURL }) => {
