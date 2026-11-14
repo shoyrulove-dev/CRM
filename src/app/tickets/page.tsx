@@ -1,6 +1,6 @@
 import { Download, Search } from "lucide-react";
-import { getReportData, listCustomers, listProductCatalog, listTickets } from "@/lib/data-store";
-import { CreateTicketButton } from "@/components/create-ticket-button";
+import { listCustomers, listTickets } from "@/lib/data-store";
+import { LazyCreateButton } from "@/components/lazy-create-button";
 import { TicketActions } from "@/components/ticket-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
@@ -23,12 +23,10 @@ export default async function TicketsPage({
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTickets, customers, allUsers, reportData, productCatalog] = await Promise.all([
+    [allTickets, customers, allUsers] = await Promise.all([
       listTickets(user),
       listCustomers(undefined, user),
       listUsers(),
-      getReportData(user),
-      listProductCatalog(),
     ]),
     needle = (params.q || "").toLowerCase();
   if (!hasPermission(user, "tickets")) redirect("/");
@@ -58,7 +56,7 @@ export default async function TicketsPage({
           <h1>Phiếu yêu cầu</h1>
           <p>Theo dõi và xử lý yêu cầu của khách hàng. Phiếu đã đóng được giữ nguyên lịch sử.</p>
         </div>
-        <div className="page-actions"><a className="secondary-button" href={`/api/tickets/export?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as [string, string][]).toString()}`}><Download size={17} />Xuất Excel</a><CreateTicketButton customers={customers} employees={employees} orders={reportData.orders} products={productCatalog} /></div>
+        <div className="page-actions"><a className="secondary-button" href={`/api/tickets/export?${new URLSearchParams(Object.entries(params).filter(([, value]) => value) as [string, string][]).toString()}`}><Download size={17} />Xuất Excel</a><LazyCreateButton kind="tickets" /></div>
       </div>
       <section className="panel list-panel">
         <form className="list-toolbar" method="get">

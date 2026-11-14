@@ -8,10 +8,10 @@ import type { Customer, SalesOrder } from "@/lib/types";
 type Employee = { id: string; name: string };
 type OrderPreset = Pick<SalesOrder, "id" | "code" | "orderDate" | "customerId" | "products">;
 
-export function CreateCareButton({ customers, employees = [], customerId, order, orders = [], compact = false }: {
-  customers: Customer[]; employees?: Employee[]; customerId?: string; order?: OrderPreset; orders?: SalesOrder[]; compact?: boolean;
+export function CreateCareButton({ customers, employees = [], customerId, order, orders = [], compact = false, initialOpen = false }: {
+  customers: Customer[]; employees?: Employee[]; customerId?: string; order?: OrderPreset; orders?: SalesOrder[]; compact?: boolean; initialOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(initialOpen), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(customerId || customers[0]?.id || "");
   const [selectedOrder, setSelectedOrder] = useState(order?.id || "");
   const router = useRouter();

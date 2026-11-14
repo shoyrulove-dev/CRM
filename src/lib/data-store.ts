@@ -334,6 +334,27 @@ export async function getCustomerProfile(
   };
 }
 
+export async function getCarePageData(params: { date?: string; from?: string; to?: string; owner?: string; status?: string; task?: string }, user: SessionUser | null) {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+  const base = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
+  const filter = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
+    ...(params.status ? { status: params.status } : {}), ...(params.task ? { id: params.task } : {}),
+    ...(params.date ? { dueAt: { $gte: new Date(`${params.date}T00:00:00+07:00`).toISOString(), $lte: new Date(`${params.date}T23:59:59+07:00`).toISOString() } } :
+      params.from || params.to ? { dueAt: { ...(params.from ? { $gte: `${params.from}-01` } : {}), ...(params.to ? { $lte: `${params.to}-31T23:59:59.999Z` } : {}) } } : {}) };
+  if (!hasDatabase()) {
+    const all = await listCareTasks(user);
+    const selected = all.filter((task) => (!params.owner || task.owner === params.owner) && (!params.status || task.status === params.status) && (!params.task || task.id === params.task) && (!params.date || task.dueAt.startsWith(params.date)) && (!params.from || task.dueAt >= `${params.from}-01`) && (!params.to || task.dueAt <= `${params.to}-31T23:59:59.999Z`));
+    return { tasks: selected.slice(0, 100), total: selected.length, overdue: all.filter((task) => task.status === "overdue").length, done: all.filter((task) => task.status === "done").length, today: all.filter((task) => task.status !== "done" && task.dueAt.startsWith(today)).length };
+  }
+  const col = (await getDatabase()).collection(collections.careTasks);
+  const [rows, total, overdue, done, dueToday] = await Promise.all([
+    col.find(filter, { projection: { _id: 0 } }).sort({ dueAt: 1 }).limit(100).toArray(), col.countDocuments(filter),
+    col.countDocuments({ ...base, status: "overdue" }), col.countDocuments({ ...base, status: "done" }),
+    col.countDocuments({ ...base, status: { $ne: "done" }, dueAt: { $gte: new Date(`${today}T00:00:00+07:00`).toISOString(), $lte: new Date(`${today}T23:59:59+07:00`).toISOString() } }),
+  ]);
+  return { tasks: rows as unknown as CareTask[], total, overdue, done, today: dueToday };
+}
+
 export async function listCareTasks(
   user?: SessionUser | null,
 ): Promise<CareTask[]> {

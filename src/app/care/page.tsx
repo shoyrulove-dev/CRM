@@ -1,7 +1,7 @@
 import { CalendarDays, CheckCircle2, Clock3 } from "lucide-react";
 import { StatusPill } from "@/components/status-pill";
-import { getReportData, listCareTasks, listCustomers } from "@/lib/data-store";
-import { CreateCareButton } from "@/components/create-care-button";
+import { getCarePageData, listProductCatalog } from "@/lib/data-store";
+import { LazyCreateButton } from "@/components/lazy-create-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
@@ -38,34 +38,17 @@ export default async function CarePage({
 }) {
   const params = await searchParams,
     user = await getCurrentUser(),
-    [allTasks, customers, allUsers, reportData] = await Promise.all([
-      listCareTasks(user),
-      listCustomers(undefined, user),
+    [careData, allUsers, productCatalog] = await Promise.all([
+      getCarePageData(params, user),
       listUsers(),
-      getReportData(user),
-    ]),
-    today = new Date().toISOString().slice(0, 10);
+      listProductCatalog(),
+    ]);
   if (!hasPermission(user, "care")) redirect("/");
-  const tasks = allTasks.filter(
-    (item) =>
-      (!params.date || item.dueAt.startsWith(params.date)) &&
-      (!params.from || item.dueAt.slice(0, 10) >= `${params.from}-01`) &&
-      (!params.to || item.dueAt.slice(0, 10) <= `${params.to}-31`) &&
-      (!params.owner || item.owner === params.owner) &&
-      (!params.status || item.status === params.status) &&
-      (!params.task || item.id === params.task),
-  );
-  const displayedTasks = tasks.slice(0, 100);
+  const displayedTasks = careData.tasks;
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
-  const products = Array.from(
-    new Set(
-      reportData.orders.flatMap((order) =>
-        order.products.map((product) => product.name),
-      ),
-    ),
-  ).sort((a, b) => a.localeCompare(b, "vi"));
+  const products = productCatalog.map((item) => item.name);
   return (
     <>
       <div className="page-heading compact">
@@ -78,7 +61,7 @@ export default async function CarePage({
           {user && ["admin", "super_admin"].includes(user.role) && (
             <BulkCareButton products={products} employees={employees} />
           )}
-          <CreateCareButton customers={customers} employees={employees} orders={reportData.orders} />
+          <LazyCreateButton kind="care" />
         </div>
       </div>
       <section className="calendar-summary">
@@ -86,7 +69,7 @@ export default async function CarePage({
           <Clock3 />
           <div>
             <strong>
-              {allTasks.filter((item) => item.status === "overdue").length}
+              {careData.overdue}
             </strong>
             <span>Đang quá hạn</span>
           </div>
@@ -96,10 +79,7 @@ export default async function CarePage({
           <div>
             <strong>
               {
-                allTasks.filter(
-                  (item) =>
-                    item.status !== "done" && item.dueAt.startsWith(today),
-                ).length
+                careData.today
               }
             </strong>
             <span>Đến hạn hôm nay</span>
@@ -109,7 +89,7 @@ export default async function CarePage({
           <CheckCircle2 />
           <div>
             <strong>
-              {allTasks.filter((item) => item.status === "done").length}
+              {careData.done}
             </strong>
             <span>Đã hoàn thành</span>
           </div>
@@ -194,9 +174,9 @@ export default async function CarePage({
               </div>
             </article>
           ))}
-          {tasks.length > displayedTasks.length && (
+          {careData.total > displayedTasks.length && (
             <p className="list-limit-note">
-              Đang hiển thị 100 nhiệm vụ ưu tiên đầu tiên trong {tasks.length} kết quả.
+              Đang hiển thị 100 nhiệm vụ ưu tiên đầu tiên trong {careData.total} kết quả.
               Hãy chọn thời gian, nhân viên hoặc trạng thái để thu gọn danh sách.
             </p>
           )}

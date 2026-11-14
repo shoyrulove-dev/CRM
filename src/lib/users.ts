@@ -27,7 +27,9 @@ const defaults = [
   },
 ];
 
+let defaultsReady = false;
 export async function ensureDefaultUsers() {
+  if (defaultsReady) return;
   if (!hasDatabase()) return;
   await ensureIndexes();
   const db = await getDatabase();
@@ -62,6 +64,7 @@ export async function ensureDefaultUsers() {
       { upsert: true },
     );
   }
+  defaultsReady = true;
 }
 
 export async function authenticateUser(email: string, password: string) {

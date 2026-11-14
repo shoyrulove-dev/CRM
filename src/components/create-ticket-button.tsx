@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { Customer, ProductOption, SalesOrder } from "@/lib/types";
 type Employee = { id: string; name: string };
-export function CreateTicketButton({ customers, employees = [], customerId, orderCode, orders = [], products = [], compact = false }: { customers: Customer[]; employees?: Employee[]; customerId?: string; orderCode?: string; orders?: SalesOrder[]; products?: ProductOption[]; compact?: boolean }) {
-  const [open, setOpen] = useState(false), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+export function CreateTicketButton({ customers, employees = [], customerId, orderCode, orders = [], products = [], compact = false, initialOpen = false }: { customers: Customer[]; employees?: Employee[]; customerId?: string; orderCode?: string; orders?: SalesOrder[]; products?: ProductOption[]; compact?: boolean; initialOpen?: boolean }) {
+  const [open, setOpen] = useState(initialOpen), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [customer, setCustomer] = useState(customerId || customers[0]?.id || ""), [order, setOrder] = useState(orderCode || "");
   const formRef = useRef<HTMLFormElement>(null);
   const draftKey = `nichiei-ticket-draft-${customerId || "all"}`;
