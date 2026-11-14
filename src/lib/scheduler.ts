@@ -103,6 +103,16 @@ export async function runScheduler() {
     birthdayCreated = 0,
     holidayCreated = 0;
   try {
+    // All customers share the same calendar dates; construct them once per run.
+    const localYear = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Bangkok" }).format(now));
+    const sharedHolidays = fixedHolidays.flatMap((holiday) => upcomingDates(holiday.month, holiday.day, now).map((due) => ({ due, purpose: holiday.purpose as string, key: `${holiday.month}-${holiday.day}` })));
+    for (const year of [localYear, localYear + 1]) {
+      const lunar = lunarNewYear[year];
+      if (lunar) {
+        const [month, day] = lunar.split("-").map(Number);
+        sharedHolidays.push(...upcomingDates(month, day, now).filter((due) => due.getFullYear() === year).map((due) => ({ due, purpose: "Chúc Tết khách hàng", key: "tet" })));
+      }
+    }
     const recentOrderDate = new Date(now.getTime() - 90 * 86400000)
       .toISOString()
       .slice(0, 10);
@@ -193,36 +203,7 @@ export async function runScheduler() {
             });
           }
       }
-      const localYear = Number(
-        new Intl.DateTimeFormat("en", {
-          year: "numeric",
-          timeZone: "Asia/Bangkok",
-        }).format(now),
-      );
-      const holidayDates: Array<{ due: Date; purpose: string; key: string }> =
-        fixedHolidays.flatMap((holiday) =>
-          upcomingDates(holiday.month, holiday.day, now).map((due) => ({
-            due,
-            purpose: holiday.purpose,
-            key: `${holiday.month}-${holiday.day}`,
-          })),
-        );
-      for (const year of [localYear, localYear + 1]) {
-        const lunar = lunarNewYear[year];
-        if (lunar) {
-          const [month, day] = lunar.split("-").map(Number);
-          holidayDates.push(
-            ...upcomingDates(month, day, now)
-              .filter((due) => due.getFullYear() === year)
-              .map((due) => ({
-                due,
-                purpose: "Chúc Tết khách hàng",
-                key: "tet",
-              })),
-          );
-        }
-      }
-      for (const holiday of holidayDates) {
+      for (const holiday of sharedHolidays) {
         const year = holiday.due.getFullYear();
         const id = `AUTO-HOLIDAY-${holiday.key}-${customer.id}-${year}`;
         holidayOperations.push({

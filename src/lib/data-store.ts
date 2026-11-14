@@ -485,20 +485,24 @@ export async function reconcileCustomers() {
     listFromMongo<CareTask>(collections.careTasks),
   ]);
   const now = new Date().toISOString();
+  function groupByCustomer<T extends { customerId?: string }>(rows: T[]) {
+    const grouped = new Map<string, T[]>();
+    for (const row of rows) {
+      if (!row.customerId) continue;
+      const list = grouped.get(row.customerId);
+      if (list) list.push(row); else grouped.set(row.customerId, [row]);
+    }
+    return grouped;
+  }
+  const ordersByCustomer = groupByCustomer(orderRows.filter((order) => order.status === "Mua hàng"));
+  const activitiesByCustomer = groupByCustomer(activityRows);
+  const tasksByCustomer = groupByCustomer(taskRows.filter((task) => task.status !== "done"));
   const operations = customerRows.map((customer) => {
-    const purchased = orderRows
-      .filter(
-        (order) =>
-          order.customerId === customer.id && order.status === "Mua hàng",
-      )
+    const purchased = (ordersByCustomer.get(customer.id) || [])
       .sort((a, b) => isoDate(b.orderDate).localeCompare(isoDate(a.orderDate)));
-    const customerActivities = activityRows
-      .filter((activity) => activity.customerId === customer.id)
+    const customerActivities = (activitiesByCustomer.get(customer.id) || [])
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
-    const pendingTasks = taskRows
-      .filter(
-        (task) => task.customerId === customer.id && task.status !== "done",
-      )
+    const pendingTasks = (tasksByCustomer.get(customer.id) || [])
       .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
     const lastCare =
       customerActivities[0]?.occurredAt || customer.lastCare || "";
