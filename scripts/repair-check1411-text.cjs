@@ -75,7 +75,22 @@ async function main() {
         } });
       }
     }
-    console.log(JSON.stringify({ apply, documents, fields, legacyDates }));
+    let localDateTimes = 0;
+    for await (const task of db.collection('care_tasks').find({ dueAt: { $regex: '^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}$' } })) {
+      const dueAt = new Date(`${task.dueAt}:00+07:00`).toISOString();
+      localDateTimes++;
+      if (apply) {
+        await db.collection('text_repair_history').insertOne({
+          migration: 'check1411-vietnam-timezone', collection: 'care_tasks', documentId: task._id,
+          originalsBase64: { dueAt: Buffer.from(task.dueAt).toString('base64') }, createdAt: new Date(),
+        });
+        await db.collection('care_tasks').updateOne({ _id: task._id }, { $set: {
+          dueAt, ...(task.status !== 'done' ? { status: Date.parse(dueAt) < Date.now() ? 'overdue' : 'due' } : {}),
+          dateRepairedAt: new Date().toISOString(),
+        } });
+      }
+    }
+    console.log(JSON.stringify({ apply, documents, fields, legacyDates, localDateTimes }));
   } finally { await client.close(); }
 }
 main().catch((error) => { console.error(error.message); process.exitCode = 1; });
