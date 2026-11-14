@@ -322,7 +322,7 @@ export function AccountManager({
 function RoleOptions({ currentRole }: { currentRole: UserRole }) {
   return (
     <>
-      <option value="admin">Quản trị</option>
+      {currentRole === "super_admin" && <option value="admin">Quản trị</option>}
       <option value="sales">Bán hàng</option>
       <option value="care">Chăm sóc khách hàng</option>
     </>
