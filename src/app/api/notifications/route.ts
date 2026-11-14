@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/current-user";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 export async function GET() {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, "care"))
@@ -17,7 +17,7 @@ export async function GET() {
   const filter = {
     status: { $ne: "done" },
     dueAt: { $lte: tomorrow },
-    ...(user.role === "admin" ? {} : { owner: user.name }),
+    ...(canSeeAll(user) ? {} : { owner: user.name }),
   };
   const tasks = await db
     .collection(collections.careTasks)

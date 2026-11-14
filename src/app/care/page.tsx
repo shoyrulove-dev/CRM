@@ -75,7 +75,7 @@ export default async function CarePage({
           <p>Nhiệm vụ chỉ hết cảnh báo khi được đánh dấu hoàn thành.</p>
         </div>
         <div className="page-actions">
-          {user?.role === "admin" && (
+          {user && ["admin", "super_admin"].includes(user.role) && (
             <BulkCareButton products={products} employees={employees} />
           )}
           <CreateCareButton customers={customers} employees={employees} orders={reportData.orders} />
@@ -137,7 +137,7 @@ export default async function CarePage({
             defaultValue={params.to}
             aria-label="Đến tháng"
           />
-          {user?.role === "admin" && (
+          {user && ["admin", "super_admin"].includes(user.role) && (
             <select
               className="ghost-select"
               name="owner"

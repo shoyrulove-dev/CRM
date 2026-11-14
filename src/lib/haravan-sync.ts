@@ -220,7 +220,7 @@ export async function syncHaravanData() {
   const startedAt = new Date();
   // Version 2 corrects Vietnamese name order. The first sync after this
   // deployment intentionally scans all records once, then returns to incremental sync.
-  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 4);
+  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 5);
   const updatedAtMin = incremental
     ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
     : undefined;
@@ -286,7 +286,7 @@ export async function syncHaravanData() {
           : "Mua hàng";
       const haravanUser = order.user_id ? haravanUserById.get(String(order.user_id)) : undefined;
       const haravanEmployee = [
-        haravanUser ? [haravanUser.first_name, haravanUser.last_name].filter(Boolean).join(" ").trim() : "",
+        haravanUser ? [haravanUser.last_name, haravanUser.first_name].filter(Boolean).join(" ").trim() : "",
         order.salesperson_name,
         order.staff_name,
         order.user_name,
@@ -302,6 +302,7 @@ export async function syncHaravanData() {
             $or: [
               { owner: "Chưa phân công" },
               { ownerSource: "haravan" },
+              { ownerSource: { $exists: false } },
             ],
           },
           {
@@ -397,7 +398,7 @@ export async function syncHaravanData() {
           customerPage: result.complete ? 1 : customerBatch.nextPage,
           orderPage: result.complete ? 1 : orderBatch.nextPage,
           lastSuccessAt: finishedAt.toISOString(),
-          mappingVersion: result.complete ? 4 : Number(previous?.mappingVersion || 0),
+          mappingVersion: result.complete ? 5 : Number(previous?.mappingVersion || 0),
         },
         $unset: { error: "" },
       },

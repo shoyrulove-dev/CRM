@@ -106,7 +106,7 @@ export default async function Dashboard() {
       : [
           {
             label:
-              user?.role === "admin"
+              user && ["admin", "super_admin"].includes(user.role)
                 ? "Tổng khách hàng"
                 : "Khách hàng phụ trách",
             value: String(data.customers.length),

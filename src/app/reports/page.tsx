@@ -211,7 +211,7 @@ export default async function ReportsPage({
           Từ ngày
           <input type="date" name="from" defaultValue={from} />
         </label>
-        {user?.role === "admin" && (
+        {user && ["admin", "super_admin"].includes(user.role) && (
           <label>
             Nhân viên
             <select name="owner" defaultValue={params.owner || ""}>

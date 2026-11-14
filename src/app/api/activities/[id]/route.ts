@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 const allowed = [
   "channel",
   "purpose",
@@ -32,7 +32,7 @@ export async function PATCH(
     ),
     filter = {
       id,
-      ...(user?.role === "admin" ? {} : { employee: user?.name }),
+      ...(canSeeAll(user) ? {} : { employee: user?.name }),
     };
   if (!hasPermission(user, "care"))
     return NextResponse.json({ error: "Bạn không có quyền sửa nhật ký." }, { status: 403 });
@@ -65,7 +65,7 @@ export async function DELETE(
   const { id } = await params,
     filter = {
       id,
-      ...(user?.role === "admin" ? {} : { employee: user?.name }),
+      ...(canSeeAll(user) ? {} : { employee: user?.name }),
     },
     result = await (await getDatabase())
       .collection(collections.careActivities)

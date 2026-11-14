@@ -4,10 +4,11 @@ import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { cleanText, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
+import { canSeeAll } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (user?.role !== "admin")
+  if (!canSeeAll(user))
     return NextResponse.json(
       { error: "Chỉ quản trị viên được tạo lịch hàng loạt." },
       { status: 403 },
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       purpose: cleanText(body.purpose, 200),
       owner:
         body.assignToCustomerOwner === false
-          ? cleanText(body.owner || user.name, 120)
+          ? cleanText(body.owner || user!.name, 120)
           : customer.owner,
       dueAt,
       channel: cleanText(body.channel || "Gọi điện", 50),

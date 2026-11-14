@@ -83,7 +83,7 @@ export default async function CustomerProfilePage({
           </div>
         </div>
         <div className="profile-actions">
-          {user?.role === "admin" && (
+          {user && ["admin", "super_admin"].includes(user.role) && (
             <AssignCustomerOwner
               customerId={customer.id}
               owner={customer.owner}

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { collections, getCustomerProfile } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 
 export async function GET(
   _: Request,
@@ -43,7 +43,7 @@ export async function PATCH(
     "birthDate",
     "nextCare",
     "status",
-    ...(user?.role === "admin" ? ["owner"] : []),
+    ...(canSeeAll(user) ? ["owner"] : []),
   ];
   const update = Object.fromEntries(
     Object.entries(body || {}).filter(([key]) => allowed.includes(key)),
@@ -56,8 +56,8 @@ export async function PATCH(
   const result = await (await getDatabase())
     .collection(collections.customers)
     .findOneAndUpdate(
-      { id, ...(user?.role === "admin" ? {} : { owner: user?.name }) },
-      { $set: { ...update, updatedAt: new Date().toISOString() } },
+      { id, ...(canSeeAll(user) ? {} : { owner: user?.name }) },
+      { $set: { ...update, ...(update.owner ? { ownerSource: "manual" } : {}), updatedAt: new Date().toISOString() } },
       { returnDocument: "after", projection: { _id: 0 } },
     );
   if (result && update.owner) {

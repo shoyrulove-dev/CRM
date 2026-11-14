@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { listCustomers, collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, validDate, validPhone } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 export async function GET(request: NextRequest) {
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       { status: 409 },
     );
   if (
-    user?.role === "admin" &&
+    canSeeAll(user) &&
     body.owner &&
     !(await db
       .collection(collections.users)
@@ -68,10 +68,10 @@ export async function POST(request: NextRequest) {
     name: cleanText(body.name, 120),
     phone,
     owner:
-      user?.role === "admin"
-        ? cleanText(body.owner || user.name, 120)
+      canSeeAll(user)
+        ? cleanText(body.owner || user!.name, 120)
         : user?.name || "Chưa phân công",
-    segment: cleanText(body.segment || "Khách mới", 80),
+    segment: cleanText(body.segment || "Chưa xác định", 80),
     orders: 0,
     revenue: 0,
     lastOrder: "—",

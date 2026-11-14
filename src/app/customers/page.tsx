@@ -28,7 +28,7 @@ export default async function CustomersPage({
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers")) redirect("/");
   const employees =
-    user?.role === "admin"
+    user && ["admin", "super_admin"].includes(user.role)
       ? (await listUsers()).filter((item) => item.active)
       : [];
   const fromDate = params.from ? `${params.from}-01` : undefined;
@@ -128,7 +128,7 @@ export default async function CustomersPage({
             <option value="done">Đã hoàn thành</option>
           </select>
           <button className="secondary-button">Lọc</button>
-          {user?.role === "admin" && (
+          {user && ["admin", "super_admin"].includes(user.role) && (
             <ExportCustomersButton
               query={{
                 q: params.q,

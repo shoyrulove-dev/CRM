@@ -3,7 +3,7 @@ import { collections } from "@/lib/data-store";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     );
   const customer = await db.collection(collections.customers).findOne({
     id: body.customerId,
-    ...(user?.role === "admin" ? {} : { owner: user?.name }),
+    ...(canSeeAll(user) ? {} : { owner: user?.name }),
   });
   if (!customer)
     return NextResponse.json(
@@ -75,8 +75,8 @@ export async function POST(request: NextRequest) {
     adverseReaction: Boolean(body.adverseReaction),
     note: body.note || "",
     employee:
-      user?.role === "admin"
-        ? body.employee || user.name
+      canSeeAll(user)
+        ? body.employee || user!.name
         : user?.name || "Chưa phân công",
     createdAt: new Date().toISOString(),
   };
