@@ -2,6 +2,7 @@ export type CareStatus = "due" | "overdue" | "done";
 export type UserRole = "super_admin" | "admin" | "sales" | "care";
 
 export interface UserAccount {
+  mustChangePassword?: boolean;
   id: string;
   name: string;
   email: string;

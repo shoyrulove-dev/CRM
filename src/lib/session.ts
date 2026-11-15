@@ -4,6 +4,7 @@ import type { PermissionKey, UserRole } from "./types";
 export const SESSION_COOKIE = "nichiei_session";
 
 export interface SessionUser {
+  mustChangePassword?: boolean;
   id: string;
   name: string;
   email: string;

@@ -28,7 +28,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Họ tên có ký tự bị lỗi. Vui lòng nhập lại bằng tiếng Việt." }, { status: 400 });
   const before = await db
     .collection(collections.users)
-    .findOne({ id }, { projection: { _id: 0, passwordHash: 0 } });
+    .findOne({ id }, { projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } });
   if (!before)
     return NextResponse.json(
       { error: "Không tìm thấy tài khoản." },
@@ -59,12 +59,13 @@ export async function PATCH(
     revoke = body.active !== before.active;
   }
   if (body?.password) {
-    if (String(body.password).length < 8)
+    if (String(body.password).length < 8 || String(body.password).length > 128)
       return NextResponse.json(
         { error: "Mật khẩu cần ít nhất 8 ký tự." },
         { status: 400 },
       );
     update.passwordHash = await hash(String(body.password), 10);
+    update.mustChangePassword = true;
     revoke = true;
   }
   if (revoke) update.sessionVersion = Number(before.sessionVersion || 0) + 1;
@@ -72,8 +73,8 @@ export async function PATCH(
     .collection(collections.users)
     .findOneAndUpdate(
       { id },
-      { $set: update },
-      { returnDocument: "after", projection: { _id: 0, passwordHash: 0 } },
+      { $set: update, ...(body?.password ? { $unset: { resetTokenHash: "", resetExpiresAt: "" } } : {}) },
+      { returnDocument: "after", projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } },
     );
   await writeAudit(current, "update", "user", id, before, result);
   return NextResponse.json({ data: result });
@@ -103,7 +104,7 @@ export async function DELETE(
   const db = await getDatabase();
   const before = await db
     .collection(collections.users)
-    .findOne({ id }, { projection: { _id: 0, passwordHash: 0 } });
+    .findOne({ id }, { projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } });
   if (!before)
     return NextResponse.json(
       { error: "Không tìm thấy tài khoản." },
@@ -120,7 +121,7 @@ export async function DELETE(
         $set: { active: false, archivedAt, updatedAt: archivedAt },
         $inc: { sessionVersion: 1 },
       },
-      { returnDocument: "after", projection: { _id: 0, passwordHash: 0 } },
+      { returnDocument: "after", projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } },
     );
   await writeAudit(current, "archive", "user", id, before, result);
   return NextResponse.json({ data: result });

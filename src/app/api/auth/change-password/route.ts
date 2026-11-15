@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   } | null;
   if (!body?.currentPassword || !body.newPassword)
     return NextResponse.json({ error: "Vui lòng nhập đủ mật khẩu hiện tại và mật khẩu mới." }, { status: 400 });
-  if (body.newPassword.length < 8)
+  if (body.newPassword.length < 8 || body.newPassword.length > 128)
     return NextResponse.json({ error: "Mật khẩu mới cần ít nhất 8 ký tự." }, { status: 400 });
   if (body.currentPassword === body.newPassword)
     return NextResponse.json({ error: "Mật khẩu mới cần khác mật khẩu hiện tại." }, { status: 400 });
@@ -38,14 +38,16 @@ export async function POST(request: NextRequest) {
     {
       $set: {
         passwordHash: await hash(body.newPassword, 10),
+        mustChangePassword: false,
         sessionVersion,
         passwordChangedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      $unset: { resetTokenHash: "", resetExpiresAt: "" },
     },
   );
 
-  const user = { ...current, sessionVersion };
+  const user = { ...current, sessionVersion, mustChangePassword: false };
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, await createSessionToken(user), {
     httpOnly: true,

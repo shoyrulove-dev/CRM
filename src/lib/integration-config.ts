@@ -15,6 +15,9 @@ export type IntegrationConfig = {
   r2Bucket?: string;
   r2AccessKeyId?: string;
   r2SecretAccessKey?: string;
+  resendApiKey?: string;
+  emailFrom?: string;
+  emailTestTo?: string;
 };
 function key() {
   return createHash("sha256")
@@ -53,6 +56,8 @@ export async function getIntegrationConfig(): Promise<IntegrationConfig> {
     r2Bucket: process.env.R2_BUCKET,
     r2AccessKeyId: process.env.R2_ACCESS_KEY_ID,
     r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    resendApiKey: process.env.RESEND_API_KEY,
+    emailFrom: process.env.EMAIL_FROM,
   };
   if (!hasDatabase()) return env;
   const row = await (

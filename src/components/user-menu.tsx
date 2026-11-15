@@ -14,6 +14,7 @@ export function UserMenu({ name }: { name: string }) {
 
   async function changePassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setError("");
     setSuccess("");
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
@@ -33,7 +34,7 @@ export function UserMenu({ name }: { name: string }) {
     const result = await response.json();
     setSaving(false);
     if (!response.ok) return setError(result.error || "Không thể đổi mật khẩu.");
-    event.currentTarget.reset();
+    form.reset();
     setSuccess("Đã đổi mật khẩu. Các phiên đăng nhập cũ đã được thu hồi.");
   }
 

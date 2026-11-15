@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
-const publicPaths = ["/login", "/api/auth/login", "/api/health"];
+const publicPaths = ["/login", "/reset-password", "/api/auth/password-reset", "/api/auth/login", "/api/health"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -23,7 +23,11 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   if (token) {
     try {
-      await verifySessionToken(token);
+      const user = await verifySessionToken(token);
+      if (user.mustChangePassword && !["/change-password", "/api/auth/change-password", "/api/auth/logout"].includes(pathname)) {
+        if (pathname.startsWith("/api/")) return NextResponse.json({ error: "Vui lòng đổi mật khẩu tạm thời trước khi tiếp tục." }, { status: 403 });
+        return NextResponse.redirect(new URL("/change-password", request.url));
+      }
       if (pathname === "/login")
         return NextResponse.redirect(new URL("/", request.url));
       return NextResponse.next();

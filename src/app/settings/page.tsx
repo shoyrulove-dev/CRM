@@ -5,6 +5,7 @@ import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
 import { hasDatabase } from "@/lib/mongodb";
 import { getHaravanSyncStatus } from "@/lib/haravan-sync";
 import { headers } from "next/headers";
+import { EmailSettings } from "@/components/email-settings";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   if ((await getCurrentUser())?.role !== "super_admin") redirect("/");
@@ -35,6 +36,7 @@ export default async function SettingsPage() {
         </div>
       </div>
       <IntegrationSettings initial={initial} dataReady={hasDatabase()} />
+      <EmailSettings configured={Boolean(c.resendApiKey)} from={c.emailFrom || ""} testTo={c.emailTestTo || ""} />
     </>
   );
 }

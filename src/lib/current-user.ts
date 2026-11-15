@@ -38,6 +38,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
       email: account.email,
       role: account.role,
       sessionVersion: account.sessionVersion || 0,
+      mustChangePassword: Boolean(account.mustChangePassword),
       permissions,
       canManageUsers: account.role === "super_admin" || Boolean(account.canManageUsers),
     };

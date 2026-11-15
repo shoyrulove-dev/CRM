@@ -3,6 +3,7 @@ import { Montserrat } from "next/font/google";
 import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 import "./refinements.css";
+import "./modern.css";
 import { getCurrentUser } from "@/lib/current-user";
 import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
 import { getHaravanSyncStatus } from "@/lib/haravan-sync";
@@ -17,7 +18,7 @@ const font = Montserrat({
 const siteUrl = new URL(
   process.env.NEXT_PUBLIC_APP_URL ||
     process.env.APP_URL ||
-    "https://nichiei-crm.vercel.app",
+    "https://crm.nichieiasia.com",
 );
 
 export const metadata: Metadata = {

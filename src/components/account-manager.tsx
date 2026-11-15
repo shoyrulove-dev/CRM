@@ -32,6 +32,8 @@ export function AccountManager({
   currentRole: UserRole;
 }) {
   const [filter, setFilter] = useState<Filter>("all"),
+    [credential, setCredential] = useState<{ email: string; password: string } | null>(null),
+    [saving, setSaving] = useState(false),
     [mode, setMode] = useState<"create" | "edit" | "password" | null>(null),
     [selected, setSelected] = useState<Row | null>(null),
     [error, setError] = useState(""),
@@ -42,12 +44,15 @@ export function AccountManager({
           ? users.filter((x) => !x.archivedAt)
           : filter === "archived"
             ? users.filter((x) => x.archivedAt)
-            : users.filter((x) => x.role === filter && !x.archivedAt),
+            : users.filter((x) => (x.role === filter || (filter === "admin" && x.role === "super_admin")) && !x.archivedAt),
       [filter, users],
     );
   async function create(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    if (saving) return;
+    setSaving(true);
+    try {
     const res = await fetch("/api/users", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -58,8 +63,11 @@ export function AccountManager({
       }),
       json = await res.json();
     if (!res.ok) return setError(json.error || "Không thể tạo tài khoản");
+    setCredential({ email: json.data.email, password: json.temporaryPassword });
     close();
     router.refresh();
+    } catch { setError("Mất kết nối. Vui lòng thử lại."); }
+    finally { setSaving(false); }
   }
   async function patch(id: string, body: object) {
     const res = await fetch(`/api/users/${id}`, {
@@ -139,7 +147,7 @@ export function AccountManager({
                   ? users.filter((x) => !x.archivedAt).length
                   : key === "archived"
                     ? users.filter((x) => x.archivedAt).length
-                    : users.filter((x) => x.role === key && !x.archivedAt)
+                    : users.filter((x) => (x.role === key || (key === "admin" && x.role === "super_admin")) && !x.archivedAt)
                         .length}
               </b>
             </button>
@@ -182,6 +190,7 @@ export function AccountManager({
             <div className="row-buttons">
               <button
                 className="icon-action"
+                disabled={u.role === "super_admin" || (currentRole !== "super_admin" && u.role === "admin")}
                 title="Sửa tài khoản"
                 aria-label={`Sửa tài khoản ${u.name}`}
                 onClick={() => {
@@ -194,6 +203,7 @@ export function AccountManager({
               {!u.archivedAt && (
                 <button
                   className="danger-action icon-action"
+                  disabled={u.role === "super_admin" || (currentRole !== "super_admin" && u.role === "admin")}
                   title="Lưu trữ tài khoản"
                   aria-label={`Lưu trữ tài khoản ${u.name}`}
                   onClick={() => archive(u)}
@@ -204,6 +214,7 @@ export function AccountManager({
               <button
                 className="icon-action"
                 title="Đặt lại mật khẩu"
+                disabled={u.role === "super_admin" || (currentRole !== "super_admin" && u.role === "admin")}
                 aria-label={`Đặt lại mật khẩu ${u.name}`}
                 onClick={() => { setSelected(u); setMode("password"); }}
               >
@@ -212,6 +223,7 @@ export function AccountManager({
               <button
                 className={`${u.active ? "danger-action" : "success-action"} icon-action`}
                 title={u.active ? "Khóa tài khoản" : "Mở tài khoản"}
+                disabled={u.role === "super_admin" || (currentRole !== "super_admin" && u.role === "admin")}
                 aria-label={`${u.active ? "Khóa" : "Mở"} tài khoản ${u.name}`}
                 onClick={() => patch(u.id, { active: !u.active })}
               >
@@ -241,7 +253,7 @@ export function AccountManager({
               >
                 Hủy
               </button>
-              <button className="primary-button">Tạo tài khoản</button>
+              <button className="primary-button" disabled={saving}>{saving ? "Đang tạo..." : "Tạo tài khoản"}</button>
             </footer>
           </form>
         </Modal>
@@ -300,7 +312,7 @@ export function AccountManager({
       {mode === "password" && selected && (
         <Modal
           title="Đặt lại mật khẩu"
-          description={`Tạo mật khẩu mới cho ${selected.name}. Các phiên đăng nhập cũ sẽ được thu hồi.`}
+          description={`Tạo mật khẩu tạm cho ${selected.name}. Người dùng phải đổi khi đăng nhập lại. Các phiên cũ sẽ được thu hồi.`}
           onClose={close}
         >
           <form className="entity-form" onSubmit={reset}>
@@ -316,6 +328,7 @@ export function AccountManager({
           </form>
         </Modal>
       )}
+      {credential && <Modal title="Tài khoản đã sẵn sàng" description="Mật khẩu chỉ hiển thị ở đây một lần. Hãy bàn giao riêng cho nhân viên." onClose={() => setCredential(null)}><div className="entity-form credential-card"><dl><dt>Email</dt><dd>{credential.email}</dd><dt>Mật khẩu tạm thời</dt><dd><code>{credential.password}</code></dd></dl><p>Nhân viên sẽ được yêu cầu đổi mật khẩu trong lần đăng nhập đầu tiên.</p><button className="primary-button" onClick={() => setCredential(null)}>Đã lưu thông tin</button></div></Modal>}
     </>
   );
 }
@@ -347,7 +360,7 @@ function AccountFields({ currentRole }: { currentRole: UserRole }) {
       </label>
       <label className="full">
         Mật khẩu tạm thời
-        <input name="password" type="password" minLength={8} required />
+        <input name="password" type="password" minLength={8} maxLength={128} autoComplete="new-password" placeholder="Để trống để hệ thống tự tạo" />
       </label>
       {currentRole === "super_admin" && (
         <label className="full"><input name="canManageUsers" type="checkbox" /> Cho phép admin tạo và quản lý tài khoản bán hàng/CSKH</label>

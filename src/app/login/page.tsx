@@ -4,6 +4,7 @@ import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { NichieiBrand } from "@/components/nichiei-brand";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
     }
     const nextPath =
       new URLSearchParams(window.location.search).get("next") || "/";
-    router.replace(nextPath);
+    router.replace(result.user?.mustChangePassword ? "/change-password" : nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/");
     router.refresh();
   }
 
@@ -99,6 +100,7 @@ export default function LoginPage() {
               </button>
             </div>
           </label>
+          <Link className="forgot-link" href="/reset-password">Quên mật khẩu?</Link>
           {error && <p className="login-error">{error}</p>}
           <button className="login-submit" disabled={loading}>
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}

@@ -43,7 +43,7 @@ export default async function Dashboard() {
       activities: canViewCare ? sourceData.activities : [],
       tickets: hasPermission(user, "tickets") ? sourceData.tickets : [],
     },
-    today = new Date().toISOString().slice(0, 10),
+    today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date()),
     month = today.slice(0, 7);
   const activities = data.activities.filter((x) =>
       x.occurredAt.startsWith(month),
@@ -142,15 +142,15 @@ export default async function Dashboard() {
         <div>
           <p>
             {user ? roleLabel(user.role) : "Nichiei CRM"} ·{" "}
-            {new Intl.DateTimeFormat("vi-VN", { dateStyle: "full" }).format(
+            {new Intl.DateTimeFormat("vi-VN", { dateStyle: "full", timeZone: "Asia/Bangkok" }).format(
               new Date(),
             )}
           </p>
-          <h1>Chào {user?.name || "bạn"}, hôm nay cần ưu tiên gì?</h1>
+          <h1>Tổng quan công việc</h1>
           <span>
             {overdue.length
               ? `Có ${overdue.length} công việc quá hạn cần xử lý trước.`
-              : "Mọi công việc đang đúng tiến độ."}
+              : `Chào ${user?.name || "bạn"}, mọi công việc đang đúng tiến độ.`}
           </span>
         </div>
         <div className="welcome-actions">
@@ -188,7 +188,7 @@ export default async function Dashboard() {
         <section className="panel dashboard-priority">
           <div className="panel-head">
             <div>
-              <h2>Hàng đợi công việc</h2>
+              <h2>Ưu tiên xử lý</h2>
               <p>Sắp xếp theo việc quá hạn và gần đến giờ</p>
             </div>
             {canViewCare && (
@@ -257,7 +257,7 @@ export default async function Dashboard() {
             <div className="panel-head">
               <div>
                 <h2>Hiệu quả tháng này</h2>
-                <p>Số liệu theo tài khoản đang đăng nhập</p>
+                <p>{user && ["admin", "super_admin"].includes(user.role) ? "Trong phạm vi bạn được quản lý" : "Kết quả chăm sóc của bạn"}</p>
               </div>
             </div>
             <div className="progress-metric">

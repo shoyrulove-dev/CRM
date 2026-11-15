@@ -110,6 +110,7 @@ export async function authenticateUser(email: string, password: string) {
     email: user.email,
     role: user.role,
     sessionVersion: user.sessionVersion || 0,
+    mustChangePassword: Boolean(user.mustChangePassword),
     canManageUsers: user.role === "super_admin" || Boolean(user.canManageUsers),
   };
 }
@@ -127,7 +128,7 @@ export async function listUsers() {
   await ensureDefaultUsers();
   return (await getDatabase())
     .collection<UserAccount>(collections.users)
-    .find({}, { projection: { passwordHash: 0, _id: 0 } })
+    .find({}, { projection: { passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0, _id: 0 } })
     .sort({ name: 1 })
     .toArray();
 }

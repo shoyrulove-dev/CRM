@@ -12,7 +12,7 @@
 }
 .notification-list em {
   display: inline-block;
-  font-size: 7px;
+  font-size: 8.4px;
   font-style: normal;
   color: var(--blue);
   background: #eaf2ff;
@@ -24,7 +24,7 @@
   color: #3975a8;
 }
 .dashboard-welcome h1 {
-  font-size: 20px;
+  font-size: 24px;
 }
 .dashboard-welcome span {
   color: var(--muted);
@@ -37,7 +37,7 @@
   box-shadow: 0 3px 14px #16395309;
 }
 .stat-main > strong {
-  font-size: 22px;
+  font-size: 26.4px;
 }
 .saas-dashboard-grid {
   grid-template-columns: minmax(0, 1.75fr) minmax(290px, 0.65fr);
@@ -65,7 +65,7 @@
   background: transparent;
   border-radius: 7px;
   padding: 8px 12px;
-  font-size: 10px;
+  font-size: 12px;
   color: #617181;
 }
 .account-tabs button.active {
@@ -78,7 +78,7 @@
   background: #dce5ee;
   border-radius: 10px;
   padding: 2px 6px;
-  font-size: 8px;
+  font-size: 9.6px;
 }
 .account-table {
   overflow: hidden;
@@ -97,7 +97,7 @@
   border-top: 0;
   background: #f7f9fb;
   color: #8290a0;
-  font-size: 8px;
+  font-size: 9.6px;
   font-weight: 700;
 }
 .account-person {
@@ -114,14 +114,14 @@
   display: grid;
   place-items: center;
   font-style: normal;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
 }
 .account-person b {
-  font-size: 10px;
+  font-size: 12px;
 }
 .account-row > span {
-  font-size: 9px;
+  font-size: 10.8px;
 }
 .role-badge {
   justify-self: start;
@@ -142,7 +142,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 8px;
+  font-size: 9.6px;
   color: #405467;
 }
 .row-buttons svg {
@@ -172,7 +172,7 @@
   border-radius: 6px;
   background: #10233e;
   color: #fff;
-  font-size: 11px;
+  font-size: 13.2px;
   font-weight: 600;
   line-height: 1.25;
   white-space: nowrap;
@@ -198,7 +198,7 @@
   padding: 14px 18px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14.4px;
 }
 .login-pagination div { display: flex; gap: 6px; }
 .login-pagination a {
@@ -221,7 +221,7 @@
   border-top: 1px solid var(--line);
   color: var(--muted);
   text-align: center;
-  font-size: 13px;
+  font-size: 15.6px;
 }
 @media (max-width: 720px) {
   .login-pagination { align-items: flex-start; flex-direction: column; }
@@ -243,7 +243,7 @@
   background: transparent;
   padding: 11px 15px;
   font-weight: 600;
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   border-bottom: 2px solid transparent;
 }
@@ -284,16 +284,16 @@
   place-items: center;
 }
 .status-card h3 {
-  font-size: 12px;
+  font-size: 14.4px;
   margin: 0;
 }
 .status-card p {
-  font-size: 8px;
+  font-size: 9.6px;
   color: var(--muted);
   min-height: 25px;
 }
 .status-card b {
-  font-size: 8px;
+  font-size: 9.6px;
   padding: 4px 7px;
   border-radius: 10px;
 }
@@ -323,11 +323,11 @@
   color: var(--blue);
 }
 .config-copy h2 {
-  font-size: 14px;
+  font-size: 16.8px;
   margin: 0;
 }
 .config-copy p {
-  font-size: 9px;
+  font-size: 10.8px;
   color: var(--muted);
   margin: 5px 0;
 }
@@ -338,7 +338,7 @@
   padding: 20px;
 }
 .config-form label {
-  font-size: 9px;
+  font-size: 10.8px;
   font-weight: 600;
 }
 .config-form label.full,
@@ -435,12 +435,12 @@
   place-items: center;
 }
 .help-card small {
-  font-size: 7px;
+  font-size: 8.4px;
   color: #3975a8;
   font-weight: 700;
 }
 .help-card h2 {
-  font-size: 12px;
+  font-size: 14.4px;
   margin: 3px 0;
 }
 .help-card ol {
@@ -454,7 +454,7 @@
   position: relative;
   padding: 9px 0 9px 30px;
   border-top: 1px solid var(--line);
-  font-size: 9px;
+  font-size: 10.8px;
   line-height: 1.55;
 }
 .help-card li:before {
@@ -469,12 +469,12 @@
   color: #2867aa;
   display: grid;
   place-items: center;
-  font-size: 8px;
+  font-size: 9.6px;
 }
 .help-support {
   margin-top: 13px;
   padding: 15px 18px;
-  font-size: 9px;
+  font-size: 10.8px;
   color: #536474;
 }
 @media (max-width: 1000px) {
@@ -552,15 +552,15 @@
   display: block;
 }
 .notification-menu header b {
-  font-size: 11px;
+  font-size: 13.2px;
 }
 .notification-menu header span {
-  font-size: 8px;
+  font-size: 9.6px;
   color: var(--muted);
   margin-top: 3px;
 }
 .notification-menu header a {
-  font-size: 8px;
+  font-size: 9.6px;
   color: var(--blue);
 }
 .notification-list > a {
@@ -595,10 +595,10 @@
   display: block;
 }
 .notification-list span b {
-  font-size: 9px;
+  font-size: 10.8px;
 }
 .notification-list span small {
-  font-size: 8px;
+  font-size: 9.6px;
   color: var(--muted);
   margin-top: 3px;
 }
@@ -606,7 +606,7 @@
   text-align: center;
   padding: 25px;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10.8px;
 }
 .group-section {
   margin-top: 24px;
@@ -618,11 +618,11 @@
   margin-bottom: 11px;
 }
 .section-title h2 {
-  font-size: 14px;
+  font-size: 16.8px;
   margin: 0;
 }
 .section-title p {
-  font-size: 9px;
+  font-size: 10.8px;
   color: var(--muted);
   margin: 4px 0;
 }
@@ -652,10 +652,10 @@
   display: block;
 }
 .group-list b {
-  font-size: 10px;
+  font-size: 12px;
 }
 .group-list small {
-  font-size: 7px;
+  font-size: 8.4px;
   color: var(--muted);
   margin-top: 4px;
 }
@@ -711,7 +711,7 @@
   padding: 10px 15px;
   border-radius: 7px;
   color: #617284;
-  font-size: 11px;
+  font-size: 13.2px;
   font-weight: 600;
   white-space: nowrap;
   text-decoration: none;
@@ -722,7 +722,7 @@
   box-shadow: 0 2px 8px #17344d12;
 }
 .customer-tabs b {
-  font-size: 8px;
+  font-size: 9.6px;
   background: #dce6f1;
   border-radius: 10px;
   padding: 2px 6px;
@@ -754,7 +754,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: 10.8px;
   font-weight: 600;
 }
 .order-action:hover {
@@ -769,13 +769,13 @@
   border-top: 1px solid var(--line);
 }
 .profile-reminders h3 {
-  font-size: 11px;
+  font-size: 13.2px;
   margin: 6px 0 4px;
 }
 .profile-reminders p {
   margin: 0;
   color: var(--muted);
-  font-size: 9px;
+  font-size: 10.8px;
 }
 .care-actions {
   display: flex;
@@ -795,7 +795,7 @@
   color: #536b80;
 }
 .icon-action small {
-  font-size: 7px;
+  font-size: 8.4px;
 }
 .icon-action.danger {
   color: var(--red);
@@ -807,7 +807,7 @@
   margin: 15px 0;
 }
 .postpone-row span {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
 }
 .postpone-row button {
@@ -815,7 +815,7 @@
   background: #f7f9fb;
   border-radius: 6px;
   padding: 6px 9px;
-  font-size: 9px;
+  font-size: 10.8px;
 }
 .form-note.full {
   grid-column: 1/-1;
@@ -883,14 +883,14 @@
 }
 .nichiei-wordmark strong {
   color: #fff;
-  font-size: 13px;
+  font-size: 15.6px;
   font-weight: 800;
   letter-spacing: .09em;
   white-space: nowrap;
 }
 .nichiei-wordmark small {
   color: #e4c579;
-  font-size: 6px;
+  font-size: 7.2px;
   font-weight: 600;
   letter-spacing: .04em;
   line-height: 1.4;
@@ -933,7 +933,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 11px;
+  font-size: 13.2px;
   text-align: left;
 }
 .user-menu button:hover { background: var(--gold-soft); }
@@ -942,7 +942,7 @@
   border-radius: 7px;
   background: #e5f7ef;
   color: #17663b;
-  font-size: 10px;
+  font-size: 12px;
 }
 .topbar {
   background: #fff;
@@ -1005,8 +1005,8 @@
 }
 .brand-lockup { margin-bottom: 92px; }
 .brand-lockup .nichiei-logo { width: 62px; height: 56px; flex-basis: 62px; }
-.brand-lockup .nichiei-wordmark strong { color: #252a2b; font-size: 17px; }
-.brand-lockup .nichiei-wordmark small { color: #6f500d; font-size: 7px; }
+.brand-lockup .nichiei-wordmark strong { color: #252a2b; font-size: 20.4px; }
+.brand-lockup .nichiei-wordmark small { color: #6f500d; font-size: 8.4px; }
 .login-brand > div > p { color: #403713; }
 .login-quote { border-left-color: #87620f; }
 .login-quote i { color: #87620f; }

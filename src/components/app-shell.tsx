@@ -56,9 +56,11 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  if (pathname === "/login") return <>{children}</>;
+  const [collapsed, setCollapsed] = useState(false);
+  if (["/login", "/reset-password", "/change-password"].includes(pathname)) return <>{children}</>;
+  const pageLabel = [...nav, { href: "/accounts", label: "Tài khoản" }, { href: "/settings", label: "Cài đặt" }, { href: "/help", label: "Trợ giúp" }].find((item) => item.href === "/" ? pathname === "/" : pathname.startsWith(item.href))?.label || "CRM";
   return (
-    <div className="app-frame">
+    <div className={`app-frame ${collapsed ? "nav-collapsed" : ""}`}>
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
         <div className="brand">
           <NichieiBrand compact />
@@ -71,7 +73,7 @@ export function AppShell({
           </button>
         </div>
         <nav className="nav-list">
-          <p className="nav-label">QUẢN LÝ</p>
+          <p className="nav-label">KHÔNG GIAN LÀM VIỆC</p>
           {nav
             .filter((item) => {
               const permission =
@@ -89,6 +91,9 @@ export function AppShell({
                   key={item.href}
                   href={item.href}
                   className={active ? "nav-item active" : "nav-item"}
+                  title={item.label}
+                  aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => setOpen(false)}
                 >
                   <Icon size={19} />
@@ -96,10 +101,11 @@ export function AppShell({
                 </Link>
               );
             })}
-          <p className="nav-label nav-section">HỆ THỐNG</p>
+          <p className="nav-label nav-section">QUẢN TRỊ & HỖ TRỢ</p>
           {(user?.role === "super_admin" || (user?.role === "admin" && user.canManageUsers)) && (
             <Link
               href="/accounts"
+              title="Tài khoản" aria-label="Tài khoản"
               className={
                 pathname.startsWith("/accounts")
                   ? "nav-item active"
@@ -111,12 +117,12 @@ export function AppShell({
             </Link>
           )}
           {user?.role === "super_admin" && (
-            <Link href="/settings" className="nav-item">
+            <Link href="/settings" title="Cài đặt" aria-label="Cài đặt" className={`nav-item ${pathname.startsWith("/settings") ? "active" : ""}`}>
               <Settings size={19} />
               <span>Cài đặt</span>
             </Link>
           )}
-          <Link href="/help" className="nav-item">
+          <Link href="/help" title="Trợ giúp" aria-label="Trợ giúp" className={`nav-item ${pathname.startsWith("/help") ? "active" : ""}`}>
             <CircleHelp size={19} />
             <span>Trợ giúp</span>
           </Link>
@@ -156,6 +162,7 @@ export function AppShell({
       )}
       <main className="main-area">
         <header className="topbar">
+          <button className="icon-button collapse-button" onClick={() => setCollapsed(!collapsed)} aria-label={collapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"} aria-expanded={!collapsed}><Menu size={20} /></button>
           <button
             className="icon-button menu-button"
             onClick={() => setOpen(true)}
@@ -163,12 +170,13 @@ export function AppShell({
           >
             <Menu size={22} />
           </button>
+          <div className="workspace-crumb"><span>Nichiei CRM</span><i>/</i><strong>{pageLabel}</strong></div>
           <form className="global-search" action="/customers" method="get">
             <Search size={18} />
             <input
               name="q"
               aria-label="Tìm kiếm"
-              placeholder="Tìm khách hàng, số điện thoại, mã khách..."
+              placeholder="Tìm khách hàng, số điện thoại..."
             />
           </form>
           <div className="top-actions">

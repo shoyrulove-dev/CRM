@@ -116,7 +116,7 @@ test("người dùng có thể mở biểu mẫu đổi mật khẩu cá nhân",
 
 test("quản trị có biểu mẫu đặt lại mật khẩu cho tài khoản", async ({ page }) => {
   await page.goto("/accounts");
-  await page.getByLabel(/Đặt lại mật khẩu/).first().click();
+  await page.locator('button[title="Đặt lại mật khẩu"]:enabled').first().click();
   await expect(page.getByRole("heading", { name: "Đặt lại mật khẩu" })).toBeVisible();
   await expect(page.getByLabel("Mật khẩu mới", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Nhập lại mật khẩu mới")).toBeVisible();
