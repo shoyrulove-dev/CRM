@@ -468,10 +468,14 @@ export async function getDashboardData(user?: SessionUser | null) {
     return {
       ...report,
       doneCount: report.tasks.filter((item) => item.status === "done").length,
+      openCount: report.tasks.filter((item) => item.status !== "done").length,
+      overdueCount: report.tasks.filter((item) => item.status === "overdue").length,
+      todayCount: report.tasks.filter((item) => item.status !== "done" && (item.dueAt.startsWith(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date())) || item.dueAt.startsWith("Hôm nay"))).length,
     };
   }
   const db = await getDatabase();
-  const month = new Date().toISOString().slice(0, 7);
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+  const month = today.slice(0, 7);
   const ownerFilter = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   const activityFilter =
     user && !["admin", "super_admin"].includes(user.role)
@@ -481,7 +485,7 @@ export async function getDashboardData(user?: SessionUser | null) {
     user && !["admin", "super_admin"].includes(user.role)
       ? { orderDate: { $regex: `^${month}` }, $or: [{ owner: user.name }, { salesperson: user.name }] }
       : { orderDate: { $regex: `^${month}` } };
-  const [customerData, taskData, doneCount, activityData, orderData] =
+  const [customerData, taskData, doneCount, activityData, orderData, openCount, overdueCount, todayCount] =
     await Promise.all([
       db.collection(collections.customers).find(ownerFilter, {
         projection: { _id: 0, id: 1, status: 1, owner: 1 },
@@ -500,7 +504,7 @@ export async function getDashboardData(user?: SessionUser | null) {
             status: 1,
           },
         },
-      ).sort({ dueAt: 1 }).limit(100).toArray(),
+      ).sort({ dueAt: 1 }).limit(7).toArray(),
       db.collection(collections.careTasks).countDocuments({ ...ownerFilter, status: "done" }),
       db.collection(collections.careActivities).find(activityFilter, {
         projection: { _id: 0, occurredAt: 1, contactStatus: 1, result: 1, adverseReaction: 1 },
@@ -508,6 +512,9 @@ export async function getDashboardData(user?: SessionUser | null) {
       db.collection(collections.orders).find(orderFilter, {
         projection: { _id: 0, orderDate: 1, status: 1, total: 1, purchaseType: 1 },
       }).toArray(),
+      db.collection(collections.careTasks).countDocuments({ ...ownerFilter, status: { $ne: "done" } }),
+      db.collection(collections.careTasks).countDocuments({ ...ownerFilter, status: "overdue" }),
+      db.collection(collections.careTasks).countDocuments({ ...ownerFilter, status: { $ne: "done" }, dueAt: { $gte: new Date(`${today}T00:00:00+07:00`).toISOString(), $lte: new Date(`${today}T23:59:59+07:00`).toISOString() } }),
     ]);
   return {
     customers: customerData as unknown as Customer[],
@@ -516,6 +523,7 @@ export async function getDashboardData(user?: SessionUser | null) {
     orders: orderData as unknown as SalesOrder[],
     tickets: [] as ServiceTicket[],
     doneCount,
+    openCount, overdueCount, todayCount,
   };
 }
 

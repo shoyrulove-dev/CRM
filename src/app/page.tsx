@@ -49,11 +49,10 @@ export default async function Dashboard() {
       x.occurredAt.startsWith(month),
     ),
     orders = data.orders.filter((x) => x.orderDate.startsWith(month)),
-    openTasks = data.tasks.filter((x) => x.status !== "done"),
-    overdue = openTasks.filter((x) => x.status === "overdue"),
-    todayTasks = openTasks.filter(
-      (x) => x.dueAt.startsWith(today) || x.dueAt.startsWith("Hôm nay"),
-    );
+    openTasks = data.tasks.filter((x) => x.status !== "done");
+  const overdueCount = canViewCare ? sourceData.overdueCount : 0,
+    todayCount = canViewCare ? sourceData.todayCount : 0,
+    openCount = canViewCare ? sourceData.openCount : 0;
   const contacted = activities.filter(
       (x) => x.contactStatus === "Liên lạc được",
     ).length,
@@ -68,7 +67,7 @@ export default async function Dashboard() {
       .reduce((s, x) => s + x.total, 0);
   const contactRate = activities.length ? contacted / activities.length : 0,
     closeRate = activities.length ? closed / activities.length : 0,
-    done = sourceData.doneCount;
+    done = canViewCare ? sourceData.doneCount : 0;
   const stats =
     user?.role === "sales"
       ? [
@@ -97,8 +96,8 @@ export default async function Dashboard() {
           },
           {
             label: "Việc cần xử lý",
-            value: String(openTasks.length),
-            note: `${overdue.length} việc quá hạn`,
+            value: String(openCount),
+            note: `${overdueCount} việc quá hạn`,
             icon: CalendarCheck2,
             tone: "orange",
           },
@@ -116,8 +115,8 @@ export default async function Dashboard() {
           },
           {
             label: "Cần làm hôm nay",
-            value: String(todayTasks.length),
-            note: `${overdue.length} việc quá hạn`,
+            value: String(todayCount),
+            note: `${overdueCount} việc quá hạn`,
             icon: CalendarCheck2,
             tone: "orange",
           },
@@ -148,8 +147,8 @@ export default async function Dashboard() {
           </p>
           <h1>Tổng quan công việc</h1>
           <span>
-            {overdue.length
-              ? `Có ${overdue.length} công việc quá hạn cần xử lý trước.`
+            {overdueCount
+              ? `Có ${overdueCount} công việc quá hạn cần xử lý trước.`
               : `Chào ${user?.name || "bạn"}, mọi công việc đang đúng tiến độ.`}
           </span>
         </div>
@@ -199,10 +198,10 @@ export default async function Dashboard() {
           </div>
           <div className="task-summary">
             <span>
-              <b className="red">{overdue.length}</b> Quá hạn
+              <b className="red">{overdueCount}</b> Quá hạn
             </span>
             <span>
-              <b>{todayTasks.length}</b> Hôm nay
+              <b>{todayCount}</b> Hôm nay
             </span>
             <span>
               <b className="green-text">{done}</b> Hoàn thành
@@ -296,7 +295,7 @@ export default async function Dashboard() {
             {canViewCare && <Link href="/care">
               <TriangleAlert className="danger-text" />
               <span>
-                <b>{overdue.length} việc quá hạn</b>
+                <b>{overdueCount} việc quá hạn</b>
                 <small>Ưu tiên xử lý trước</small>
               </span>
               <ArrowRight />

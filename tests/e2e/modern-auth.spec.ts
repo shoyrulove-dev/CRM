@@ -34,6 +34,17 @@ test("forgot password page and invalid token are safe", async ({ page }) => {
   expect((await page.request.post("/api/email-settings", { data: { action: "save" } })).status()).toBe(401);
 });
 
+test("dashboard totals are not capped by preview rows", async ({ page }) => {
+  await page.request.post("/api/auth/login", { data: { email: "admin@nichiei.vn", password: "Nichiei@2026" } });
+  await page.goto("/care");
+  const overdue = await page.locator(".calendar-summary article").nth(0).locator("strong").innerText();
+  const today = await page.locator(".calendar-summary article").nth(1).locator("strong").innerText();
+  await page.goto("/");
+  await expect(page.locator(".task-summary .red")).toHaveText(overdue.trim());
+  await expect(page.locator(".stat-card").nth(1).locator(".stat-main > strong")).toHaveText(today.trim());
+  expect(await page.locator(".dashboard-priority tbody tr").count()).toBeLessThanOrEqual(7);
+});
+
 test("new accounts get a temporary password and must change it", async ({ playwright, baseURL }) => {
   const admin = await playwright.request.newContext({ baseURL });
   const employee = await playwright.request.newContext({ baseURL });

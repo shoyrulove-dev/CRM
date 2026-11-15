@@ -4,10 +4,9 @@ const assert = (condition, code) => { if (!condition) throw new Error(code); };
 async function main() {
   const { MongoClient } = await import('mongodb');
   const { createHash, createDecipheriv, randomBytes } = await import('node:crypto');
-  const { hash } = await import('bcryptjs');
   const client = new MongoClient(process.env.MONGODB_URI); await client.connect();
   const db = client.db(process.env.MONGODB_DB || 'nichiei_crm');
-  const id = `reset-smoke-${Date.now()}`;
+  let id = '';
   try {
     const row = await db.collection('settings').findOne({ id: 'integrations' });
     const [iv, tag, data] = row.payload.split('.');
@@ -18,10 +17,18 @@ async function main() {
     assert(config.resendApiKey && email, 'EMAIL_CONFIG_MISSING');
     assert(!await db.collection('users').findOne({ email }), 'TEST_RECIPIENT_ALREADY_HAS_ACCOUNT');
     const password = randomBytes(24).toString('base64url');
-    await db.collection('users').insertOne({ id, name: 'Email reset smoke', email, role: 'sales', active: true, passwordHash: await hash(password, 10), sessionVersion: 0, createdAt: new Date().toISOString() });
+    const adminLogin = await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: process.env.RESET_TEST_ADMIN_EMAIL || 'admin@nichiei.vn', password: process.env.RESET_TEST_ADMIN_PASSWORD || 'Nichiei@2026' }) });
+    assert(adminLogin.ok, 'ADMIN_LOGIN_FAILED');
+    const adminCookie = adminLogin.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
+    const created = await fetch(base + '/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: adminCookie }, body: JSON.stringify({ name: 'Email reset smoke', email, role: 'sales', password }) });
+    assert(created.ok, 'TEST_ACCOUNT_CREATE_FAILED');
+    id = (await created.json()).data.id;
     const login = await fetch(base + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     assert(login.ok, 'TEST_LOGIN_FAILED');
-    const oldCookie = login.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
+    const temporaryCookie = login.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
+    const changed = await fetch(base + '/api/auth/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: temporaryCookie }, body: JSON.stringify({ currentPassword: password, newPassword: password + 'A' }) });
+    assert(changed.ok, 'INITIAL_CHANGE_FAILED');
+    const oldCookie = changed.headers.getSetCookie().map((value) => value.split(';')[0]).join('; ');
     const sent = await fetch(base + '/api/auth/password-reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
     assert(sent.ok, 'RESET_REQUEST_FAILED');
     const account = await db.collection('users').findOne({ id });
@@ -60,8 +67,10 @@ async function main() {
     const state = await delivery.json();
     console.log(JSON.stringify({ resetEmailAccepted: true, tokenSingleUse: true, expiredTokenRejected: true, oldSessionRevoked: true, newLoginWorks: true, delivery: state.last_event || 'accepted' }));
   } finally {
-    await db.collection('users').deleteOne({ id });
-    await db.collection('login_events').deleteMany({ userId: id });
+    if (id) {
+      await db.collection('users').deleteOne({ id });
+      await db.collection('login_events').deleteMany({ userId: id });
+    }
     await client.close();
   }
 }

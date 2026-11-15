@@ -7,10 +7,14 @@ import { NichieiBrand } from "@/components/nichiei-brand";
 export default function ResetPasswordPage() {
   const [token, setToken] = useState(""), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [done, setDone] = useState(false), [error, setError] = useState("");
   useEffect(() => {
-    const value = window.location.hash.slice(1);
-    // Capture the browser-only fragment after hydration; never serialize it in HTML.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (value) { setToken(value); window.history.replaceState(null, "", window.location.pathname); }
+    const capture = () => {
+      const value = window.location.hash.slice(1);
+      if (value) { setToken(value); setDone(false); setMessage(""); setError(""); window.history.replaceState(null, "", window.location.pathname); }
+    };
+    // Capture browser-only state after hydration and when another email link opens.
+    capture();
+    window.addEventListener("hashchange", capture);
+    return () => window.removeEventListener("hashchange", capture);
   }, []);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const values = Object.fromEntries(new FormData(event.currentTarget));
