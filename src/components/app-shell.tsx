@@ -105,6 +105,7 @@ export function AppShell({
           {(user?.role === "super_admin" || (user?.role === "admin" && user.canManageUsers)) && (
             <Link
               href="/accounts"
+              onClick={() => setOpen(false)}
               title="Tài khoản" aria-label="Tài khoản"
               className={
                 pathname.startsWith("/accounts")
@@ -117,12 +118,12 @@ export function AppShell({
             </Link>
           )}
           {user?.role === "super_admin" && (
-            <Link href="/settings" title="Cài đặt" aria-label="Cài đặt" className={`nav-item ${pathname.startsWith("/settings") ? "active" : ""}`}>
+            <Link href="/settings" onClick={() => setOpen(false)} title="Cài đặt" aria-label="Cài đặt" className={`nav-item ${pathname.startsWith("/settings") ? "active" : ""}`}>
               <Settings size={19} />
               <span>Cài đặt</span>
             </Link>
           )}
-          <Link href="/help" title="Trợ giúp" aria-label="Trợ giúp" className={`nav-item ${pathname.startsWith("/help") ? "active" : ""}`}>
+          <Link href="/help" onClick={() => setOpen(false)} title="Trợ giúp" aria-label="Trợ giúp" className={`nav-item ${pathname.startsWith("/help") ? "active" : ""}`}>
             <CircleHelp size={19} />
             <span>Trợ giúp</span>
           </Link>
