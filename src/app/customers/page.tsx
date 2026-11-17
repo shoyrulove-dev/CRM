@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { ExportCustomersButton } from "@/components/export-customers-button";
 import { MonthFilter } from "@/components/month-filter";
-import { monthStart, monthEnd } from "@/lib/month-range";
+import { monthStart, monthEnd, validDay } from "@/lib/month-range";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
 import { MonthShortcuts } from "@/components/month-shortcuts";
 
@@ -27,6 +27,7 @@ export default async function CustomersPage({
     from?: string;
     to?: string;
     sort?: string;
+    date?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -36,8 +37,8 @@ export default async function CustomersPage({
     user && ["admin", "super_admin"].includes(user.role)
       ? (await listUsers()).filter((item) => item.active)
       : [];
-  const fromDate = monthStart(params.from);
-  const toDate = monthEnd(params.to);
+  const fromDate = validDay(params.date) || monthStart(params.from);
+  const toDate = validDay(params.date) || monthEnd(params.to);
   const size = 20,
     requestedPage = Math.max(1, Number(params.page) || 1),
     result = await getCustomersPage(
@@ -111,6 +112,7 @@ export default async function CustomersPage({
           </select>
           <MonthFilter name="from" value={params.from} label="Đơn gần nhất từ tháng" />
           <MonthFilter name="to" value={params.to} label="Đến tháng" />
+          <label className="month-filter">Hoặc ngày mua cụ thể<input className="ghost-select" type="date" name="date" defaultValue={params.date} aria-label="Ngày mua cụ thể" /></label>
           <select className="ghost-select" name="sort" defaultValue={params.sort || "name"} aria-label="Sắp xếp khách hàng"><option value="name">Tên A–Z</option><option value="newest">Mua gần nhất</option><option value="oldest">Lâu chưa mua</option></select>
           <select
             className="ghost-select"
@@ -132,6 +134,7 @@ export default async function CustomersPage({
                 status: params.status,
                 from: params.from,
                 to: params.to,
+                date: params.date,
               }}
             />
           )}

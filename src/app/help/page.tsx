@@ -15,6 +15,7 @@ const guides = [
       "Nhập tên, số điện thoại, ngày sinh, người phụ trách và mục tiêu sức khỏe.",
       "Chọn Xem tại một khách để mở đơn hàng, nhật ký chăm sóc và phiếu yêu cầu.",
       "Dùng bộ chọn Từ tháng / Đến tháng hoặc Tháng này / Tháng trước để lọc. Với khách hàng, khoảng tháng áp dụng cho đơn gần nhất; Sắp xếp là lựa chọn riêng.",
+      "Nếu chọn ngày cụ thể, hệ thống ưu tiên ngày đó thay cho khoảng tháng. Chọn Tháng này hoặc Tháng trước sẽ bỏ ngày cụ thể; Xóa lọc đưa danh sách về mặc định.",
       "Phân nhóm gồm Chưa xác định, Trung thành và Vãng lai. Nhãn cũ được giữ lại cho đến khi bạn chủ động chọn nhãn mới.",
     ],
   },

@@ -40,7 +40,7 @@ test("hồ sơ khách hàng có đủ bốn tab", async ({ page }) => {
 test("quản trị thấy các công cụ nâng cấp mới", async ({ page }) => {
   await page.goto("/customers");
   await expect(page.getByRole("button", { name: "Xuất Excel" })).toBeVisible();
-  await expect(page.getByLabel("Từ tháng mua")).toBeVisible();
+  await expect(page.getByLabel("Đơn gần nhất từ tháng")).toBeVisible();
   await page.goto("/care");
   await expect(
     page.getByRole("button", { name: "Tạo hàng loạt" }),

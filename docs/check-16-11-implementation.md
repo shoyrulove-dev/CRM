@@ -7,6 +7,7 @@
 - Danh mục đúng 26 sản phẩm Check 14.11, đối chiếu SKU thật bằng Products API của cửa hàng. Không nhập quà tặng/phí vào danh mục đổi sang. Hàng thu lại vẫn lấy từ đơn gốc. Không sửa lịch sử đơn/phiếu.
 - Bộ chọn tháng có nhãn, không phụ thuộc input month của Safari. Có Tháng này, Tháng trước, Xóa lọc; sắp xếp đơn gần nhất/lâu chưa mua độc lập trên khách hàng.
 - Tháng nhuận, tháng 28/30/31 ngày và mốc giờ Việt Nam được xử lý chung. Xuất Excel phiếu dùng cùng khoảng tháng và từ khóa đang lọc.
+- Có chọn ngày cụ thể ở Khách hàng / Lịch chăm sóc / Phiếu yêu cầu. Ngày cụ thể được ưu tiên hơn khoảng tháng, lọc nhanh theo tháng tự bỏ ngày cụ thể. Xuất Excel áp dụng cùng điều kiện.
 - Thống kê trạng thái khách tính trên toàn bộ kết quả lọc, không phải trang hiện tại. Các chip đếm độc lập với trạng thái đang chọn.
 - Chỗ hiển thị hạng/điểm tại danh sách và hồ sơ; thiếu dữ liệu hiển thị Chưa đồng bộ, không tự tính điểm/hạng.
 
@@ -27,4 +28,5 @@ Không xóa dữ liệu, không thay tên sản phẩm trong đơn cũ, không t
 - Build production và TypeScript.
 - E2E check1611: lựa chọn, đúng 26 SKU, mốc tháng/múi giờ, lọc nhanh, sắp xếp, số lượng trạng thái; desktop/mobile.
 - Quét ký tự lỗi trong mã nguồn.
+- Quét dữ liệu VPS ngày 17/11: không phát hiện ký tự hỏng trong 17 collection, gồm 3.693 khách, 5.953 đơn, 16.831 lịch chăm sóc và nhật ký.
 - Kết quả kiểm thử bản triển khai được báo riêng khi hoàn tất, không xem việc build thành công là bằng chứng đồng bộ Loyalty.

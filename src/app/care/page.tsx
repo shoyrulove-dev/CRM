@@ -101,12 +101,13 @@ export default async function CarePage({
       </section>
       <section className="panel list-panel">
         <form className="list-toolbar" method="get">
-          <input
+          <label className="month-filter">Hoặc ngày hẹn cụ thể<input
             className="ghost-select"
             type="date"
             name="date"
             defaultValue={params.date}
-          />
+            aria-label="Ngày hẹn cụ thể"
+          /></label>
           <MonthFilter name="from" value={params.from} label="Từ tháng" />
           <MonthFilter name="to" value={params.to} label="Đến tháng" />
           {user && ["admin", "super_admin"].includes(user.role) && (

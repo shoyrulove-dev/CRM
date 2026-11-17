@@ -9,7 +9,7 @@ import type {
   ProductOption,
 } from "./types";
 import type { SessionUser } from "./session";
-import { monthStart, monthEnd, monthBounds } from "./month-range";
+import { monthStart, monthEnd, monthBounds, dayBounds } from "./month-range";
 
 export const collections = {
   customers: "customers",
@@ -363,9 +363,10 @@ export async function getCarePageData(params: { date?: string; from?: string; to
   const requestedPage = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
   const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
   const base = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
+  const selectedDay = dayBounds(params.date);
   const filter = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
     ...(params.status ? { status: params.status } : {}), ...(params.task ? { id: params.task } : {}),
-    ...(params.date ? { dueAt: { $gte: new Date(`${params.date}T00:00:00+07:00`).toISOString(), $lte: new Date(`${params.date}T23:59:59+07:00`).toISOString() } } :
+    ...(selectedDay ? { dueAt: selectedDay } :
       monthStart(params.from) || monthEnd(params.to) ? { dueAt: monthBounds(params.from, params.to) } : {}) };
   if (!hasDatabase()) {
     const all = await listCareTasks(user);
@@ -385,18 +386,19 @@ export async function getCarePageData(params: { date?: string; from?: string; to
   return { tasks: rows as unknown as CareTask[], page, size, total, overdue, done, today: dueToday };
 }
 
-export async function getTicketsPage(params: { q?: string; status?: string; owner?: string; resolution?: string; from?: string; to?: string; page?: string }, user: SessionUser | null) {
+export async function getTicketsPage(params: { q?: string; status?: string; owner?: string; resolution?: string; from?: string; to?: string; date?: string; page?: string }, user: SessionUser | null) {
   const size = 20, requested = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
   const scope = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : params.owner ? { owner: params.owner } : {};
+  const selectedBounds = dayBounds(params.date) || monthBounds(params.from, params.to);
   if (!hasDatabase()) {
     const needle = (params.q || "").toLocaleLowerCase("vi");
-    const bounds = monthBounds(params.from, params.to);
+    const bounds = selectedBounds;
     const selected = (await listTickets(user)).filter((item) => (!params.owner || item.owner === params.owner) && (!params.status || item.status === params.status) && (!params.resolution || item.resolution === params.resolution) && (!bounds.$gte || item.createdAt >= bounds.$gte) && (!bounds.$lte || item.createdAt <= bounds.$lte) && (!needle || `${item.id} ${item.customer} ${item.title} ${customers.find((c) => c.id === item.customerId)?.phone || ""}`.toLocaleLowerCase("vi").includes(needle)));
     const page = Math.min(requested, Math.max(1, Math.ceil(selected.length / size)));
     return { items: selected.slice((page - 1) * size, page * size), total: selected.length, page, size };
   }
   const db = await getDatabase();
-  const filter: Record<string, unknown> = { ...scope, ...(params.status ? { status: params.status } : {}), ...(params.resolution ? { resolution: params.resolution } : {}), ...(monthStart(params.from) || monthEnd(params.to) ? { createdAt: monthBounds(params.from, params.to) } : {}) };
+  const filter: Record<string, unknown> = { ...scope, ...(params.status ? { status: params.status } : {}), ...(params.resolution ? { resolution: params.resolution } : {}), ...(Object.keys(selectedBounds).length ? { createdAt: selectedBounds } : {}) };
   if (params.q?.trim()) {
     const pattern = params.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const customerIds = await db.collection(collections.customers).distinct("id", { ...(user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {}), phone: { $regex: pattern, $options: "i" } });

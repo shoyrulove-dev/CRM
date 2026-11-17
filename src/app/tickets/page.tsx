@@ -23,6 +23,7 @@ export default async function TicketsPage({
     to?: string;
     resolution?: string;
     page?: string;
+    date?: string;
   }>;
 }) {
   const params = await searchParams,
@@ -76,6 +77,7 @@ export default async function TicketsPage({
           </select>
           <MonthFilter name="from" value={params.from} label="Từ tháng" />
           <MonthFilter name="to" value={params.to} label="Đến tháng" />
+          <label className="month-filter">Hoặc ngày tạo cụ thể<input className="ghost-select" type="date" name="date" defaultValue={params.date} aria-label="Ngày tạo cụ thể" /></label>
           {user && ["admin", "super_admin"].includes(user.role) && (
             <select
               className="ghost-select"

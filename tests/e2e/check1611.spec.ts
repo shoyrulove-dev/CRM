@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { monthStart, monthEnd, monthBounds } from "../../src/lib/month-range";
+import { monthStart, monthEnd, monthBounds, validDay, dayBounds } from "../../src/lib/month-range";
 import { customerSegments, healthGoals } from "../../src/lib/customer-options";
 
 test("month ranges respect leap years and Vietnam timezone", () => {
@@ -7,6 +7,8 @@ test("month ranges respect leap years and Vietnam timezone", () => {
   expect(monthEnd("2026-02")).toBe("2026-02-28");
   expect(monthEnd("2026-04")).toBe("2026-04-30");
   expect(monthStart("2026-13")).toBeUndefined();
+  expect(validDay("2026-02-29")).toBeUndefined();
+  expect(dayBounds("2026-02-28")).toEqual({ $gte: "2026-02-27T17:00:00.000Z", $lte: "2026-02-28T16:59:59.999Z" });
   expect(monthBounds("2026-02", "2026-02")).toEqual({ $gte: "2026-01-31T17:00:00.000Z", $lte: "2026-02-28T16:59:59.999Z" });
 });
 
@@ -72,5 +74,20 @@ test("sales and care only see assigned customers; invalid classifications are re
     expect(response.status()).toBe(400);
   } finally {
     await Promise.all(contexts.map(context => context.dispose()));
+  }
+});
+
+test("specific day overrides month range and quick months clear the day", async ({ page }) => {
+  const all = (await (await page.request.get("/api/customers")).json()).data;
+  const day = all.find((item: { lastOrder: string }) => validDay(item.lastOrder))?.lastOrder || "2026-11-17";
+  await page.goto(`/customers?date=${day}&from=2000-01&to=2000-01`);
+  await expect(page.getByLabel("Ngày mua cụ thể")).toHaveValue(day);
+  await expect(page.locator(".customer-summary-strip b").first()).toHaveText(String(all.filter((item: { lastOrder: string }) => item.lastOrder === day).length));
+  await page.getByRole("button", { name: "Tháng này", exact: true }).click();
+  await expect(page.getByLabel("Ngày mua cụ thể")).toHaveValue("");
+  for (const path of ["/care", "/tickets"]) {
+    const response = await page.goto(`${path}?date=2026-02-28`);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('input[name="date"]')).toHaveValue("2026-02-28");
   }
 });

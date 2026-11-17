@@ -3,7 +3,7 @@ import { listCustomers } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, vietnamDateStamp } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
-import { monthStart, monthEnd } from "@/lib/month-range";
+import { monthStart, monthEnd, validDay } from "@/lib/month-range";
 
 const columns = {
   id: "Mã khách",
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       status: 403,
     });
   const p = request.nextUrl.searchParams;
-  const from = monthStart(p.get("from") || undefined);
-  const to = monthEnd(p.get("to") || undefined);
+  const from = validDay(p.get("date") || undefined) || monthStart(p.get("from") || undefined);
+  const to = validDay(p.get("date") || undefined) || monthEnd(p.get("to") || undefined);
   const all = await listCustomers(p.get("q") || undefined, user);
   const customers = all.filter(
     (item) =>

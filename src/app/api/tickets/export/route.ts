@@ -3,14 +3,14 @@ import { listCustomers, listTickets } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
-import { monthBounds } from "@/lib/month-range";
+import { monthBounds, dayBounds } from "@/lib/month-range";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!hasPermission(user, "tickets")) return new Response("Không có quyền xuất phiếu.", { status: 403 });
   const [tickets, customers] = await Promise.all([listTickets(user), listCustomers(undefined, user)]);
   const p = request.nextUrl.searchParams, phone = new Map(customers.map((item) => [item.id, item.phone]));
-  const bounds = monthBounds(p.get("from") || undefined, p.get("to") || undefined);
+  const bounds = dayBounds(p.get("date") || undefined) || monthBounds(p.get("from") || undefined, p.get("to") || undefined);
   const needle = (p.get("q") || "").trim().toLocaleLowerCase("vi");
   const rows = tickets.filter((item) =>
     (!p.get("status") || item.status === p.get("status")) && (!p.get("owner") || item.owner === p.get("owner")) &&
