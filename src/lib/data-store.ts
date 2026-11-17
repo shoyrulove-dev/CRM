@@ -192,7 +192,7 @@ export async function getCustomersPage(
   },
   user?: SessionUser | null,
 ) {
-  const page = Math.max(1, input.page || 1),
+  const requestedPage = Number.isFinite(input.page) ? Math.max(1, Math.floor(input.page!)) : 1,
     size = Math.min(100, Math.max(1, input.size || 20));
   if (!hasDatabase()) {
     const filtered = customers.filter(
@@ -209,7 +209,9 @@ export async function getCustomersPage(
     const counts = { allCount: filtered.length, dueCount: filtered.filter(item => item.status === "due").length, overdueCount: filtered.filter(item => item.status === "overdue").length };
     const selected = filtered.filter(item => !input.status || item.status === input.status);
     selected.sort((a, b) => input.sort === "newest" ? b.lastOrder.localeCompare(a.lastOrder) : input.sort === "oldest" ? a.lastOrder.localeCompare(b.lastOrder) : a.name.localeCompare(b.name, "vi"));
+    const page = Math.min(requestedPage, Math.max(1, Math.ceil(selected.length / size)));
     return {
+      page,
       items: selected.slice((page - 1) * size, page * size),
       ...counts,
       total: selected.length,
@@ -235,14 +237,7 @@ export async function getCustomersPage(
   const db = await getDatabase();
   const { status: ignoredStatus, ...countFilter } = filter;
   void ignoredStatus;
-  const [items, totals, counts] = await Promise.all([
-    db
-      .collection(collections.customers)
-      .find(filter, { projection: { _id: 0 } })
-      .sort(input.sort === "newest" ? { lastOrder: -1, id: 1 } : input.sort === "oldest" ? { lastOrder: 1, id: 1 } : { name: 1, id: 1 })
-      .skip((page - 1) * size)
-      .limit(size)
-      .toArray(),
+  const [totals, counts] = await Promise.all([
     db
       .collection(collections.customers)
       .aggregate([
@@ -261,9 +256,18 @@ export async function getCustomersPage(
       .next(),
     db.collection(collections.customers).aggregate([{ $match: countFilter }, { $group: { _id: null, allCount: { $sum: 1 }, dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } }, overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } } } }]).next(),
   ]);
+  const total = Number(totals?.total || 0);
+  const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / size)));
+  const items = await db.collection(collections.customers)
+    .find(filter, { projection: { _id: 0 } })
+    .sort(input.sort === "newest" ? { lastOrder: -1, id: 1 } : input.sort === "oldest" ? { lastOrder: 1, id: 1 } : { name: 1, id: 1 })
+    .skip((page - 1) * size)
+    .limit(size)
+    .toArray();
   return {
+    page,
     items: items as unknown as Customer[],
-    total: Number(totals?.total || 0),
+    total,
     totalRevenue: Number(totals?.totalRevenue || 0),
     totalOrders: Number(totals?.totalOrders || 0),
     allCount: Number(counts?.allCount || 0),

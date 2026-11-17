@@ -11,27 +11,34 @@ export function CreateCustomerButton() {
     router = useRouter();
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setError("");
-    const res = await fetch("/api/customers", {
+    try {
+      const res = await fetch("/api/customers", {
         method: "POST",
         headers: { "content-type": "application/json" },
+        signal: AbortSignal.timeout(20_000),
         body: JSON.stringify(
           Object.fromEntries(new FormData(e.currentTarget).entries()),
         ),
       }),
-      json = await res.json();
-    if (!res.ok) {
-      setError(json.error || "Không thể tạo khách hàng");
+        json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Không thể tạo khách hàng");
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError("Chưa nhận được xác nhận lưu. Nội dung vẫn được giữ lại; vui lòng kiểm tra kết nối và thử lại.");
+    } finally {
       setLoading(false);
-      return;
     }
-    setOpen(false);
-    router.refresh();
   }
   return (
     <>
-      <button className="primary-button" onClick={() => setOpen(true)}>
+      <button className="primary-button" onClick={() => { setError(""); setOpen(true); }}>
         <Plus size={18} />
         Thêm khách hàng
       </button>

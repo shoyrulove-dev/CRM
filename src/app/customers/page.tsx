@@ -55,7 +55,7 @@ export default async function CustomersPage({
       user,
     ),
     totalPages = Math.max(1, Math.ceil(result.total / size)),
-    page = Math.min(totalPages, requestedPage),
+    page = result.page,
     customers = result.items,
     filteredRevenue = result.totalRevenue,
     filteredOrders = result.totalOrders;

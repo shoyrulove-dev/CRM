@@ -1,5 +1,11 @@
 # Cập nhật tab Check 16.11 — 17/11/2026
 
+## Hai lỗi bổ sung sau rà soát
+
+- Biểu mẫu tạo khách luôn thoát trạng thái Đang lưu sau thành công, lỗi máy chủ, lỗi mạng hoặc quá thời gian chờ. Lỗi không làm mất nội dung đang nhập; có thể mở lại và tạo tiếp.
+- Số trang khách hàng được chuẩn hóa và giới hạn theo tổng kết quả trước khi lấy danh sách. Phần hiển thị sử dụng đúng số trang thực tế, gồm cả trường hợp không có kết quả.
+- Kiểm thử chống tái phát nằm ở `tests/e2e/customer-regressions.spec.ts`. Các yêu cầu tạo khách trong kiểm thử được chặn và giả lập tại trình duyệt, không ghi khách thử vào cơ sở dữ liệu.
+
 ## Đã triển khai
 
 - Danh sách phân nhóm: Chưa xác định, Trung thành, Vãng lai. Mục tiêu sức khỏe đầy đủ theo Excel; dùng chung khi tạo, sửa khách và ghi nhận chăm sóc.
