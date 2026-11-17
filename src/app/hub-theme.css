@@ -97,6 +97,7 @@ tbody tr:hover { background: var(--cream); }
 @media (max-width: 600px) {
   .global-search input { font-size: 16.25px; }
   .page-heading h1, .dashboard-welcome h1 { font-size: 31.25px; }
+  .page-heading p, .dashboard-welcome span { font-size: 15px; }
   .stat-main > span { font-size: 13.75px; }
   .stat-main > strong { font-size: 30px; }
   .page-heading .primary-button { font-size: 12.5px; }
