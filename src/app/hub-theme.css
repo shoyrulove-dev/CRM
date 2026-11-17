@@ -80,13 +80,17 @@ tbody tr:hover { background: var(--cream); }
 .form-grid label, .form-error, .form-success, .field-help { font-size: 13.75px; }
 .form-grid input, .form-grid select, .form-grid textarea { font-size: 12.5px; font-weight: 700; border-color: var(--line); }
 .form-grid label { font-weight: 700; color: var(--ink); }
-.modal-card h2 { font-size: 24px; }
+.modal-card h2 { font-size: 28px; }
 .modal-card header p { font-size: 13.75px; }
 .user-menu { width: 220px; }
 .user-menu button { font-size: 13.75px; }
 .auth-card > p, .auth-back, .login-form label, .login-form > p { font-size: 13.75px; }
-.login-form label input, .login-submit { font-size: 15px; }
-.login-form h2 { font-size: 35px; }
+.login-form label input { font-size: 17.5px; color: #252321; }
+.login-submit { font-size: 15px; }
+.login-form h2 { font-size: 38px; }
+.login-form .login-password-heading label, .login-password-heading .forgot-link { font-size: 16.25px; }
+.login-password-heading { line-height: 1.6; margin: 18px 0 8px; }
+.avatar, .customer-cell > i, .person i, .account-person i { background: #f1dedf; color: #9a7117; font-size: 13.75px; }
 @media (max-width: 1250px) {
   .account-row { min-width: 1000px; }
   .stat-main > strong { font-size: 30px; }
@@ -105,5 +109,6 @@ tbody tr:hover { background: var(--cream); }
   .form-grid input, .form-grid select, .form-grid textarea { font-size: 16px; }
   .page-actions { gap: 8px; }
   .page-actions > * { max-width: 100%; }
-  .login-form h2 { font-size: 30px; }
 }
+@media (max-width: 700px) { .login-form h2 { font-size: 38.75px; } }
+@media (max-width: 360px) { .login-password-heading { flex-wrap: wrap; gap: 4px; } }
