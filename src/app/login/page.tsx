@@ -80,11 +80,15 @@ export default function LoginPage() {
               />
             </div>
           </label>
-          <label>
-            Mật khẩu
+          <div className="login-password-heading">
+            <label htmlFor="login-password">Mật khẩu</label>
+            <Link className="forgot-link" href="/reset-password">Quên mật khẩu?</Link>
+          </div>
+          <label className="login-password-field" htmlFor="login-password">
             <div>
               <LockKeyhole size={17} />
               <input
+                id="login-password"
                 type={visible ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -100,7 +104,6 @@ export default function LoginPage() {
               </button>
             </div>
           </label>
-          <Link className="forgot-link" href="/reset-password">Quên mật khẩu?</Link>
           {error && <p className="login-error">{error}</p>}
           <button className="login-submit" disabled={loading}>
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
