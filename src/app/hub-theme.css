@@ -6,37 +6,50 @@
 .login-form .login-password-field { margin-top: 0; }
 :root {
   --bg: #fffdf8;
-  --ink: #252a2b;
-  --muted: #686868;
-  --line: #ece7da;
+  --ink: #201e1c;
+  --muted: #625d58;
+  --line: #ded7cf;
   --gold: #fbd665;
   --gold-deep: #ba9544;
   --gold-soft: #fff7dc;
   --blue: #9a7117;
+  --cream: #fff9e8;
+  --shadow: 0 14px 38px rgba(109, 80, 13, .09);
 }
 html { font-size: 20px; }
 body { font-size: 20px; }
+.brand { border-top: 4px solid var(--gold); }
+.nav-label { letter-spacing: .14em; }
+.panel, .stat-card { border-radius: 14px; box-shadow: none; }
+.modal-card { border-top: 5px solid var(--gold); box-shadow: var(--shadow); }
+.modal-backdrop { background: rgba(37,42,43,.35); backdrop-filter: blur(3px); }
+.chip.active { background: var(--gold-soft); color: #9a7117; border-color: #d9c28e; }
+.chip, .segment { border-color: var(--line); }
+.account-tabs, .customer-tabs { padding: 5px; gap: 4px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.account-tabs button, .customer-tabs a { border-radius: 8px; border-bottom: 0; padding: 10px 18px; }
+.account-tabs button.active, .customer-tabs a.active { background: var(--gold-soft); box-shadow: inset 0 -2px 0 var(--gold-deep); border-bottom: 0; }
 .sidebar { background: #fff; color: var(--ink); border-right-color: var(--line); }
 .brand, .sidebar-user { border-color: var(--line); }
 .nichiei-wordmark strong { color: var(--ink); font-size: 15px; }
 .nichiei-wordmark small { color: #9a7117; font-size: 8px; }
-.nav-label { color: #8d8475; font-size: 11.25px; }
-.nav-item { color: #68635e; font-size: 15px; }
-.nav-item:hover { background: #fff9e8; color: #6f500d; }
-.nav-item.active { background: #fff3cf; color: #9a7117; }
+.nav-label { color: #aca49b; font-size: 11.25px; }
+.nav-item { color: #68635e; font-size: 16.25px; font-weight: 500; border-radius: 10px; }
+.nav-item:hover { background: var(--gold-soft); }
+.nav-item.active { background: linear-gradient(90deg, #fff3c2, #fffdf6); box-shadow: inset 3px 0 0 var(--gold-deep); color: #9a7117; font-weight: 700; }
 .sync-card { background: #fff9e8; border-color: var(--line); }
 .sync-card strong { font-size: 13.75px; }
 .sync-card small, .sidebar-user span { color: #786b50; font-size: 11.25px; }
 .sidebar-user strong { font-size: 13.75px; }
 .sidebar .brand .mobile-only { color: var(--ink); }
-.global-search { background: #fff9e8; }
-.global-search input, .workspace-crumb, .user-chip { font-size: 13.75px; }
-.primary-button, .login-submit { background: #9a7117; border-color: #9a7117; color: white; }
-.primary-button:hover, .login-submit:hover { background: #6f500d; border-color: #6f500d; }
-.primary-button, .secondary-button { font-size: 13.75px; }
+.global-search { background: white; border: 1px solid var(--line); border-radius: 12px; }
+.global-search input { font-size: 16.25px; color: #292624; background: transparent; }
+.workspace-crumb, .user-chip { font-size: 15px; }
+.primary-button, .login-submit { background: linear-gradient(135deg, #c99d2c, #87620f); border-color: transparent; color: white; box-shadow: 0 7px 18px #9a711733; font-weight: 700; }
+.primary-button:hover, .login-submit:hover { background: linear-gradient(135deg, #b88c21, #6f500d); border-color: transparent; }
+.primary-button, .secondary-button { font-size: 12.5px; border-radius: 10px; min-height: 44px; }
 .panel-head > a, .page-heading .eyebrow, .eyebrow, .forgot-link { color: #9a7117; }
-.page-heading h1, .dashboard-welcome h1 { font-size: 32px; }
-.page-heading p, .dashboard-welcome span { font-size: 15px; }
+.page-heading h1, .dashboard-welcome h1 { font-size: 42.5px; font-weight: 700; letter-spacing: -.025em; line-height: 1.28; }
+.page-heading p, .dashboard-welcome span { font-size: 16.25px; line-height: 1.65; color: #5c5752; }
 .dashboard-welcome p, .panel-head p { font-size: 13.75px; }
 .panel-head h2 { font-size: 20px; }
 .stat-main > span { font-size: 13.75px; }
@@ -46,16 +59,18 @@ body { font-size: 20px; }
 .progress-metric em { background: #ba9544; }
 .task-summary, .panel-head > a, .progress-metric > div, .focus-card a b { font-size: 13.75px; }
 .progress-metric small, .focus-card a small { font-size: 12.5px; }
-table, tbody td, tbody td strong { font-size: 13.75px; }
-thead th { font-size: 11.25px; background: #fffcf5; color: #807461; }
-tbody td small { font-size: 12.5px; }
-tbody tr:hover { background: #fffdf5; }
+table, tbody td, tbody td strong { font-size: 11.25px; color: #57524e; }
+thead th { font-size: 10px; background: #faf8f5; color: #8c857e; font-weight: 700; letter-spacing: .06em; }
+tbody td small { font-size: 10px; }
+tbody tr:hover { background: var(--cream); }
 .list-toolbar, .panel { border-color: var(--line); }
-.search-box input, .ghost-select, .list-toolbar select, .list-toolbar input:not([type=checkbox]) { font-size: 13.75px; }
-.account-tabs button, .customer-tabs a, .list-pagination, .account-person b, .account-row > span { font-size: 13.75px; }
-.account-header > span { font-size: 11.25px; }
-.account-tabs button.active, .customer-tabs a.active { color: #9a7117; border-bottom-color: #ba9544; }
-.account-header { background: #fffcf5; }
+.search-box input { font-size: 12.5px; }
+.ghost-select, .list-toolbar select, .list-toolbar input:not([type=checkbox]) { font-size: 11.25px; }
+.account-tabs button, .customer-tabs a, .list-pagination { font-size: 12.5px; }
+.account-person b, .account-row > span { font-size: 11.25px; color: #57524e; }
+.account-header > span { font-size: 10px; color: #8c857e; }
+.account-tabs button.active, .customer-tabs a.active { color: #9a7117; }
+.account-header { background: #faf8f5; }
 .account-row { grid-template-columns: 1.1fr 1.4fr 1fr 1fr 176px; }
 .status-pill, .role-badge, .account-state, .priority { font-size: 12px; }
 .role-badge { background: #fff3cf; color: #8a651a; }
@@ -63,7 +78,8 @@ tbody tr:hover { background: #fffdf5; }
 .care-info p, .care-time small, .care-actions { font-size: 13.75px; }
 .care-time strong { font-size: 20px; }
 .form-grid label, .form-error, .form-success, .field-help { font-size: 13.75px; }
-.form-grid input, .form-grid select, .form-grid textarea { font-size: 15px; }
+.form-grid input, .form-grid select, .form-grid textarea { font-size: 12.5px; font-weight: 700; border-color: var(--line); }
+.form-grid label { font-weight: 700; color: var(--ink); }
 .modal-card h2 { font-size: 24px; }
 .modal-card header p { font-size: 13.75px; }
 .user-menu { width: 220px; }
@@ -79,11 +95,11 @@ tbody tr:hover { background: #fffdf5; }
   .nav-collapsed .nav-label { font-size: 11.25px; }
 }
 @media (max-width: 600px) {
-  .global-search input { font-size: 13.75px; }
-  .page-heading h1, .dashboard-welcome h1 { font-size: 28px; }
+  .global-search input { font-size: 16.25px; }
+  .page-heading h1, .dashboard-welcome h1 { font-size: 31.25px; }
   .stat-main > span { font-size: 13.75px; }
   .stat-main > strong { font-size: 30px; }
-  .page-heading .primary-button { font-size: 13.75px; }
+  .page-heading .primary-button { font-size: 12.5px; }
   .dashboard-priority tbody td:nth-child(3) { font-size: 12.5px; }
   .form-grid input, .form-grid select, .form-grid textarea { font-size: 16px; }
   .page-actions { gap: 8px; }
