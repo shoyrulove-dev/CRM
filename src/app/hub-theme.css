@@ -1,8 +1,9 @@
 /* Shared Nichiei Hub palette and reading sizes. Keep workflow status colors. */
-.login-password-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.login-password-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin: 17px 0 8px; }
 .login-form .login-password-heading label { margin: 0; }
 .login-password-heading .forgot-link { margin: 0; font-size: 13.75px; white-space: nowrap; }
 .login-form .login-password-field > div { margin-top: 0; }
+.login-form .login-password-field { margin-top: 0; }
 :root {
   --bg: #fffdf8;
   --ink: #252a2b;
