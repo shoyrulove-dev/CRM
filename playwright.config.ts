@@ -9,11 +9,11 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: process.env.E2E_BASE_URL || "http://localhost:3000",
-    channel: process.env.CI ? undefined : "msedge",
     trace: "retain-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "desktop", use: { ...devices["Desktop Chrome"], channel: process.env.CI ? undefined : "msedge" } },
+    { name: "mobile", use: { ...devices["Pixel 7"], channel: process.env.CI ? undefined : "msedge" } },
+    { name: "webkit", use: { ...devices["iPhone 13"], browserName: "webkit", channel: undefined } },
   ],
 });

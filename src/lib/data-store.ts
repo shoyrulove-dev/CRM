@@ -9,6 +9,7 @@ import type {
   ProductOption,
 } from "./types";
 import type { SessionUser } from "./session";
+import { monthStart, monthEnd, monthBounds } from "./month-range";
 
 export const collections = {
   customers: "customers",
@@ -40,7 +41,12 @@ const requiredProducts: ProductOption[] = [
   "DILI Okinawa Osake Wo Kaiteki No Densetu", "Okinawa Fucoidan Plus",
   "NANO NATTOKINASE PREMIUM 120 viên", "NANO NATTOKINASE PREMIUM 60 viên",
   "ANSERINE PREMIUM",
-].map((name, index) => ({ sku: `NIC-${String(index + 1).padStart(3, "0")}`, name }));
+].map((name, index) => ({
+  // Verified against this shop's read-only Products API on 17/11/2026.
+  // Keep the agreed 26 display names while using the actual Haravan SKU.
+  sku: ["HH002", "HH003", "HH004", "HH007", "HH008", "HH009", "HH010", "HH011", "HH012", "HH013", "HH014", "HH015", "HH016", "HH017", "HH018", "HH031", "HH019", "HH021", "HH022_ACT6", "HH025_ACT2", "HH023_ACT6", "HH024", "HH026", "HH027", "HH032", "HH033"][index],
+  name,
+}));
 
 export async function ensureIndexes() {
   if (!hasDatabase()) return false;
@@ -141,27 +147,9 @@ async function listFromMongo<T>(collection: string, filter = {}, sort = {}) {
 }
 
 export async function listProductCatalog(): Promise<ProductOption[]> {
-  const mergeRequired = (items: ProductOption[]) => {
-    const map = new Map(requiredProducts.map((item) => [item.name.toLocaleLowerCase("vi"), item]));
-    items.forEach((item) => map.set(item.name.toLocaleLowerCase("vi"), item));
-    return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "vi"));
-  };
-  if (!hasDatabase()) {
-    const map = new Map<string, ProductOption>();
-    orders.flatMap((order) => order.products).forEach((product) => {
-      if (product.sku) map.set(product.sku, { sku: product.sku, name: product.name });
-    });
-    return mergeRequired([...map.values()]);
-  }
-  const rows = await (await getDatabase()).collection(collections.orders).aggregate([
-    { $unwind: "$products" },
-    { $match: { "products.sku": { $type: "string", $ne: "" } } },
-    { $sort: { orderDate: -1 } },
-    { $group: { _id: "$products.sku", name: { $first: "$products.name" } } },
-    { $project: { _id: 0, sku: "$_id", name: 1 } },
-    { $sort: { name: 1 } },
-  ]).toArray();
-  return mergeRequired(rows as ProductOption[]);
+  // The approved catalog is independent of historical order-line aliases and gifts.
+  // Do not scan every order just to populate a 26-item selector.
+  return requiredProducts.map(item => ({ ...item })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
 }
 
 export async function listCustomers(
@@ -200,6 +188,7 @@ export async function getCustomersPage(
     to?: string;
     page?: number;
     size?: number;
+    sort?: string;
   },
   user?: SessionUser | null,
 ) {
@@ -214,15 +203,18 @@ export async function getCustomersPage(
             .toLowerCase()
             .includes(input.search.toLowerCase())) &&
         (!input.owner || item.owner === input.owner) &&
-        (!input.status || item.status === input.status) &&
         (!input.from || item.lastOrder >= input.from) &&
         (!input.to || item.lastOrder <= input.to),
     );
+    const counts = { allCount: filtered.length, dueCount: filtered.filter(item => item.status === "due").length, overdueCount: filtered.filter(item => item.status === "overdue").length };
+    const selected = filtered.filter(item => !input.status || item.status === input.status);
+    selected.sort((a, b) => input.sort === "newest" ? b.lastOrder.localeCompare(a.lastOrder) : input.sort === "oldest" ? a.lastOrder.localeCompare(b.lastOrder) : a.name.localeCompare(b.name, "vi"));
     return {
-      items: filtered.slice((page - 1) * size, page * size),
-      total: filtered.length,
-      totalRevenue: filtered.reduce((sum, item) => sum + item.revenue, 0),
-      totalOrders: filtered.reduce((sum, item) => sum + item.orders, 0),
+      items: selected.slice((page - 1) * size, page * size),
+      ...counts,
+      total: selected.length,
+      totalRevenue: selected.reduce((sum, item) => sum + item.revenue, 0),
+      totalOrders: selected.reduce((sum, item) => sum + item.orders, 0),
     };
   }
   const filter: Record<string, unknown> = {};
@@ -241,11 +233,13 @@ export async function getCustomersPage(
       { id: { $regex: input.search, $options: "i" } },
     ];
   const db = await getDatabase();
-  const [items, totals] = await Promise.all([
+  const { status: ignoredStatus, ...countFilter } = filter;
+  void ignoredStatus;
+  const [items, totals, counts] = await Promise.all([
     db
       .collection(collections.customers)
       .find(filter, { projection: { _id: 0 } })
-      .sort({ name: 1 })
+      .sort(input.sort === "newest" ? { lastOrder: -1, id: 1 } : input.sort === "oldest" ? { lastOrder: 1, id: 1 } : { name: 1, id: 1 })
       .skip((page - 1) * size)
       .limit(size)
       .toArray(),
@@ -259,16 +253,22 @@ export async function getCustomersPage(
             total: { $sum: 1 },
             totalRevenue: { $sum: "$revenue" },
             totalOrders: { $sum: "$orders" },
+            dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } },
+            overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } },
           },
         },
       ])
       .next(),
+    db.collection(collections.customers).aggregate([{ $match: countFilter }, { $group: { _id: null, allCount: { $sum: 1 }, dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } }, overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } } } }]).next(),
   ]);
   return {
     items: items as unknown as Customer[],
     total: Number(totals?.total || 0),
     totalRevenue: Number(totals?.totalRevenue || 0),
     totalOrders: Number(totals?.totalOrders || 0),
+    allCount: Number(counts?.allCount || 0),
+    dueCount: Number(counts?.dueCount || 0),
+    overdueCount: Number(counts?.overdueCount || 0),
   };
 }
 
@@ -366,10 +366,11 @@ export async function getCarePageData(params: { date?: string; from?: string; to
   const filter = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
     ...(params.status ? { status: params.status } : {}), ...(params.task ? { id: params.task } : {}),
     ...(params.date ? { dueAt: { $gte: new Date(`${params.date}T00:00:00+07:00`).toISOString(), $lte: new Date(`${params.date}T23:59:59+07:00`).toISOString() } } :
-      params.from || params.to ? { dueAt: { ...(params.from ? { $gte: `${params.from}-01` } : {}), ...(params.to ? { $lte: `${params.to}-31T23:59:59.999Z` } : {}) } } : {}) };
+      monthStart(params.from) || monthEnd(params.to) ? { dueAt: monthBounds(params.from, params.to) } : {}) };
   if (!hasDatabase()) {
     const all = await listCareTasks(user);
-    const selected = all.filter((task) => (!params.owner || task.owner === params.owner) && (!params.status || task.status === params.status) && (!params.task || task.id === params.task) && (!params.date || task.dueAt.startsWith(params.date)) && (!params.from || task.dueAt >= `${params.from}-01`) && (!params.to || task.dueAt <= `${params.to}-31T23:59:59.999Z`));
+    const bounds = monthBounds(params.from, params.to);
+    const selected = all.filter((task) => (!params.owner || task.owner === params.owner) && (!params.status || task.status === params.status) && (!params.task || task.id === params.task) && (!params.date || task.dueAt.startsWith(params.date)) && (!bounds.$gte || task.dueAt >= bounds.$gte) && (!bounds.$lte || task.dueAt <= bounds.$lte));
     const page = Math.min(requestedPage, Math.max(1, Math.ceil(selected.length / size)));
     return { tasks: selected.slice((page - 1) * size, page * size), page, size, total: selected.length, overdue: all.filter((task) => task.status === "overdue").length, done: all.filter((task) => task.status === "done").length, today: all.filter((task) => task.status !== "done" && task.dueAt.startsWith(today)).length };
   }
@@ -389,12 +390,13 @@ export async function getTicketsPage(params: { q?: string; status?: string; owne
   const scope = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : params.owner ? { owner: params.owner } : {};
   if (!hasDatabase()) {
     const needle = (params.q || "").toLocaleLowerCase("vi");
-    const selected = (await listTickets(user)).filter((item) => (!params.owner || item.owner === params.owner) && (!params.status || item.status === params.status) && (!params.resolution || item.resolution === params.resolution) && (!params.from || item.createdAt >= `${params.from}-01`) && (!params.to || item.createdAt <= `${params.to}-31T23:59:59Z`) && (!needle || `${item.id} ${item.customer} ${item.title} ${customers.find((c) => c.id === item.customerId)?.phone || ""}`.toLocaleLowerCase("vi").includes(needle)));
+    const bounds = monthBounds(params.from, params.to);
+    const selected = (await listTickets(user)).filter((item) => (!params.owner || item.owner === params.owner) && (!params.status || item.status === params.status) && (!params.resolution || item.resolution === params.resolution) && (!bounds.$gte || item.createdAt >= bounds.$gte) && (!bounds.$lte || item.createdAt <= bounds.$lte) && (!needle || `${item.id} ${item.customer} ${item.title} ${customers.find((c) => c.id === item.customerId)?.phone || ""}`.toLocaleLowerCase("vi").includes(needle)));
     const page = Math.min(requested, Math.max(1, Math.ceil(selected.length / size)));
     return { items: selected.slice((page - 1) * size, page * size), total: selected.length, page, size };
   }
   const db = await getDatabase();
-  const filter: Record<string, unknown> = { ...scope, ...(params.status ? { status: params.status } : {}), ...(params.resolution ? { resolution: params.resolution } : {}), ...(params.from || params.to ? { createdAt: { ...(params.from ? { $gte: `${params.from}-01` } : {}), ...(params.to ? { $lte: `${params.to}-31T23:59:59Z` } : {}) } } : {}) };
+  const filter: Record<string, unknown> = { ...scope, ...(params.status ? { status: params.status } : {}), ...(params.resolution ? { resolution: params.resolution } : {}), ...(monthStart(params.from) || monthEnd(params.to) ? { createdAt: monthBounds(params.from, params.to) } : {}) };
   if (params.q?.trim()) {
     const pattern = params.q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const customerIds = await db.collection(collections.customers).distinct("id", { ...(user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {}), phone: { $regex: pattern, $options: "i" } });

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, hasBrokenText, validDate, validPhone } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
+import { customerSegments, healthGoals, normalizeClassification } from "@/lib/customer-options";
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers"))
@@ -49,6 +50,10 @@ export async function POST(request: NextRequest) {
     );
   const db = await getDatabase(),
     phone = cleanText(body.phone, 20);
+  const segment = normalizeClassification(cleanText(body.segment || "Chưa xác định", 80));
+  const healthGoal = normalizeClassification(cleanText(body.healthGoal || "Chưa xác định", 120));
+  if (!customerSegments.includes(segment) || !healthGoals.includes(healthGoal))
+    return NextResponse.json({ error: "Vui lòng chọn phân nhóm và mục tiêu sức khỏe trong danh sách." }, { status: 400 });
   if (await db.collection(collections.customers).findOne({ phone }))
     return NextResponse.json(
       { error: "Số điện thoại đã tồn tại." },
@@ -73,13 +78,13 @@ export async function POST(request: NextRequest) {
       canSeeAll(user)
         ? cleanText(body.owner || user!.name, 120)
         : user?.name || "Chưa phân công",
-    segment: cleanText(body.segment || "Chưa xác định", 80),
+    segment,
     orders: 0,
     revenue: 0,
     lastOrder: "—",
     nextCare: body.nextCare || "—",
     status: "due",
-    healthGoal: cleanText(body.healthGoal || "Chưa xác định", 120),
+    healthGoal,
     birthDate: body.birthDate || "",
     createdAt: new Date().toISOString(),
   };

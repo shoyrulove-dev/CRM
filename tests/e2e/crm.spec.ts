@@ -77,14 +77,11 @@ test("danh sách khách và bộ lọc tháng hiển thị đúng yêu cầu", a
   await expect(
     page.getByText("LẦN CHĂM GẦN NHẤT", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel("Từ tháng mua")).toHaveAttribute(
-    "type",
-    "month",
-  );
+  await expect(page.getByLabel("Đơn gần nhất từ tháng")).toHaveJSProperty("tagName", "SELECT");
   await page.goto("/care");
-  await expect(page.getByLabel("Từ tháng")).toHaveAttribute("type", "month");
+  await expect(page.getByLabel("Từ tháng", { exact: true })).toHaveJSProperty("tagName", "SELECT");
   await page.goto("/tickets");
-  await expect(page.getByLabel("Từ tháng")).toHaveAttribute("type", "month");
+  await expect(page.getByLabel("Từ tháng", { exact: true })).toHaveJSProperty("tagName", "SELECT");
   await page.goto("/accounts");
   await expect(page.getByRole("button", { name: /Đã lưu trữ/ })).toBeVisible();
 });

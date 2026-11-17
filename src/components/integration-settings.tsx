@@ -77,7 +77,7 @@ export function IntegrationSettings({
     setHaravanTest(json.data);
     setMessage(
       json.data.ok
-        ? "Token hoạt động tốt và có đủ quyền đọc dữ liệu cần thiết."
+        ? "Đã đọc được cửa hàng, đơn hàng, khách hàng và sản phẩm. Hạng thành viên và điểm thưởng cần kiểm tra riêng."
         : "Token đã được kiểm tra. Vui lòng xem quyền nào còn thiếu bên dưới.",
     );
   }
@@ -287,6 +287,7 @@ export function IntegrationSettings({
                   <span>{check.message}</span>
                 </p>
               ))}
+              <p className="muted">Hạng thành viên và điểm thưởng chưa có trong dữ liệu API khách hàng đang dùng. Không dùng nhóm khách hàng hoặc doanh thu để tự suy ra hạng và điểm. Cần Haravan xác nhận API/quyền đọc Loyalty cho cửa hàng.</p>
             </div>
           )}
         </section>

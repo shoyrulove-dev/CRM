@@ -9,6 +9,8 @@ import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { BulkCareButton } from "@/components/bulk-care-button";
 import { Pagination } from "@/components/pagination";
+import { MonthFilter } from "@/components/month-filter";
+import { MonthShortcuts } from "@/components/month-shortcuts";
 
 export const dynamic = "force-dynamic";
 function careDate(value: string) {
@@ -105,20 +107,8 @@ export default async function CarePage({
             name="date"
             defaultValue={params.date}
           />
-          <input
-            className="ghost-select"
-            type="month"
-            name="from"
-            defaultValue={params.from}
-            aria-label="Từ tháng"
-          />
-          <input
-            className="ghost-select"
-            type="month"
-            name="to"
-            defaultValue={params.to}
-            aria-label="Đến tháng"
-          />
+          <MonthFilter name="from" value={params.from} label="Từ tháng" />
+          <MonthFilter name="to" value={params.to} label="Đến tháng" />
           {user && ["admin", "super_admin"].includes(user.role) && (
             <select
               className="ghost-select"
@@ -142,6 +132,7 @@ export default async function CarePage({
             <option value="done">Đã hoàn thành</option>
           </select>
           <button className="secondary-button">Lọc nhiệm vụ</button>
+          <MonthShortcuts resetPath="/care" />
         </form>
         <div className="care-list">
           {displayedTasks.map((item) => (

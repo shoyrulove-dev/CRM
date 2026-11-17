@@ -8,6 +8,8 @@ import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { TicketDetailButton } from "@/components/ticket-detail-button";
+import { MonthFilter } from "@/components/month-filter";
+import { MonthShortcuts } from "@/components/month-shortcuts";
 
 export const dynamic = "force-dynamic";
 export default async function TicketsPage({
@@ -72,20 +74,8 @@ export default async function TicketsPage({
           <select className="ghost-select" name="resolution" defaultValue={params.resolution || ""}>
             <option value="">Mọi hướng xử lý</option><option>Thu hàng - Hoàn tiền</option><option>Đổi hàng</option><option>Điều chỉnh cách dùng</option><option>Khác</option>
           </select>
-          <input
-            className="ghost-select"
-            type="month"
-            name="from"
-            defaultValue={params.from}
-            aria-label="Từ tháng"
-          />
-          <input
-            className="ghost-select"
-            type="month"
-            name="to"
-            defaultValue={params.to}
-            aria-label="Đến tháng"
-          />
+          <MonthFilter name="from" value={params.from} label="Từ tháng" />
+          <MonthFilter name="to" value={params.to} label="Đến tháng" />
           {user && ["admin", "super_admin"].includes(user.role) && (
             <select
               className="ghost-select"
@@ -99,6 +89,7 @@ export default async function TicketsPage({
             </select>
           )}
           <button className="secondary-button">Tìm kiếm</button>
+          <MonthShortcuts resetPath="/tickets" />
         </form>
         <div className="table-wrap">
           <table>

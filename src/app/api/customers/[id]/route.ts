@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, hasBrokenText } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
+import { customerSegments, healthGoals, normalizeClassification } from "@/lib/customer-options";
 
 export async function GET(
   _: Request,
@@ -58,7 +59,14 @@ export async function PATCH(
       { status: 400 },
     );
   for (const field of ["segment", "healthGoal"])
-    if (field in update) update[field] = cleanText(update[field], field === "segment" ? 80 : 120) || "Chưa xác định";
+    if (field in update) update[field] = normalizeClassification(cleanText(update[field], field === "segment" ? 80 : 120) || "Chưa xác định");
+  const dbForValidation = await getDatabase();
+  const existing = await dbForValidation.collection(collections.customers).findOne({ id, ...(canSeeAll(user) ? {} : { owner: user?.name }) });
+  if (!existing) return NextResponse.json({ error: "Không tìm thấy khách hàng." }, { status: 404 });
+  for (const [field, options] of [["segment", customerSegments], ["healthGoal", healthGoals]] as const) {
+    if (field in update && !options.includes(String(update[field])) && update[field] !== normalizeClassification(String(existing[field] || "")))
+      return NextResponse.json({ error: "Vui lòng chọn phân nhóm và mục tiêu sức khỏe trong danh sách." }, { status: 400 });
+  }
   const result = await (await getDatabase())
     .collection(collections.customers)
     .findOneAndUpdate(

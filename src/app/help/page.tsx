@@ -14,6 +14,8 @@ const guides = [
       "Mở Khách hàng → chọn Thêm khách hàng.",
       "Nhập tên, số điện thoại, ngày sinh, người phụ trách và mục tiêu sức khỏe.",
       "Chọn Xem tại một khách để mở đơn hàng, nhật ký chăm sóc và phiếu yêu cầu.",
+      "Dùng bộ chọn Từ tháng / Đến tháng hoặc Tháng này / Tháng trước để lọc. Với khách hàng, khoảng tháng áp dụng cho đơn gần nhất; Sắp xếp là lựa chọn riêng.",
+      "Phân nhóm gồm Chưa xác định, Trung thành và Vãng lai. Nhãn cũ được giữ lại cho đến khi bạn chủ động chọn nhãn mới.",
     ],
   },
   {
@@ -60,6 +62,7 @@ const guides = [
       "Chọn Kiểm tra kết nối; khi bốn mục đều màu xanh, chọn Đồng bộ dữ liệu ngay.",
       "Webhook là tùy chọn để nhận thay đổi tức thời. Nếu chưa cấu hình, hệ thống vẫn tự đồng bộ hằng ngày.",
       "Sau khi lưu, kiểm tra trạng thái kết nối trước khi đồng bộ đơn hàng thật.",
+      "Hạng thành viên và điểm thưởng hiển thị Chưa đồng bộ nếu Haravan chưa cung cấp dữ liệu; không đồng nghĩa với 0 điểm. Cần xác nhận quyền và API Loyalty riêng với Haravan.",
     ],
   },
 ];

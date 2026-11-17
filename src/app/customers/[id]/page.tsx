@@ -25,6 +25,7 @@ import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 import { formatDateTime } from "@/lib/format-date";
 import { CustomerClassificationEditor } from "@/components/customer-classification-editor";
 import { Pagination, pageNumber } from "@/components/pagination";
+import { CustomerLoyalty } from "@/components/customer-loyalty";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -79,6 +80,7 @@ export default async function CustomerProfilePage({
               <h1>{customer.name}</h1>
               <i>{customer.segment}</i>
             </div>
+            <CustomerLoyalty customer={customer} />
             <p>
               {customer.id} · <Phone size={13} />
               {customer.phone} · Phụ trách: <strong>{customer.owner}</strong>

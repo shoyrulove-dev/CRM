@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
+import { customerSegments, healthGoals } from "@/lib/customer-options";
 export function CreateCustomerButton() {
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),
@@ -60,23 +61,13 @@ export function CreateCustomerButton() {
               <label>
                 Phân nhóm
                 <select name="segment">
-                  <option>Chưa xác định</option>
-                  <option>Khách mới</option>
-                  <option>Khách trung thành</option>
-                  <option>Đang theo liệu trình</option>
-                  <option>Cần kéo lại</option>
+                  {customerSegments.map(value => <option key={value}>{value}</option>)}
                 </select>
               </label>
               <label>
                 Mục tiêu sức khỏe
                 <select name="healthGoal">
-                  <option>Chưa xác định</option>
-                  <option>Tiêu hóa</option>
-                  <option>Xương khớp</option>
-                  <option>Tim mạch</option>
-                  <option>Da - làm đẹp</option>
-                  <option>Miễn dịch</option>
-                  <option>Khác</option>
+                  {healthGoals.map(value => <option key={value}>{value}</option>)}
                 </select>
               </label>
               <label>

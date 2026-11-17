@@ -10,6 +10,10 @@ import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { ExportCustomersButton } from "@/components/export-customers-button";
+import { MonthFilter } from "@/components/month-filter";
+import { monthStart, monthEnd } from "@/lib/month-range";
+import { CustomerLoyalty } from "@/components/customer-loyalty";
+import { MonthShortcuts } from "@/components/month-shortcuts";
 
 export const dynamic = "force-dynamic";
 export default async function CustomersPage({
@@ -22,6 +26,7 @@ export default async function CustomersPage({
     page?: string;
     from?: string;
     to?: string;
+    sort?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -31,8 +36,8 @@ export default async function CustomersPage({
     user && ["admin", "super_admin"].includes(user.role)
       ? (await listUsers()).filter((item) => item.active)
       : [];
-  const fromDate = params.from ? `${params.from}-01` : undefined;
-  const toDate = params.to ? `${params.to}-31` : undefined;
+  const fromDate = monthStart(params.from);
+  const toDate = monthEnd(params.to);
   const size = 20,
     requestedPage = Math.max(1, Number(params.page) || 1),
     result = await getCustomersPage(
@@ -44,6 +49,7 @@ export default async function CustomersPage({
         to: toDate,
         page: requestedPage,
         size,
+        sort: params.sort,
       },
       user,
     ),
@@ -103,20 +109,9 @@ export default async function CustomersPage({
               <option key={employee.id}>{employee.name}</option>
             ))}
           </select>
-          <input
-            className="ghost-select"
-            type="month"
-            name="from"
-            defaultValue={params.from}
-            aria-label="Từ tháng mua"
-          />
-          <input
-            className="ghost-select"
-            type="month"
-            name="to"
-            defaultValue={params.to}
-            aria-label="Đến tháng mua"
-          />
+          <MonthFilter name="from" value={params.from} label="Đơn gần nhất từ tháng" />
+          <MonthFilter name="to" value={params.to} label="Đến tháng" />
+          <select className="ghost-select" name="sort" defaultValue={params.sort || "name"} aria-label="Sắp xếp khách hàng"><option value="name">Tên A–Z</option><option value="newest">Mua gần nhất</option><option value="oldest">Lâu chưa mua</option></select>
           <select
             className="ghost-select"
             name="status"
@@ -128,6 +123,7 @@ export default async function CustomersPage({
             <option value="done">Đã hoàn thành</option>
           </select>
           <button className="secondary-button">Lọc</button>
+          <MonthShortcuts resetPath="/customers" />
           {user && ["admin", "super_admin"].includes(user.role) && (
             <ExportCustomersButton
               query={{
@@ -145,14 +141,14 @@ export default async function CustomersPage({
             className={`chip ${!params.status ? "active" : ""}`}
             href={query({ status: undefined, page: 1 })}
           >
-            Tất cả <b>{result.total}</b>
+            Tất cả <b>{result.allCount}</b>
           </Link>
           <Link
             className={`chip ${params.status === "due" ? "active" : ""}`}
             href={query({ status: "due", page: 1 })}
           >
             Cần chăm sóc{" "}
-            <b>{customers.filter((item) => item.status === "due").length}</b>
+            <b>{result.dueCount}</b>
           </Link>
           <Link
             className={`chip ${params.status === "overdue" ? "active" : ""}`}
@@ -160,7 +156,7 @@ export default async function CustomersPage({
           >
             Quá hạn{" "}
             <b>
-              {customers.filter((item) => item.status === "overdue").length}
+              {result.overdueCount}
             </b>
           </Link>
         </div>
@@ -196,6 +192,7 @@ export default async function CustomersPage({
                       </i>
                       <span>
                         <strong>{item.name}</strong>
+                        <CustomerLoyalty customer={item} />
                         <small>
                           {item.id} · {item.phone}
                         </small>

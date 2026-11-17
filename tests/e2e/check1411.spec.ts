@@ -92,8 +92,8 @@ test("chặn ký tự hỏng và chặn nhân viên sửa phiếu ngoài phạm 
     expect((await care.patch(`/api/customers/${customer.id}`, { data: { segment: "Khác" } })).status()).toBe(404);
     await page.goto(`/customers/${customer.id}`);
     await page.getByLabel("Cập nhật phân nhóm", { exact: true }).click();
-    await expect(page.locator('.entity-form input[name="segment"]')).toHaveValue(customer.segment);
-    await expect(page.locator('.entity-form input[name="healthGoal"]')).toHaveValue(customer.healthGoal);
+    await expect(page.locator('.entity-form select[name="segment"]')).toHaveValue(customer.segment === "Khách trung thành" ? "Trung thành" : customer.segment);
+    await expect(page.locator('.entity-form select[name="healthGoal"]')).toHaveValue(customer.healthGoal === "Tim mạch" ? "Tim mạch - tuần hoàn" : customer.healthGoal);
     await expect(await sales.patch(`/api/customers/${customer.id}`, { data: { segment: customer.segment, healthGoal: customer.healthGoal } })).toBeOK();
   } finally {
     if (id) await page.request.delete(`/api/tickets/${id}`);

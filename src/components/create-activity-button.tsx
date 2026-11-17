@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { SalesOrder } from "@/lib/types";
+import { healthGoals } from "@/lib/customer-options";
 
 export function CreateActivityButton({
   customerId,
@@ -149,7 +150,7 @@ export function CreateActivityButton({
               </label>
               <label>
                 Mục tiêu sức khỏe
-                <input name="healthGoal" />
+                <select name="healthGoal"><option value="">Chưa ghi nhận</option>{healthGoals.map(value => <option key={value}>{value}</option>)}</select>
               </label>
               <label className="full">
                 Ghi chú

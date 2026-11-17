@@ -28,6 +28,9 @@ export interface PermissionGroup {
 }
 
 export interface Customer {
+  membershipTier?: string;
+  loyaltyPoints?: number;
+  loyaltySyncedAt?: string;
   id: string;
   name: string;
   phone: string;
