@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 import "./refinements.css";
 import "./modern.css";
+import "./hub-theme.css";
 import { getCurrentUser } from "@/lib/current-user";
 import { configStatus, getIntegrationConfig } from "@/lib/integration-config";
 import { getHaravanSyncStatus } from "@/lib/haravan-sync";

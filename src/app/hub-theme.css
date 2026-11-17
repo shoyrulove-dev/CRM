@@ -1,0 +1,87 @@
+/* Shared Nichiei Hub palette and reading sizes. Keep workflow status colors. */
+:root {
+  --bg: #fffdf8;
+  --ink: #252a2b;
+  --muted: #686868;
+  --line: #ece7da;
+  --gold: #fbd665;
+  --gold-deep: #ba9544;
+  --gold-soft: #fff7dc;
+  --blue: #9a7117;
+}
+html { font-size: 20px; }
+body { font-size: 20px; }
+.sidebar { background: #fff; color: var(--ink); border-right-color: var(--line); }
+.brand, .sidebar-user { border-color: var(--line); }
+.nichiei-wordmark strong { color: var(--ink); font-size: 15px; }
+.nichiei-wordmark small { color: #9a7117; font-size: 8px; }
+.nav-label { color: #8d8475; font-size: 11.25px; }
+.nav-item { color: #68635e; font-size: 15px; }
+.nav-item:hover { background: #fff9e8; color: #6f500d; }
+.nav-item.active { background: #fff3cf; color: #9a7117; }
+.sync-card { background: #fff9e8; border-color: var(--line); }
+.sync-card strong { font-size: 13.75px; }
+.sync-card small, .sidebar-user span { color: #786b50; font-size: 11.25px; }
+.sidebar-user strong { font-size: 13.75px; }
+.sidebar .brand .mobile-only { color: var(--ink); }
+.global-search { background: #fff9e8; }
+.global-search input, .workspace-crumb, .user-chip { font-size: 13.75px; }
+.primary-button, .login-submit { background: #9a7117; border-color: #9a7117; color: white; }
+.primary-button:hover, .login-submit:hover { background: #6f500d; border-color: #6f500d; }
+.primary-button, .secondary-button { font-size: 13.75px; }
+.panel-head > a, .page-heading .eyebrow, .eyebrow, .forgot-link { color: #9a7117; }
+.page-heading h1, .dashboard-welcome h1 { font-size: 32px; }
+.page-heading p, .dashboard-welcome span { font-size: 15px; }
+.dashboard-welcome p, .panel-head p { font-size: 13.75px; }
+.panel-head h2 { font-size: 20px; }
+.stat-main > span { font-size: 13.75px; }
+.stat-main > strong { font-size: 32px; }
+.stat-main > small { font-size: 12.5px; }
+.stat-icon.blue, .stat-icon.violet { background: #fff3cf; color: #9a7117; }
+.progress-metric em { background: #ba9544; }
+.task-summary, .panel-head > a, .progress-metric > div, .focus-card a b { font-size: 13.75px; }
+.progress-metric small, .focus-card a small { font-size: 12.5px; }
+table, tbody td, tbody td strong { font-size: 13.75px; }
+thead th { font-size: 11.25px; background: #fffcf5; color: #807461; }
+tbody td small { font-size: 12.5px; }
+tbody tr:hover { background: #fffdf5; }
+.list-toolbar, .panel { border-color: var(--line); }
+.search-box input, .ghost-select, .list-toolbar select, .list-toolbar input:not([type=checkbox]) { font-size: 13.75px; }
+.account-tabs button, .customer-tabs a, .list-pagination, .account-person b, .account-row > span { font-size: 13.75px; }
+.account-header > span { font-size: 11.25px; }
+.account-tabs button.active, .customer-tabs a.active { color: #9a7117; border-bottom-color: #ba9544; }
+.account-header { background: #fffcf5; }
+.account-row { grid-template-columns: 1.1fr 1.4fr 1fr 1fr 176px; }
+.status-pill, .role-badge, .account-state, .priority { font-size: 12px; }
+.role-badge { background: #fff3cf; color: #8a651a; }
+.care-info h3 { font-size: 16.25px; }
+.care-info p, .care-time small, .care-actions { font-size: 13.75px; }
+.care-time strong { font-size: 20px; }
+.form-grid label, .form-error, .form-success, .field-help { font-size: 13.75px; }
+.form-grid input, .form-grid select, .form-grid textarea { font-size: 15px; }
+.modal-card h2 { font-size: 24px; }
+.modal-card header p { font-size: 13.75px; }
+.user-menu { width: 220px; }
+.user-menu button { font-size: 13.75px; }
+.auth-card > p, .auth-back, .login-form label, .login-form > p { font-size: 13.75px; }
+.login-form label input, .login-submit { font-size: 15px; }
+.login-form h2 { font-size: 35px; }
+@media (max-width: 1250px) {
+  .account-row { min-width: 1000px; }
+  .stat-main > strong { font-size: 30px; }
+}
+@media (max-width: 900px) {
+  .nav-collapsed .nav-label { font-size: 11.25px; }
+}
+@media (max-width: 600px) {
+  .global-search input { font-size: 13.75px; }
+  .page-heading h1, .dashboard-welcome h1 { font-size: 28px; }
+  .stat-main > span { font-size: 13.75px; }
+  .stat-main > strong { font-size: 30px; }
+  .page-heading .primary-button { font-size: 13.75px; }
+  .dashboard-priority tbody td:nth-child(3) { font-size: 12.5px; }
+  .form-grid input, .form-grid select, .form-grid textarea { font-size: 16px; }
+  .page-actions { gap: 8px; }
+  .page-actions > * { max-width: 100%; }
+  .login-form h2 { font-size: 30px; }
+}
