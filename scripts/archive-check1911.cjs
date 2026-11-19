@@ -35,6 +35,23 @@ async function main() {
       }
       console.log(JSON.stringify({ collection: name, archived: docs.length, archive: archiveName, remaining: await db.collection(name).countDocuments({}) }));
     }
+    if (commit) {
+      const affected = [...new Set([
+        ...await db.collection('care_tasks_archive_check1911').distinct('customerId'),
+        ...await db.collection('care_activities_archive_check1911').distinct('customerId'),
+      ].filter(Boolean))];
+      const hasCurrentWork = new Set([
+        ...await db.collection('care_tasks').distinct('customerId'),
+        ...await db.collection('care_activities').distinct('customerId'),
+      ]);
+      const ids = affected.filter(id => !hasCurrentWork.has(id));
+      const old = await db.collection('customers').find({ id: { $in: ids } }, { projection: { _id: 0, id: 1, lastCare: 1, nextCare: 1, status: 1 } }).toArray();
+      if (old.length) {
+        await db.collection('customer_care_state_archive_check1911').bulkWrite(old.map(doc => ({ updateOne: { filter: { id: doc.id }, update: { $setOnInsert: doc }, upsert: true } })));
+        await db.collection('customers').updateMany({ id: { $in: ids } }, { $set: { lastCare: '', nextCare: '', status: 'done' } });
+      }
+      console.log(JSON.stringify({ resetCareDisplayForCustomers: old.length, preservedCustomersWithNewWork: hasCurrentWork.size }));
+    }
   } finally {
     // The short maintenance lease expires automatically; never release another worker's lock.
     await client.close();

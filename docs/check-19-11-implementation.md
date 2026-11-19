@@ -20,6 +20,8 @@ Phạm vi: lịch có thời điểm tạo trước 07:50 UTC ngày 19/11/2026 v
 
 Kho lưu trữ: `care_tasks_archive_check1911`, `service_tickets_archive_check1911`, `care_activities_archive_check1911`. Mỗi lô xác minh đủ bản sao trước khi gỡ bản vận hành, giữ `_id` gốc. Có thể khôi phục từng bản bằng upsert `$setOnInsert` về collection gốc; phải giữ nguồn tự sinh tắt trong lúc phục hồi. Không ghi đè dữ liệu vận hành mới.
 
+Trạng thái chăm sóc tính sẵn trên hồ sơ (lastCare/nextCare/status) được lưu riêng vào `customer_care_state_archive_check1911` rồi làm trống cho khách chỉ có lịch/nhật ký cũ, không có việc mới còn hoạt động. Tên, SĐT, người phụ trách, đơn, doanh thu và Loyalty không thay đổi.
+
 ## Kiểm thử
 
 `npm run test:check1911` kiểm tra chu kỳ, cuối tháng/năm nhuận, báo cáo, 1.201 khách, retry lô lỗi, chương trình tạm dừng và nằm ngoài khoảng sinh lịch.
