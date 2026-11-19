@@ -6,6 +6,7 @@ import { hasDatabase } from "@/lib/mongodb";
 import { getHaravanSyncStatus } from "@/lib/haravan-sync";
 import { headers } from "next/headers";
 import { EmailSettings } from "@/components/email-settings";
+import { getHaravanLoyaltyStatus } from "@/lib/haravan-loyalty-sync";
 export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   if ((await getCurrentUser())?.role !== "super_admin") redirect("/");
@@ -25,6 +26,7 @@ export default async function SettingsPage() {
       hasR2Secret: Boolean(c.r2SecretAccessKey),
       status,
       sync: await getHaravanSyncStatus(),
+      loyalty: await getHaravanLoyaltyStatus(),
     };
   return (
     <>

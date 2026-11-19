@@ -63,6 +63,11 @@ export async function PATCH(
   const dbForValidation = await getDatabase();
   const existing = await dbForValidation.collection(collections.customers).findOne({ id, ...(canSeeAll(user) ? {} : { owner: user?.name }) });
   if (!existing) return NextResponse.json({ error: "Không tìm thấy khách hàng." }, { status: 404 });
+  if ("owner" in update) {
+    update.owner = cleanText(update.owner, 120);
+    if (update.owner !== "Chưa phân công" && !await dbForValidation.collection(collections.users).findOne({ name: update.owner, active: true, archivedAt: { $exists: false } }))
+      return NextResponse.json({ error: "Nhân viên không tồn tại hoặc không còn hoạt động." }, { status: 400 });
+  }
   for (const [field, options] of [["segment", customerSegments], ["healthGoal", healthGoals]] as const) {
     if (field in update && !options.includes(String(update[field])) && update[field] !== normalizeClassification(String(existing[field] || "")))
       return NextResponse.json({ error: "Vui lòng chọn phân nhóm và mục tiêu sức khỏe trong danh sách." }, { status: 400 });
@@ -79,7 +84,7 @@ export async function PATCH(
     await Promise.all([
       db.collection(collections.orders).updateMany(
         { customerId: id },
-        { $set: { owner: update.owner, salesperson: update.owner } },
+        { $set: { owner: update.owner } },
       ),
       db.collection(collections.careTasks).updateMany(
         { customerId: id, status: { $ne: "done" } },
@@ -91,7 +96,7 @@ export async function PATCH(
       ),
     ]);
   }
-  if (result) await writeAudit(user, "update", "customer", id, null, result);
+  if (result) await writeAudit(user, "update", "customer", id, existing, result);
   return result
     ? NextResponse.json({ data: result })
     : NextResponse.json(

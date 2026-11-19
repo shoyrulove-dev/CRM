@@ -1,6 +1,10 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { Cloud, Database, ShoppingBag } from "lucide-react";
+type LoyaltyStatus = {
+  total: number; missing: number; due: number; status: string;
+  updated: number; failed: number; halted: boolean; finishedAt: string; error: string;
+};
 type Data = {
   webhookUrl: string;
   haravanShop: string;
@@ -11,6 +15,7 @@ type Data = {
   hasWebhookSecret: boolean;
   hasR2Secret: boolean;
   status: { haravan: boolean; r2: boolean };
+  loyalty: LoyaltyStatus | null;
   sync: {
     status: string;
     lastSuccessAt: string;
@@ -46,10 +51,38 @@ export function IntegrationSettings({
     [haravanTest, setHaravanTest] = useState<HaravanTest | null>(null),
     [syncing, setSyncing] = useState(false),
     [testingR2, setTestingR2] = useState(false),
-    [sync, setSync] = useState(initial.sync);
+    [sync, setSync] = useState(initial.sync),
+    [loyalty, setLoyalty] = useState(initial.loyalty),
+    [syncingLoyalty, setSyncingLoyalty] = useState(false);
+  const stopLoyalty = useRef(false);
+  async function syncLoyalty() {
+    stopLoyalty.current = false;
+    setSyncingLoyalty(true);
+    setMessage("Đang đồng bộ hạng và điểm qua API V2. Giữ trang mở để lấy các lô tiếp theo.");
+    try {
+      do {
+        const response = await fetch("/api/settings", {
+          method: "POST", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "syncHaravanLoyalty" }),
+        });
+        const json = await response.json();
+        if (!response.ok) throw new Error(json.error || "Không thể đồng bộ Loyalty V2.");
+        const result = json.data as LoyaltyStatus & { busy: boolean };
+        setLoyalty(result);
+        setMessage(result.busy ? "Một lượt đồng bộ V2 khác đang chạy. Vui lòng kiểm tra lại sau."
+          : `Lô V2: cập nhật ${result.updated} khách, ${result.failed} lỗi. Còn ${result.due} khách đến lượt; ${result.missing} khách chưa có dữ liệu Loyalty.`);
+        if (result.busy || result.halted || result.due === 0) break;
+      } while (!stopLoyalty.current);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Không thể đồng bộ Loyalty V2.");
+    } finally {
+      setSyncingLoyalty(false);
+    }
+  }
   async function save(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setMessage("Đang lưu...");
+    try {
     const body = Object.fromEntries(new FormData(e.currentTarget).entries()),
       r = await fetch("/api/settings", {
         method: "PATCH",
@@ -60,11 +93,13 @@ export function IntegrationSettings({
     if (!r.ok) return setMessage(j.error || "Không thể lưu cài đặt");
     setStatus(j.status);
     setMessage("Đã lưu an toàn. Cấu hình mới được áp dụng ngay.");
+    } catch { setMessage("Kết nối bị gián đoạn. Cấu hình trên máy chủ chưa được xác nhận; vui lòng thử lại."); }
   }
   async function testHaravan() {
     setTesting(true);
     setMessage("Đang kiểm tra Token với Haravan...");
     setHaravanTest(null);
+    try {
     const response = await fetch("/api/settings", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -80,10 +115,13 @@ export function IntegrationSettings({
         ? "Đã đọc được cửa hàng, đơn hàng, khách hàng và sản phẩm. Hạng thành viên và điểm thưởng cần kiểm tra riêng."
         : "Token đã được kiểm tra. Vui lòng xem quyền nào còn thiếu bên dưới.",
     );
+    } catch { setMessage("Không thể kết nối máy chủ để kiểm tra Haravan. Vui lòng thử lại."); }
+    finally { setTesting(false); }
   }
   async function syncHaravan() {
     setSyncing(true);
     setMessage("Đang lấy dữ liệu mới từ Haravan. Vui lòng giữ trang này mở...");
+    try {
     const response = await fetch("/api/settings", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -106,10 +144,13 @@ export function IntegrationSettings({
         ? `Đồng bộ hoàn tất ${json.data.totalCustomers} khách hàng và ${json.data.totalOrders} đơn hàng.`
         : `Đã nhập thêm ${json.data.customers} khách hàng và ${json.data.orders} đơn hàng. Chọn Đồng bộ dữ liệu ngay lần nữa để lấy đợt tiếp theo.`,
     );
+    } catch { setMessage("Kết nối bị gián đoạn. Kiểm tra lại trạng thái đồng bộ trước khi thử lại."); }
+    finally { setSyncing(false); }
   }
   async function testR2() {
     setTestingR2(true);
     setMessage("Đang kiểm tra quyền đọc, ghi và xóa trên Cloudflare R2...");
+    try {
     const response = await fetch("/api/settings", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -122,6 +163,8 @@ export function IntegrationSettings({
         ? `R2 hoạt động tốt. Đã kiểm tra bucket ${json.data.bucket}.`
         : json.error || "Không thể kết nối Cloudflare R2.",
     );
+    } catch { setMessage("Không thể kết nối máy chủ để kiểm tra R2. Vui lòng thử lại."); }
+    finally { setTestingR2(false); }
   }
   return (
     <>
@@ -227,8 +270,8 @@ export function IntegrationSettings({
                   readOnly
                 />
                 <small>
-                  Webhook ghi nhận thay đổi ngay; lịch đồng bộ hằng ngày vẫn là
-                  lớp bảo đảm dữ liệu đầy đủ.
+                  Webhook lưu thông báo thay đổi; dữ liệu khách hàng và đơn hàng
+                  hiện được cập nhật qua lịch đồng bộ.
                 </small>
               </label>
             </details>
@@ -247,13 +290,27 @@ export function IntegrationSettings({
               <button
                 type="button"
                 className="secondary-button"
-                disabled={syncing || !status.haravan}
+                disabled={syncing || syncingLoyalty || !status.haravan}
                 onClick={syncHaravan}
               >
                 {syncing ? "Đang đồng bộ..." : "Đồng bộ dữ liệu ngay"}
               </button>
+              <button type="button" className="secondary-button"
+                disabled={syncing || syncingLoyalty || !status.haravan} onClick={syncLoyalty}>
+                {syncingLoyalty ? "Đang đồng bộ V2..." : "Đồng bộ hạng/điểm V2"}
+              </button>
+              {syncingLoyalty && <button type="button" className="secondary-button"
+                onClick={() => { stopLoyalty.current = true; setMessage("Sẽ dừng sau lô V2 đang chạy."); }}>
+                Dừng sau lô này
+              </button>}
             </footer>
           </form>
+          {loyalty && <div className="sync-summary">
+            <b>Loyalty Haravan V2</b>
+            <span>{loyalty.total - loyalty.missing}/{loyalty.total} khách đã có dữ liệu · {loyalty.due} khách đến lượt cập nhật</span>
+            {loyalty.finishedAt && <span>Lô gần nhất: {new Date(loyalty.finishedAt).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })} · {loyalty.updated} cập nhật · {loyalty.failed} lỗi</span>}
+            {loyalty.error && <span className="danger-text">{loyalty.error} Dữ liệu Loyalty cũ được giữ nguyên.</span>}
+          </div>}
           {sync && (
             <div className="sync-summary">
               <b>
@@ -267,7 +324,7 @@ export function IntegrationSettings({
               </b>
               {sync.lastSuccessAt && (
                 <span>
-                  {new Date(sync.lastSuccessAt).toLocaleString("vi-VN")} · {sync.customers} khách hàng · {sync.orders} đơn hàng
+                  {new Date(sync.lastSuccessAt).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })} · {sync.customers} khách hàng · {sync.orders} đơn hàng
                 </span>
               )}
               {sync.error && <span className="danger-text">{sync.error}</span>}
@@ -287,7 +344,7 @@ export function IntegrationSettings({
                   <span>{check.message}</span>
                 </p>
               ))}
-              <p className="muted">Hạng thành viên và điểm thưởng chưa có trong dữ liệu API khách hàng đang dùng. Không dùng nhóm khách hàng hoặc doanh thu để tự suy ra hạng và điểm. Cần Haravan xác nhận API/quyền đọc Loyalty cho cửa hàng.</p>
+              <p className="muted">Hạng thành viên, điểm thưởng và ngày hết hạn điểm được đọc riêng qua API chi tiết khách hàng V2 bằng token đã lưu. Chọn Đồng bộ hạng/điểm V2 để cập nhật; không tự suy ra hạng hoặc điểm từ doanh thu.</p>
             </div>
           )}
         </section>

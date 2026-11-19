@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/current-user";
 import { writeAudit } from "@/lib/audit";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { hasBrokenText } from "@/lib/validation";
+import { createEntityId } from "@/lib/entity-id";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       repurchaseTimely = dueOffsetDays >= -7 && dueOffsetDays <= 3;
   }
   const document = {
-    id: `NK-${Date.now().toString().slice(-6)}`,
+    id: createEntityId("NK"),
     customerId: body.customerId,
     orderId: body.orderId || "",
     careAttempt,

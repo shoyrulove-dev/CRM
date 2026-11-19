@@ -8,6 +8,7 @@ import {
 import { testHaravanConnection } from "@/lib/haravan";
 import { getHaravanSyncStatus, syncHaravanData } from "@/lib/haravan-sync";
 import { testR2Connection } from "@/lib/r2";
+import { getHaravanLoyaltyStatus, syncHaravanLoyalty } from "@/lib/haravan-loyalty-sync";
 export const maxDuration = 300;
 async function allowed() {
   return (await getCurrentUser())?.role === "super_admin";
@@ -31,6 +32,7 @@ export async function GET() {
       hasR2Secret: Boolean(c.r2SecretAccessKey),
       status: configStatus(c),
       sync: await getHaravanSyncStatus(),
+      loyalty: await getHaravanLoyaltyStatus(),
     },
   });
 }
@@ -57,12 +59,14 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   const body = await request.json().catch(() => null);
-  if (!body || !["testHaravan", "syncHaravan", "testR2"].includes(body.action))
+  if (!body || !["testHaravan", "syncHaravan", "syncHaravanLoyalty", "testR2"].includes(body.action))
     return NextResponse.json(
       { error: "Yêu cầu không hợp lệ." },
       { status: 400 },
     );
   try {
+    if (body.action === "syncHaravanLoyalty")
+      return NextResponse.json({ data: await syncHaravanLoyalty() });
     if (body.action === "testR2")
       return NextResponse.json({ data: await testR2Connection() });
     if (body.action === "syncHaravan")

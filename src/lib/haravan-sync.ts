@@ -1,7 +1,9 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getIntegrationConfig } from "./integration-config";
 import { getDatabase, hasDatabase } from "./mongodb";
+import { haravanSyncState, HARAVAN_MAPPING_VERSION } from "./haravan-sync-state";
 
 type HaravanCustomer = {
   id: number | string;
@@ -210,6 +212,22 @@ async function upsertCustomer(
 
 export async function syncHaravanData() {
   if (!hasDatabase()) throw new Error("Cơ sở dữ liệu chưa sẵn sàng.");
+  const db = await getDatabase(), owner = randomUUID();
+  const locks = db.collection<{ _id: string; owner: string; expiresAt: Date }>(collections.jobLocks);
+  try {
+    await locks.findOneAndUpdate({ _id: "haravan_commerce_sync", expiresAt: { $lte: new Date() } }, {
+      $set: { owner, expiresAt: new Date(Date.now() + 10 * 60_000) },
+    }, { upsert: true });
+  } catch (error) {
+    if ((error as { code?: number }).code === 11000) throw new Error("Một lượt đồng bộ khách/đơn đang chạy. Vui lòng chờ trước khi thử lại.");
+    throw error;
+  }
+  try { return await syncHaravanDataUnlocked(); }
+  finally { await locks.deleteOne({ _id: "haravan_commerce_sync", owner }); }
+}
+
+async function syncHaravanDataUnlocked() {
+  if (!hasDatabase()) throw new Error("Cơ sở dữ liệu chưa sẵn sàng.");
   const config = await getIntegrationConfig();
   if (!config.haravanAccessToken) throw new Error("Chưa lưu Token Haravan.");
   await ensureIndexes();
@@ -218,15 +236,14 @@ export async function syncHaravanData() {
     .collection(collections.settings)
     .findOne({ id: "haravan_sync" });
   const startedAt = new Date();
-  // Version 2 corrects Vietnamese name order. The first sync after this
-  // deployment intentionally scans all records once, then returns to incremental sync.
-  const incremental = Boolean(previous?.complete && previous?.lastSuccessAt && previous?.mappingVersion === 5);
-  const updatedAtMin = incremental
-    ? new Date(new Date(String(previous?.lastSuccessAt)).getTime() - 5 * 60_000).toISOString()
-    : undefined;
+  const state = haravanSyncState(previous, startedAt.toISOString());
+  const { incremental, updatedAtMin } = state;
   await db.collection(collections.settings).updateOne(
     { id: "haravan_sync" },
-    { $set: { status: "running", startedAt: startedAt.toISOString() } },
+    { $set: { status: "running", startedAt: startedAt.toISOString(), complete: false,
+      checkpointVersion: 1, cycleMappingVersion: HARAVAN_MAPPING_VERSION,
+      cycleStartedAt: state.cycleStartedAt, cycleIncremental: incremental,
+      cycleUpdatedAtMin: updatedAtMin || "", customerPage: state.customerPage, orderPage: state.orderPage } },
     { upsert: true },
   );
   try {
@@ -235,13 +252,13 @@ export async function syncHaravanData() {
         "customers",
         config.haravanAccessToken,
         updatedAtMin,
-        incremental ? 1 : Number(previous?.customerPage || 1),
+        state.customerPage,
       ),
       fetchPages<HaravanOrder>(
         "orders",
         config.haravanAccessToken,
         updatedAtMin,
-        incremental ? 1 : Number(previous?.orderPage || 1),
+        state.orderPage,
       ),
       fetchHaravanUsers(config.haravanAccessToken),
     ]);
@@ -397,8 +414,8 @@ export async function syncHaravanData() {
           status: "success",
           customerPage: result.complete ? 1 : customerBatch.nextPage,
           orderPage: result.complete ? 1 : orderBatch.nextPage,
-          lastSuccessAt: finishedAt.toISOString(),
-          mappingVersion: result.complete ? 5 : Number(previous?.mappingVersion || 0),
+          ...(result.complete ? { lastSuccessAt: state.cycleStartedAt } : {}),
+          mappingVersion: result.complete ? HARAVAN_MAPPING_VERSION : Number(previous?.mappingVersion || 0),
         },
         $unset: { error: "" },
       },

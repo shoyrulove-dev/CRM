@@ -14,6 +14,8 @@ import { MonthFilter } from "@/components/month-filter";
 import { monthStart, monthEnd, validDay } from "@/lib/month-range";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
 import { MonthShortcuts } from "@/components/month-shortcuts";
+import { ImportCareButton } from "@/components/import-care-button";
+import "../care-import.css";
 
 export const dynamic = "force-dynamic";
 export default async function CustomersPage({
@@ -33,10 +35,10 @@ export default async function CustomersPage({
   const params = await searchParams;
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers")) redirect("/");
-  const employees =
+  const employeesPromise =
     user && ["admin", "super_admin"].includes(user.role)
-      ? (await listUsers()).filter((item) => item.active)
-      : [];
+      ? listUsers().then(items => items.filter(item => item.active))
+      : Promise.resolve([]);
   const fromDate = validDay(params.date) || monthStart(params.from);
   const toDate = validDay(params.date) || monthEnd(params.to);
   const size = 20,
@@ -59,6 +61,7 @@ export default async function CustomersPage({
     customers = result.items,
     filteredRevenue = result.totalRevenue,
     filteredOrders = result.totalOrders;
+  const employees = await employeesPromise;
   const query = (next: Record<string, string | number | undefined>) => {
     const result = new URLSearchParams();
     Object.entries({ ...params, ...next }).forEach(([key, value]) => {
@@ -74,7 +77,10 @@ export default async function CustomersPage({
           <h1>Khách hàng</h1>
           <p>Theo dõi hồ sơ, lịch sử mua hàng và hành trình chăm sóc.</p>
         </div>
-        <CreateCustomerButton />
+        <div className="page-actions">
+          {user && ["admin", "super_admin"].includes(user.role) && <ImportCareButton />}
+          <CreateCustomerButton />
+        </div>
       </div>
       <section className="customer-summary-strip">
         <div>
@@ -223,7 +229,7 @@ export default async function CustomersPage({
                     {item.lastOrder
                       ? new Date(
                           `${item.lastOrder}T00:00:00+07:00`,
-                        ).toLocaleDateString("vi-VN")
+                        ).toLocaleDateString("vi-VN", { timeZone: "Asia/Bangkok" })
                       : "—"}
                   </td>
                   <td>

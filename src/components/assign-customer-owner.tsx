@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { UserRoundCog, X } from "lucide-react";
+import { UserRoundCog } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { Modal } from "./modal";
 
 export function AssignCustomerOwner({
   customerId,
@@ -16,19 +17,25 @@ export function AssignCustomerOwner({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMessage("Đang lưu...");
+    if (busy) return;
+    setBusy(true); setMessage("");
     const selected = String(new FormData(event.currentTarget).get("owner") || "");
-    const response = await fetch(`/api/customers/${customerId}`, {
+    try {
+    const response = await fetch(`/api/customers/${encodeURIComponent(customerId)}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ owner: selected }),
+      signal: AbortSignal.timeout(30000),
     });
     const json = await response.json();
     if (!response.ok) return setMessage(json.error || "Không thể phân công.");
     setOpen(false);
     router.refresh();
+    } catch { setMessage("Chưa nhận được xác nhận lưu. Vui lòng kiểm tra kết nối và thử lại."); }
+    finally { setBusy(false); }
   }
   return (
     <>
@@ -36,21 +43,12 @@ export function AssignCustomerOwner({
         <UserRoundCog size={17} /> Phân công
       </button>
       {open && (
-        <div className="modal-backdrop" role="presentation">
-          <form className="modal-card compact-modal" onSubmit={submit}>
-            <header>
-              <div>
-                <h2>Phân công khách hàng</h2>
-                <p>Đơn hàng và công việc đang mở cũng được chuyển cho người mới.</p>
-              </div>
-              <button type="button" className="icon-button" onClick={() => setOpen(false)} aria-label="Đóng">
-                <X size={18} />
-              </button>
-            </header>
+        <Modal title="Phân công khách hàng" description="Chuyển hồ sơ và công việc đang mở. Giữ nguyên nhân viên bán hàng trong đơn cũ." onClose={() => { if (!busy) setOpen(false); }}>
+          <form className="entity-form" onSubmit={submit}>
             <label>
               Nhân viên phụ trách
               <select name="owner" defaultValue={owner} required>
-                {owner === "Chưa phân công" && <option>Chưa phân công</option>}
+                <option>Chưa phân công</option>
                 {employees.map((employee) => (
                   <option key={employee.id}>{employee.name}</option>
                 ))}
@@ -59,10 +57,10 @@ export function AssignCustomerOwner({
             {message && <p>{message}</p>}
             <footer>
               <button type="button" className="secondary-button" onClick={() => setOpen(false)}>Hủy</button>
-              <button className="primary-button">Lưu phân công</button>
+              <button className="primary-button" disabled={busy}>{busy ? "Đang lưu..." : "Lưu phân công"}</button>
             </footer>
           </form>
-        </div>
+        </Modal>
       )}
     </>
   );

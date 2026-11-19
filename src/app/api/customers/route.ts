@@ -6,6 +6,7 @@ import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, hasBrokenText, validDate, validPhone } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 import { customerSegments, healthGoals, normalizeClassification } from "@/lib/customer-options";
+import { createEntityId } from "@/lib/entity-id";
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!hasPermission(user, "customers"))
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   const document = {
-    id: `KH-${Date.now().toString().slice(-6)}`,
+    id: createEntityId("KH"),
     name: cleanText(body.name, 120),
     phone,
     owner:

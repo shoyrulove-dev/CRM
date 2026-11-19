@@ -5,13 +5,13 @@ import { CreateCareButton } from "./create-care-button";
 import { CreateTicketButton } from "./create-ticket-button";
 import type { Customer, SalesOrder, ProductOption } from "@/lib/types";
 
-type Data = { customers: Customer[]; orders: SalesOrder[]; products: ProductOption[]; employees: { id: string; name: string }[] };
+type Data = { customers: Customer[]; orders: SalesOrder[]; products: ProductOption[]; employees: { id: string; name: string }[]; loadOrdersOnDemand?: boolean };
 export function LazyCreateButton({ kind }: { kind: "care" | "tickets" }) {
   const [data, setData] = useState<Data | null>(null), [loading, setLoading] = useState(false), [error, setError] = useState("");
   async function load() {
     setLoading(true); setError("");
     try {
-      const response = await fetch(`/api/form-options?kind=${kind}`);
+      const response = await fetch(`/api/form-options?kind=${kind}`, { signal: AbortSignal.timeout(20_000) });
       if (!response.ok) throw new Error("Không tải được biểu mẫu. Vui lòng thử lại.");
       setData(await response.json());
     } catch (error) { setError(error instanceof Error ? error.message : "Kết nối gián đoạn."); }

@@ -2,25 +2,9 @@ import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getDatabase, hasDatabase } from "./mongodb";
 import type { Customer, SalesOrder } from "./types";
 import type { AnyBulkWriteOperation, Document } from "mongodb";
+import { runCarePrograms } from "./care-programs";
+import { defaultCareAutomation } from "./care-automation-defaults";
 
-const rules = [
-  {
-    offset: 7,
-    purpose: "Khảo sát tình trạng sử dụng sau 7 ngày",
-    channel: "Gọi điện",
-  },
-  {
-    offset: 25,
-    purpose: "Khảo sát liệu trình và mức độ hài lòng",
-    channel: "Gọi điện",
-  },
-  {
-    offset: 25,
-    purpose: "Nhắc tái mua để duy trì liệu trình",
-    channel: "Zalo",
-  },
-  { offset: 45, purpose: "Duy trì tương tác với khách hàng", channel: "Zalo" },
-] as const;
 
 const fixedHolidays = [
   { month: 1, day: 1, purpose: "Chúc mừng năm mới" },
@@ -103,6 +87,10 @@ export async function runScheduler() {
     birthdayCreated = 0,
     holidayCreated = 0;
   try {
+    await runCarePrograms();
+    const savedAutomation = await db.collection(collections.settings).findOne({ id: "care_automation" });
+    const automation = { ...defaultCareAutomation, ...savedAutomation };
+    const activeRules = automation.orders ? automation.orderRules as Array<{ offset: number; purpose: string; channel: string }> : [];
     // All customers share the same calendar dates; construct them once per run.
     const localYear = Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Bangkok" }).format(now));
     const sharedHolidays = fixedHolidays.flatMap((holiday) => upcomingDates(holiday.month, holiday.day, now).map((due) => ({ due, purpose: holiday.purpose as string, key: `${holiday.month}-${holiday.day}` })));
@@ -136,9 +124,10 @@ export async function runScheduler() {
     for (const order of salesOrders) {
       const customer = customerMap.get(order.customerId);
       if (!customer) continue;
-      for (const rule of rules) {
+      for (const rule of activeRules) {
         const due = new Date(`${order.orderDate}T09:00:00+07:00`);
         due.setUTCDate(due.getUTCDate() + rule.offset);
+        if (automation.activeFrom && due.toISOString() < automation.activeFrom) continue;
         const id = `AUTO-${order.id}-${rule.offset}-${rule.purpose.slice(0, 8).replace(/\s/g, "")}`;
         if (customizedTasks.has(id)) continue;
         orderOperations.push({
@@ -169,7 +158,7 @@ export async function runScheduler() {
       }
     }
     for (const customer of customers) {
-      if (customer.birthDate) {
+      if (automation.birthdays && customer.birthDate) {
         const match = customer.birthDate.match(/^(?:\d{4})-(\d{2})-(\d{2})$/);
         if (match)
           for (const due of upcomingDates(
@@ -177,6 +166,7 @@ export async function runScheduler() {
             Number(match[2]),
             now,
           )) {
+            if (automation.activeFrom && due.toISOString() < automation.activeFrom) continue;
             const year = due.getFullYear();
             const id = `AUTO-BIRTHDAY-${customer.id}-${year}`;
             birthdayOperations.push({
@@ -203,7 +193,8 @@ export async function runScheduler() {
             });
           }
       }
-      for (const holiday of sharedHolidays) {
+      for (const holiday of automation.holidays ? sharedHolidays : []) {
+        if (automation.activeFrom && holiday.due.toISOString() < automation.activeFrom) continue;
         const year = holiday.due.getFullYear();
         const id = `AUTO-HOLIDAY-${holiday.key}-${customer.id}-${year}`;
         holidayOperations.push({

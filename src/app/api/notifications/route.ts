@@ -21,7 +21,7 @@ export async function GET() {
   };
   const tasks = await db
     .collection(collections.careTasks)
-    .find(filter, { projection: { _id: 0 } })
+    .find(filter, { projection: { _id: 0, id: 1, customer: 1, purpose: 1, dueAt: 1, status: 1, source: 1 } })
     .sort({ dueAt: 1 })
     .limit(20)
     .toArray();

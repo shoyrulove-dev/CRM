@@ -29,6 +29,7 @@ export function CreateActivityButton({
       purchaseChannel: order?.channel || form.get("purchaseChannel"),
       adverseReaction: form.get("adverseReaction") === "on",
     };
+    try {
     const response = await fetch("/api/activities", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -42,6 +43,11 @@ export function CreateActivityButton({
     }
     setOpen(false);
     router.refresh();
+    } catch {
+      setError("Kết nối bị gián đoạn. Nội dung vẫn được giữ trên biểu mẫu; vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
   }
   return (
     <>

@@ -6,6 +6,7 @@ import { canSeeAll, hasPermission } from "@/lib/session";
 import { cleanText, hasBrokenText, oneOf, validDate } from "@/lib/validation";
 import { writeAudit } from "@/lib/audit";
 import { randomUUID } from "node:crypto";
+import { recurrenceOptions } from "@/lib/care-recurrence";
 const channels = ["Gọi điện", "Zalo", "Facebook", "SMS", "Trực tiếp"] as const;
 export async function GET() {
   const user = await getCurrentUser();
@@ -96,9 +97,11 @@ export async function POST(request: NextRequest) {
     dueAt,
     offsetDays: Number(body.offsetDays || 0) || undefined,
     channel: body.channel || "Gọi điện",
-    recurrence: ["monthly", "yearly"].includes(body.recurrence)
+    recurrence: Object.keys(recurrenceOptions).includes(body.recurrence)
       ? body.recurrence
       : "none",
+    intervalDays: Math.min(3650, Math.max(1, Math.floor(Number(body.intervalDays) || 1))),
+    recurrenceAnchorDay: new Date(new Date(dueAt).getTime() + 7 * 3600000).getUTCDate(),
     orderId: relatedOrder?.id || "",
     orderCode: relatedOrder?.code || "",
     productSku: relatedProduct?.sku || "",

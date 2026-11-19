@@ -5,6 +5,7 @@ import type { CareTask } from "@/lib/types";
 import { getCurrentUser } from "@/lib/current-user";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { hasBrokenText, oneOf, validDate } from "@/lib/validation";
+import { nextCareDate } from "@/lib/care-recurrence";
 
 export async function PATCH(
   request: NextRequest,
@@ -73,10 +74,9 @@ export async function PATCH(
     result.recurrence !== "none" &&
     result.source !== "birthday" && result.source !== "holiday"
   ) {
-    const nextDue = new Date(result.dueAt);
-    if (result.recurrence === "monthly")
-      nextDue.setMonth(nextDue.getMonth() + 1);
-    else nextDue.setFullYear(nextDue.getFullYear() + 1);
+    const nextValue = nextCareDate(result.dueAt, result.recurrence, result.intervalDays, result.recurrenceAnchorDay);
+    if (!nextValue) return NextResponse.json({ data: result });
+    const nextDue = new Date(nextValue);
     const nextId = `${result.id}-R-${nextDue.toISOString().slice(0, 10)}`;
     await db.collection(collections.careTasks).updateOne(
       { id: nextId },

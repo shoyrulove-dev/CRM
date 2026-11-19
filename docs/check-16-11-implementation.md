@@ -17,11 +17,13 @@
 - Thống kê trạng thái khách tính trên toàn bộ kết quả lọc, không phải trang hiện tại. Các chip đếm độc lập với trạng thái đang chọn.
 - Chỗ hiển thị hạng/điểm tại danh sách và hồ sơ; thiếu dữ liệu hiển thị Chưa đồng bộ, không tự tính điểm/hạng.
 
-## Còn phụ thuộc Haravan — chưa thể xác nhận hoàn tất Loyalty
+## Loyalty V2 — bổ sung ngày 19/11/2026
 
 Đã gọi GET customers.json bằng token đang lưu trên VPS: HTTP 200. Phản hồi mẫu không có trường điểm/hạng; group_name trả null. Không dùng group_name hoặc tags/doanh thu để suy ra hạng thành viên.
 
-Cần Haravan cung cấp endpoint/schema/quyền đọc Loyalty áp dụng cho cửa hàng Nichiei (phiên bản chương trình thành viên đang sử dụng), cùng sự kiện hoặc cơ chế cập nhật. Không đoán endpoint hoặc ghi dữ liệu giả lên CRM. Hiện chưa có luồng đồng bộ hạng/điểm thực tế.
+Kết quả kiểm tra VPS do người vận hành cung cấp xác nhận API chi tiết V2 trả hạng, điểm và ngày hết hạn với token hiện tại. Nhận định trước đây về việc chờ thêm API/quyền chỉ dựa trên V1 và không còn áp dụng cho lượt đọc V2 đã kiểm chứng. API danh sách V2 trả 422, chưa đổi luồng danh sách sang V2.
+
+Đã bổ sung đồng bộ qua API chi tiết V2 theo từng khách, khóa chống chạy chồng, lô tối đa 50 khách/70 giây, giới hạn tốc độ và thử lại lỗi 429/5xx. Lỗi hoặc thiếu membership giữ nguyên dữ liệu Loyalty cũ. Thành công được làm mới sau 24 giờ; lỗi được thử lại sau 1 giờ. Nút Đồng bộ hạng/điểm V2 chạy tiếp các lô khi giữ trang mở. Đã cập nhật CRM hiện hữu trên VPS Nichiei 103.118.29.93 và xác minh các lô thật; lịch đồng bộ mỗi 5 phút hiện có chạy thêm một lô Loyalty, không thêm stack/cron. Chi tiết vận hành và kết quả ban đầu tại [haravan-loyalty-v2.md](haravan-loyalty-v2.md).
 
 Hợp đồng dữ liệu CRM đã dành sẵn membershipTier, loyaltyPoints, loyaltySyncedAt; các trường không nằm trong danh sách sửa thủ công của API khách hàng.
 

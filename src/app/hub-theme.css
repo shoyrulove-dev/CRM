@@ -116,6 +116,10 @@ tbody tr:hover { background: var(--cream); }
 .list-toolbar .month-filter select { min-width: 145px; }
 .customer-loyalty { display: block; color: #87620f; font-size: 10px; font-weight: 500; margin-top: 4px; }
 .month-shortcuts { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.report-formula { padding: 16px 20px; font-size: 14px; line-height: 1.6; color: #625d58; }
+.modal-card details { margin-top: 24px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; }
+.modal-card summary { cursor: pointer; font-size: 16px; font-weight: 700; }
+.modal-card .table-wrap td small { display: block; margin-top: 4px; }
 @media (max-width: 600px) {
   .list-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; }
   .list-toolbar > .search-box, .list-toolbar > .month-shortcuts { grid-column: 1 / -1; min-width: 0; width: 100%; }

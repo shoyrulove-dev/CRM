@@ -12,32 +12,22 @@ import { getCurrentUser } from "@/lib/current-user";
 import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { ReportExportButton } from "@/components/report-export-button";
+import { reportPeriod, reportInRange } from "@/lib/report-filters";
+import { retentionMetrics } from "@/lib/retention-metrics";
 
 export const dynamic = "force-dynamic";
-const inRange = (value: string, from: string, to: string) => {
-  const date = value.slice(0, 10);
-  return date >= from && date <= to;
-};
+const inRange = reportInRange;
 export default async function ReportsPage({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string; owner?: string }>;
 }) {
-  const params = await searchParams,
-    user = await getCurrentUser(),
-    data = await getReportData(user),
-    now = new Date();
+  const params = await searchParams, user = await getCurrentUser();
   if (!hasPermission(user, "reports")) redirect("/");
-  const from =
-      params.from ||
-      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
-    to = params.to || now.toISOString().slice(0, 10);
-  const start = new Date(from),
-    end = new Date(to),
-    days = Math.max(
-      1,
-      Math.round((end.getTime() - start.getTime()) / 86400000) + 1,
-    );
+  const period = reportPeriod(params.from, params.to);
+  if (!period) return <section className="panel"><h1>Khoảng ngày không hợp lệ</h1><p>Chọn ngày hợp lệ, từ ngày không sau đến ngày.</p></section>;
+  const { from, to, previousFrom, previousTo } = period;
+  const data = await getReportData(user, { summary: true, sections: ["customers", "tasks", "activities", "orders"] });
   const employees = Array.from(
     new Set(
       [
@@ -48,27 +38,24 @@ export default async function ReportsPage({
       ].filter(Boolean),
     ),
   ).sort((a, b) => a.localeCompare(b, "vi"));
-  const previousToDate = new Date(start);
-  previousToDate.setDate(previousToDate.getDate() - 1);
-  const previousFromDate = new Date(previousToDate);
-  previousFromDate.setDate(previousFromDate.getDate() - days + 1);
-  const previousFrom = previousFromDate.toISOString().slice(0, 10),
-    previousTo = previousToDate.toISOString().slice(0, 10);
+  const selectedEmployee = !user || ["admin", "super_admin"].includes(user.role) ? params.owner : user.name;
+  const employeeMatches = (value: string) => !selectedEmployee || value === selectedEmployee;
+  const orderMatches = (item: { owner: string; salesperson: string }) => !selectedEmployee || item.owner === selectedEmployee || item.salesperson === selectedEmployee;
   const activities = data.activities.filter(
       (item) =>
         inRange(item.occurredAt, from, to) &&
-        (!params.owner || item.employee === params.owner),
+        employeeMatches(item.employee),
     ),
     previousActivities = data.activities.filter((item) =>
-      inRange(item.occurredAt, previousFrom, previousTo),
+      inRange(item.occurredAt, previousFrom, previousTo) && employeeMatches(item.employee),
     );
   const orders = data.orders.filter((item) =>
-      inRange(item.orderDate, from, to),
+      inRange(item.orderDate, from, to) && orderMatches(item),
     ),
     previousOrders = data.orders.filter((item) =>
-      inRange(item.orderDate, previousFrom, previousTo),
+      inRange(item.orderDate, previousFrom, previousTo) && orderMatches(item),
     );
-  const tasks = data.tasks.filter((item) => inRange(item.dueAt, from, to));
+  const tasks = data.tasks.filter((item) => inRange(item.dueAt, from, to) && employeeMatches(item.owner));
   const rows = employees.map((name) => {
     const care = activities.filter((item) => item.employee === name),
       contacted = care.filter(
@@ -116,23 +103,8 @@ export default async function ReportsPage({
     ? activities.filter((item) => item.contactStatus === "Liên lạc được")
         .length / activities.length
     : 0;
-  const purchasedOrders = orders.filter((item) => item.status === "Mua hàng"),
-    customerOrderCounts = new Map<string, number>();
-  data.orders
-    .filter((item) => item.status === "Mua hàng" && item.orderDate <= to)
-    .forEach((item) =>
-      customerOrderCounts.set(
-        item.customerId,
-        (customerOrderCounts.get(item.customerId) || 0) + 1,
-      ),
-    );
-  const customersWithOrders = customerOrderCounts.size,
-    multiBuyers = [...customerOrderCounts.values()].filter(
-      (value) => value >= 2,
-    ).length,
-    repurchaseRate = customersWithOrders
-      ? multiBuyers / customersWithOrders
-      : 0;
+  const purchasedOrders = orders.filter((item) => item.status === "Mua hàng");
+  const { customersWithOrders, multiBuyers, repurchaseRate, cumulativeBuyers, cumulativeRepeat } = retentionMetrics(data.orders.filter(orderMatches), from, to);
   const dueForRepurchase = activities.filter(
       (item) => item.productEndDate && inRange(item.productEndDate, from, to),
     ).length,
@@ -399,25 +371,25 @@ export default async function ReportsPage({
           <div className="panel-head">
             <div>
               <h2>Giữ chân và tái mua</h2>
-              <p>Đối chiếu nhóm B trong báo cáo tháng</p>
+              <p>Các chỉ số trong kỳ dùng cùng bộ lọc ngày và nhân viên. Mỗi khách chỉ tính một lần.</p>
             </div>
           </div>
           <table>
             <tbody>
               <tr>
-                <td>Khách đã có đơn</td>
+                <td>Khách có đơn mua trong kỳ</td>
                 <td>
                   <b>{customersWithOrders}</b>
                 </td>
               </tr>
               <tr>
-                <td>Khách mua từ 2 lần</td>
+                <td>Khách tái mua trong kỳ</td>
                 <td>
                   <b>{multiBuyers}</b>
                 </td>
               </tr>
               <tr>
-                <td>Tỷ lệ mua lần 2+</td>
+                <td>Tỷ lệ khách tái mua trong kỳ</td>
                 <td>
                   <b>{(repurchaseRate * 100).toFixed(1)}%</b> · Mục tiêu 35% ·{" "}
                   <span
@@ -435,6 +407,8 @@ export default async function ReportsPage({
                   <b>{purchasedOrders.length}</b>
                 </td>
               </tr>
+              <tr><td>Khách từng mua — lũy kế đến cuối kỳ</td><td><b>{cumulativeBuyers}</b></td></tr>
+              <tr><td>Khách có ít nhất 2 đơn — lũy kế đến cuối kỳ</td><td><b>{cumulativeRepeat}</b></td></tr>
               <tr>
                 <td>Lượt đến hạn hết liệu trình</td>
                 <td>
@@ -449,6 +423,7 @@ export default async function ReportsPage({
               </tr>
             </tbody>
           </table>
+          <p className="report-formula">Doanh thu mua lại = tổng giá trị đơn Mua lại có trạng thái Mua hàng trong kỳ. Đơn hủy/đơn trả hàng không được cộng. Chỉ số này không chứng minh doanh thu phát sinh nhờ CSKH và chưa khấu trừ hoàn tiền từng phần nếu Haravan chưa cung cấp số liệu đó. Khách tái mua trong kỳ là khách có ít nhất một đơn Mua lại trong kỳ.</p>
         </section>
         <section className="panel report-panel">
           <div className="panel-head">

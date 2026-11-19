@@ -31,7 +31,7 @@ export async function POST(r: NextRequest) {
       { status: 400 },
     );
   const d = {
-    id: `NQ-${Date.now().toString().slice(-6)}`,
+    id: `NQ-${crypto.randomUUID()}`,
     name: String(b.name).trim(),
     permissions: (b.permissions || []).filter((x: string) => valid.includes(x)),
     createdAt: new Date().toISOString(),

@@ -133,7 +133,7 @@ export function AppShell({
           <strong>Kết nối bán hàng</strong>
           <small>
             {commerceStatus.lastSyncAt
-              ? `Đồng bộ ${new Date(commerceStatus.lastSyncAt).toLocaleString("vi-VN")}`
+              ? `Đồng bộ ${new Date(commerceStatus.lastSyncAt).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })}`
               : commerceStatus.ready
                 ? "Haravan đã kết nối"
                 : "Chưa kết nối Haravan"}

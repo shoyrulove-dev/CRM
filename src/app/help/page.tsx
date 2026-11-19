@@ -26,6 +26,11 @@ const guides = [
       "Mở Lịch chăm sóc → chọn Tạo lịch chăm sóc.",
       "Chọn ngày giờ cụ thể, hoặc chọn một ngày gốc rồi nhập số ngày cần nhắc.",
       "Lịch quá hạn vẫn còn trên hàng đợi cho đến khi bấm Hoàn thành.",
+      "Tạo hàng loạt: chọn tệp khách ở bộ lọc riêng. Giao theo nhân viên phụ trách sẽ tự lấy người trong từng hồ sơ, không cần chọn người nhận việc nữa. Khách chưa phân công vẫn hiện rõ để admin xử lý.",
+      "Chọn chu kỳ tuần, tháng, quý, năm hoặc số ngày tùy chỉnh. Lịch đơn tạo kỳ kế tiếp khi hoàn thành; chương trình hàng loạt tạo theo lịch ngày độc lập với việc hoàn thành.",
+      "Mở Chương trình chăm sóc để xem tiến độ, sửa nội dung, tạm dừng hoặc kết thúc; lịch đã giao không bị xóa. Sửa chỉ áp dụng cho các lượt chưa tạo. Tệp khách được chốt khi tạo chương trình.",
+      "Trong Chương trình chăm sóc → Cài đặt lịch tự động, admin có thể bật/tắt nguồn đơn hàng, sinh nhật, ngày lễ; thêm hoặc bỏ nội dung nhắc sau mua. Sau khi dọn dữ liệu cũ, các nguồn này tạm tắt cho đến khi admin cài lại.",
+      "Import Excel: chọn từng dòng hoặc Chọn tất cả dòng có thể nhập. Dòng cảnh báo cần tích xác nhận riêng; chỉ tích xác nhận mà chưa chọn dòng thì nút vẫn là Nhập 0 dòng.",
     ],
   },
   {
@@ -44,6 +49,7 @@ const guides = [
       "Mở Báo cáo và chọn khoảng ngày cần xem.",
       "Quản trị xem toàn đội; nhân viên chỉ xem kết quả của mình.",
       "Chọn Tải báo cáo Excel để gửi hoặc lưu trữ.",
+      "Khách và đơn trong kỳ cùng dùng khoảng ngày/nhân viên đã chọn. Chỉ số lũy kế được ghi riêng; doanh thu mua lại là giá trị đơn tái mua, không tự quy là doanh thu do chăm sóc tạo ra.",
     ],
   },
   {
@@ -61,9 +67,9 @@ const guides = [
     steps: [
       "Mở Cài đặt → Haravan, dán Token Private App rồi chọn Lưu Token.",
       "Chọn Kiểm tra kết nối; khi bốn mục đều màu xanh, chọn Đồng bộ dữ liệu ngay.",
-      "Webhook là tùy chọn để nhận thay đổi tức thời. Nếu chưa cấu hình, hệ thống vẫn tự đồng bộ hằng ngày.",
+      "VPS kiểm tra đồng bộ khách/đơn theo lịch nền khoảng 5 phút. Hạng và điểm từng khách được làm mới khoảng 24 giờ, không phải realtime; trong hồ sơ có nút Cập nhật hạng/điểm khi cần số mới.",
       "Sau khi lưu, kiểm tra trạng thái kết nối trước khi đồng bộ đơn hàng thật.",
-      "Hạng thành viên và điểm thưởng hiển thị Chưa đồng bộ nếu Haravan chưa cung cấp dữ liệu; không đồng nghĩa với 0 điểm. Cần xác nhận quyền và API Loyalty riêng với Haravan.",
+      "Chọn Đồng bộ hạng/điểm V2 để lấy dữ liệu thành viên qua API chi tiết khách hàng bằng token đã lưu. Giữ trang mở để chạy tiếp các lô; có thể dừng sau lô hiện tại. Chưa đồng bộ không đồng nghĩa với 0 điểm; lỗi đọc không xóa dữ liệu cũ.",
     ],
   },
 ];

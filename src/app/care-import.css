@@ -1,0 +1,15 @@
+.modal-card:has(.care-import) { width: min(1160px, calc(100vw - 32px)); max-width: 1160px; }
+.care-import { padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.care-import p { font-size: 13px; line-height: 1.6; margin: 0; }
+.care-import-upload { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; }
+.care-import-upload label { display: grid; gap: 8px; flex: 1; min-width: 220px; font-size: 13px; }
+.care-import-upload input { max-width: 100%; }
+.care-import-summary { font-size: 13px; font-weight: 600; }
+.care-import-table { max-height: 380px; overflow: auto; border: 1px solid var(--border, #e2e8f0); border-radius: 10px; }
+.care-import-table table { min-width: 900px; }
+.care-import-table td { vertical-align: top; white-space: normal; font-size: 12px; max-width: 280px; overflow-wrap: anywhere; }
+.care-import-table th { position: sticky; top: 0; background: var(--surface, #fff); }
+.care-import-table small { display: block; margin-top: 5px; line-height: 1.5; }
+.care-import .check-label { display: flex; gap: 8px; align-items: start; font-size: 13px; }
+.care-import button { justify-self: start; }
+@media (max-width: 600px) { .care-import { padding: 14px; } .care-import-upload { align-items: stretch; } .care-import-upload label { flex-basis: 100%; } }

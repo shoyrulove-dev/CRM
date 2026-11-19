@@ -26,6 +26,7 @@ import { formatDateTime } from "@/lib/format-date";
 import { CustomerClassificationEditor } from "@/components/customer-classification-editor";
 import { Pagination, pageNumber } from "@/components/pagination";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
+import { RefreshLoyaltyButton } from "@/components/refresh-loyalty-button";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -81,6 +82,7 @@ export default async function CustomerProfilePage({
               <i>{customer.segment}</i>
             </div>
             <CustomerLoyalty customer={customer} />
+            <RefreshLoyaltyButton id={customer.id} />
             <p>
               {customer.id} · <Phone size={13} />
               {customer.phone} · Phụ trách: <strong>{customer.owner}</strong>

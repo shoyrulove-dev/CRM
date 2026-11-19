@@ -10,6 +10,7 @@ import type {
 } from "./types";
 import type { SessionUser } from "./session";
 import { monthStart, monthEnd, monthBounds, dayBounds } from "./month-range";
+import { escapeSearch } from "./query-utils";
 
 export const collections = {
   customers: "customers",
@@ -60,10 +61,17 @@ export async function ensureIndexes() {
       .collection(collections.customers)
       .createIndex({ haravanId: 1 }, { unique: true, sparse: true }),
     db.collection(collections.customers).createIndex({ owner: 1, name: 1 }),
+    db.collection(collections.customers).createIndex({ name: 1, id: 1 }),
+    db.collection(collections.customers).createIndex({ owner: 1, name: 1, id: 1 }),
+    db.collection(collections.customers).createIndex({ lastOrder: 1, id: 1 }),
+    db.collection(collections.customers).createIndex({ lastOrder: -1, id: 1 }),
     db
       .collection(collections.careTasks)
       .createIndex({ id: 1 }, { unique: true }),
     db.collection(collections.careTasks).createIndex({ status: 1, dueAt: 1 }),
+    db.collection(collections.careTasks).createIndex({ dueAt: 1, id: 1 }),
+    db.collection(collections.careTasks).createIndex({ owner: 1, dueAt: 1, id: 1 }),
+    db.collection(collections.careTasks).createIndex({ customerId: 1, dueAt: -1, id: -1 }),
     db
       .collection(collections.careTasks)
       .createIndex({ owner: 1, status: 1, dueAt: 1 }),
@@ -72,6 +80,7 @@ export async function ensureIndexes() {
       .createIndex({ customerId: 1, occurredAt: -1 }),
     db.collection(collections.tickets).createIndex({ id: 1 }, { unique: true }),
     db.collection(collections.tickets).createIndex({ owner: 1, createdAt: -1 }),
+    db.collection(collections.tickets).createIndex({ createdAt: -1, id: -1 }),
     db
       .collection(collections.orders)
       .createIndex({ code: 1 }, { unique: true }),
@@ -169,9 +178,9 @@ export async function listCustomers(
   if (search)
     clauses.push({
       $or: [
-        { name: { $regex: search, $options: "i" } },
-        { phone: { $regex: search, $options: "i" } },
-        { id: { $regex: search, $options: "i" } },
+        { name: { $regex: escapeSearch(search), $options: "i" } },
+        { phone: { $regex: escapeSearch(search), $options: "i" } },
+        { id: { $regex: escapeSearch(search), $options: "i" } },
       ],
     });
   if (user && !["admin", "super_admin"].includes(user.role)) clauses.push({ owner: user.name });
@@ -230,9 +239,9 @@ export async function getCustomersPage(
     };
   if (input.search)
     filter.$or = [
-      { name: { $regex: input.search, $options: "i" } },
-      { phone: { $regex: input.search, $options: "i" } },
-      { id: { $regex: input.search, $options: "i" } },
+      { name: { $regex: escapeSearch(input.search), $options: "i" } },
+      { phone: { $regex: escapeSearch(input.search), $options: "i" } },
+      { id: { $regex: escapeSearch(input.search), $options: "i" } },
     ];
   const db = await getDatabase();
   const { status: ignoredStatus, ...countFilter } = filter;
@@ -254,7 +263,7 @@ export async function getCustomersPage(
         },
       ])
       .next(),
-    db.collection(collections.customers).aggregate([{ $match: countFilter }, { $group: { _id: null, allCount: { $sum: 1 }, dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } }, overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } } } }]).next(),
+    input.status ? db.collection(collections.customers).aggregate([{ $match: countFilter }, { $group: { _id: null, allCount: { $sum: 1 }, dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } }, overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } } } }]).next() : Promise.resolve(null),
   ]);
   const total = Number(totals?.total || 0);
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / size)));
@@ -270,9 +279,9 @@ export async function getCustomersPage(
     total,
     totalRevenue: Number(totals?.totalRevenue || 0),
     totalOrders: Number(totals?.totalOrders || 0),
-    allCount: Number(counts?.allCount || 0),
-    dueCount: Number(counts?.dueCount || 0),
-    overdueCount: Number(counts?.overdueCount || 0),
+    allCount: Number(counts?.allCount ?? (input.status ? 0 : totals?.total) ?? 0),
+    dueCount: Number(counts?.dueCount ?? (input.status ? 0 : totals?.dueCount) ?? 0),
+    overdueCount: Number(counts?.overdueCount ?? (input.status ? 0 : totals?.overdueCount) ?? 0),
   };
 }
 
@@ -436,38 +445,41 @@ export async function listTickets(
         (x) => !user || ["admin", "super_admin"].includes(user.role) || x.owner === user.name,
       );
 }
-export async function getReportData(user?: SessionUser | null) {
-  if (!hasDatabase()) return { customers, tasks, activities, orders, tickets };
-  const [customerData, taskData, activityData, orderData, ticketData] =
-    await Promise.all([
-      listFromMongo<Customer>(collections.customers),
-      listFromMongo<CareTask>(collections.careTasks),
-      listFromMongo<CareActivity>(collections.careActivities),
-      listFromMongo<SalesOrder>(collections.orders),
-      listFromMongo<ServiceTicket>(collections.tickets),
-    ]);
-  if (!user || ["admin", "super_admin"].includes(user.role))
+export async function getReportData(user?: SessionUser | null, options: {
+  summary?: boolean; sections?: Array<"customers" | "tasks" | "activities" | "orders" | "tickets">;
+} = {}) {
+  const restricted = !!user && !["admin", "super_admin"].includes(user.role);
+  const sections = new Set(options.sections || ["customers", "tasks", "activities", "orders", "tickets"]);
+  if (!hasDatabase()) {
+    const customerData = customers.filter(item => !restricted || item.owner === user!.name);
+    const ids = new Set(customerData.map(item => item.id));
     return {
-      customers: customerData,
-      tasks: taskData,
-      activities: activityData,
-      orders: orderData,
-      tickets: ticketData,
+      customers: sections.has("customers") ? customerData : [],
+      tasks: sections.has("tasks") ? tasks.filter(item => !restricted || item.owner === user!.name) : [],
+      activities: sections.has("activities") ? activities.filter(item => !restricted || item.employee === user!.name || ids.has(item.customerId)) : [],
+      orders: sections.has("orders") ? orders.filter(item => !restricted || item.owner === user!.name || item.salesperson === user!.name) : [],
+      tickets: sections.has("tickets") ? tickets.filter(item => !restricted || item.owner === user!.name) : [],
     };
-  const customerIds = new Set(
-    customerData.filter((x) => x.owner === user.name).map((x) => x.id),
-  );
-  return {
-    customers: customerData.filter((x) => customerIds.has(x.id)),
-    tasks: taskData.filter((x) => x.owner === user.name),
-    activities: activityData.filter(
-      (x) => x.employee === user.name || customerIds.has(x.customerId),
-    ),
-    orders: orderData.filter(
-      (x) => x.owner === user.name || x.salesperson === user.name,
-    ),
-    tickets: ticketData.filter((x) => x.owner === user.name),
-  };
+  }
+  const db = await getDatabase();
+  const owner = restricted ? { owner: user!.name } : {};
+  const customerData = sections.has("customers") || (restricted && sections.has("activities"))
+    ? await db.collection(collections.customers).find(owner, { projection: options.summary
+      ? { _id: 0, id: 1, owner: 1 } : { _id: 0 } }).toArray() : [];
+  const read = async <T>(name: string, enabled: boolean, filter: Record<string, unknown>, projection: Record<string, number>) =>
+    enabled ? await db.collection(name).find(filter, { projection: options.summary ? projection : { _id: 0 } }).toArray() as unknown as T[] : [] as T[];
+  const [taskData, activityData, orderData, ticketData] = await Promise.all([
+    read<CareTask>(collections.careTasks, sections.has("tasks"), owner, { _id: 0, owner: 1, dueAt: 1, status: 1 }),
+    read<CareActivity>(collections.careActivities, sections.has("activities"), restricted ? {
+      $or: [{ employee: user!.name }, { customerId: { $in: customerData.map(item => item.id) } }],
+    } : {}, { _id: 0, customerId: 1, occurredAt: 1, employee: 1, channel: 1, purpose: 1,
+      contactStatus: 1, result: 1, productEndDate: 1, repurchaseTimely: 1, satisfaction: 1, adverseReaction: 1, noPurchaseReason: 1 }),
+    read<SalesOrder>(collections.orders, sections.has("orders"), restricted ? {
+      $or: [{ owner: user!.name }, { salesperson: user!.name }],
+    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1 }),
+    read<ServiceTicket>(collections.tickets, sections.has("tickets"), owner, { _id: 0, id: 1, owner: 1, status: 1, createdAt: 1 }),
+  ]);
+  return { customers: sections.has("customers") ? customerData as unknown as Customer[] : [], tasks: taskData, activities: activityData, orders: orderData, tickets: ticketData };
 }
 
 export async function getDashboardData(user?: SessionUser | null) {
@@ -548,7 +560,8 @@ export async function reconcileCustomers() {
   const [customerRows, orderRows, activityRows, taskRows] = await Promise.all([
     listFromMongo<Customer>(collections.customers),
     listFromMongo<SalesOrder>(collections.orders),
-    listFromMongo<CareActivity>(collections.careActivities),
+    // Historic Excel entries must not silently create/reschedule current care work.
+    listFromMongo<CareActivity>(collections.careActivities, { source: { $ne: "excel-import" } }),
     listFromMongo<CareTask>(collections.careTasks),
   ]);
   const now = new Date().toISOString();
@@ -571,8 +584,9 @@ export async function reconcileCustomers() {
       .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     const pendingTasks = (tasksByCustomer.get(customer.id) || [])
       .sort((a, b) => a.dueAt.localeCompare(b.dueAt));
-    const lastCare =
-      customerActivities[0]?.occurredAt || customer.lastCare || "";
+    const lastCare = [customerActivities[0]?.occurredAt, customer.lastCare]
+      .filter((value): value is string => !!value && Number.isFinite(Date.parse(value)))
+      .sort((a, b) => Date.parse(b) - Date.parse(a))[0] || "";
     const upcomingTask = pendingTasks.find((task) => task.dueAt >= now);
     let nextCare = upcomingTask?.dueAt || pendingTasks.at(-1)?.dueAt || "";
     if (!nextCare && lastCare) {

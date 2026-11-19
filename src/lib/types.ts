@@ -31,6 +31,7 @@ export interface Customer {
   membershipTier?: string;
   loyaltyPoints?: number;
   loyaltySyncedAt?: string;
+  loyaltyExpiresAt?: string | null;
   id: string;
   name: string;
   phone: string;
@@ -62,7 +63,9 @@ export interface CareTask {
   orderCode?: string;
   productSku?: string;
   productName?: string;
-  recurrence?: "none" | "monthly" | "yearly";
+  recurrence?: "none" | "weekly" | "monthly" | "quarterly" | "yearly" | "custom";
+  intervalDays?: number;
+  recurrenceAnchorDay?: number;
   offsetDays?: number;
   completedAt?: string;
   source?: "manual" | "order-rule" | "birthday" | "holiday";

@@ -31,6 +31,11 @@ let defaultsReady = false;
 export async function ensureDefaultUsers() {
   if (defaultsReady) return;
   if (!hasDatabase()) return;
+  // Listing users in production must never recreate accounts with public demo passwords.
+  if (process.env.NODE_ENV === "production" || process.env.ALLOW_DEMO_USERS !== "true") {
+    defaultsReady = true;
+    return;
+  }
   await ensureIndexes();
   const db = await getDatabase();
   const existing = new Set(
@@ -80,7 +85,7 @@ export async function authenticateUser(email: string, password: string) {
     .findOne({ email: email.toLowerCase(), active: true });
   if (!user) {
     const initial = defaults.find((item) => item.email === email.toLowerCase());
-    if (initial) {
+    if (initial && process.env.NODE_ENV !== "production" && process.env.ALLOW_DEMO_USERS === "true") {
       const passwordHash = await hash(initial.password, 10);
       await db.collection(collections.users).updateOne(
         { email: initial.email },

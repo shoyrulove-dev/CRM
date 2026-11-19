@@ -8,6 +8,10 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:haravan": "node --test tests/haravan-loyalty.test.cjs",
+    "test:import": "node --test tests/care-import.test.cjs",
+    "test:performance": "node --test tests/crm-performance.test.cjs",
+    "test:check1911": "node --test tests/check1911.test.cjs",
     "test:e2e": "playwright test"
   },
   "dependencies": {

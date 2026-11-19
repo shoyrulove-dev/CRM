@@ -31,7 +31,7 @@ export function NotificationBell() {
           setItems(json.data);
           setUnread(json.unread);
         }
-      });
+      }).catch(() => { /* A notification outage must not produce an unhandled rejection. */ });
     const close = (event: MouseEvent) => {
       if (box.current && !box.current.contains(event.target as Node))
         setOpen(false);
@@ -44,17 +44,20 @@ export function NotificationBell() {
   }, []);
   async function read(task: Task) {
     if (!task.read) {
-      await fetch("/api/notifications", {
+      try {
+      const response = await fetch("/api/notifications", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ ids: [task.id] }),
       });
+      if (!response.ok) { setOpen(false); return; }
       setItems((old) =>
         old.map((item) =>
           item.id === task.id ? { ...item, read: true } : item,
         ),
       );
       setUnread((value) => Math.max(0, value - 1));
+      } catch { /* Keep unread state unchanged if marking read fails. */ }
     }
     setOpen(false);
   }

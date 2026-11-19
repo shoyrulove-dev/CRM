@@ -3,18 +3,26 @@ import { getReportData } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, type ExcelCell } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
+import { validDay } from "@/lib/month-range";
+import { reportInRange } from "@/lib/report-filters";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!hasPermission(user, "reports")) return new Response("Không có quyền xuất báo cáo.", { status: 403 });
-  const data = await getReportData(user), p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"), owner = p.get("owner"), template = p.get("template") || "detail";
-  const inRange = (value: string) => (!from || value.slice(0, 10) >= from) && (!to || value.slice(0, 10) <= to);
+  const p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"),
+    owner = user && !["admin", "super_admin"].includes(user.role) ? user.name : p.get("owner"), template = p.get("template") || "detail";
+  if ((from && !validDay(from)) || (to && !validDay(to)) || (from && to && from > to))
+    return new Response("Khoảng ngày không hợp lệ.", { status: 400 });
+  const sections: Array<"customers" | "tasks" | "activities" | "orders" | "tickets"> = template === "orders" ? ["customers", "orders"]
+    : template === "customers" ? ["customers"] : template === "tickets" ? ["tickets"] : ["activities"];
+  const data = await getReportData(user, { sections });
+  const inRange = (value: string) => reportInRange(value, from || undefined, to || undefined);
   let name = "Chi tiết chăm sóc", headers: string[], rows: ExcelCell[][];
   if (template === "orders") {
     name = "Đơn hàng Haravan";
     headers = ["Ngày", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tổng thanh toán", "Nhân viên phụ trách"];
     const customerById = new Map(data.customers.map((item) => [item.id, item]));
-    rows = data.orders.filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner)).flatMap((item) => {
+    rows = data.orders.filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner || item.salesperson === owner)).flatMap((item) => {
       const customer = customerById.get(item.customerId);
       const products = item.products.length ? item.products : [{ name: "", quantity: 0 }];
       return products.map((product, index) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, index === 0 ? item.total : "", item.owner]);

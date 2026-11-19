@@ -11,6 +11,10 @@ import { BulkCareButton } from "@/components/bulk-care-button";
 import { Pagination } from "@/components/pagination";
 import { MonthFilter } from "@/components/month-filter";
 import { MonthShortcuts } from "@/components/month-shortcuts";
+import { ImportCareButton } from "@/components/import-care-button";
+import { CareProgramManager } from "@/components/care-program-manager";
+import { recurrenceOptions } from "@/lib/care-recurrence";
+import "../care-import.css";
 
 export const dynamic = "force-dynamic";
 function careDate(value: string) {
@@ -62,6 +66,8 @@ export default async function CarePage({
           <p>Nhiệm vụ chỉ hết cảnh báo khi được đánh dấu hoàn thành.</p>
         </div>
         <div className="page-actions">
+          {user && ["admin", "super_admin"].includes(user.role) && <ImportCareButton />}
+          {user && ["admin", "super_admin"].includes(user.role) && <CareProgramManager />}
           {user && ["admin", "super_admin"].includes(user.role) && (
             <BulkCareButton products={products} employees={employees} />
           )}
@@ -154,7 +160,7 @@ export default async function CarePage({
                     {item.orderCode ? ` · Đơn ${item.orderCode}` : ""}
                     {item.productName ? ` · ${item.productName}` : ""}
                     {item.recurrence && item.recurrence !== "none"
-                      ? ` · Lặp ${item.recurrence === "monthly" ? "hàng tháng" : "hàng năm"}`
+                      ? ` · ${recurrenceOptions[item.recurrence]}`
                       : ""}
                   </p>
                 </div>
