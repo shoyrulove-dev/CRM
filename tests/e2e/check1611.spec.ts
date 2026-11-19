@@ -42,7 +42,8 @@ test("month selectors, shortcuts and sorting work without blank month inputs", a
   }
   await page.goto("/customers?sort=newest");
   await expect(page.getByLabel("Sắp xếp khách hàng")).toHaveValue("newest");
-  await expect(page.locator(".customer-loyalty").first()).toContainText("Chưa đồng bộ");
+  await expect(page.locator(".customer-loyalty").first()).toContainText("Hạng:");
+  await expect(page.locator(".customer-loyalty").first()).toContainText("Điểm:");
 });
 
 test("status totals count all matching customers rather than the current page", async ({ page }) => {

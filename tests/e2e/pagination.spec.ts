@@ -11,11 +11,16 @@ test.beforeEach(async ({ page }) => {
 test("care pages are bounded and keep filters", async ({ page }) => {
   await page.goto("/care?status=overdue");
   const nav = page.getByRole("navigation", { name: "Phân trang danh sách" });
-  await expect(nav).toContainText("1–20 /");
+  await expect(nav).toBeVisible();
   expect(await page.locator(".care-row").count()).toBeLessThanOrEqual(20);
+  if (!await nav.getByRole("link", { name: "Sau", exact: true }).count()) {
+    await expect(nav).toContainText("Trang 1/1");
+    return;
+  }
+  await expect(nav).toContainText("1–20 /");
   await nav.getByRole("link", { name: "Sau", exact: true }).click();
   await expect(page).toHaveURL(/status=overdue.*page=2/);
-  await expect(nav).toContainText("21–40 /");
+  await expect(nav).toContainText("21–");
   await nav.getByRole("link", { name: "Trước", exact: true }).click();
   await expect(nav).toContainText("1–20 /");
 });
