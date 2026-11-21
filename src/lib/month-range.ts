@@ -15,6 +15,13 @@ export function dayBounds(value?: string) {
   const day = validDay(value);
   return day ? { $gte: new Date(`${day}T00:00:00+07:00`).toISOString(), $lte: new Date(`${day}T23:59:59.999+07:00`).toISOString() } : undefined;
 }
+// Accept old bookmarked month filters as well as exact calendar dates.
+export function customerDateRange(from?: string, to?: string, date?: string) {
+  const exact = validDay(date);
+  const start = exact || validDay(from) || monthStart(from);
+  const end = exact || validDay(to) || monthEnd(to);
+  return { from: start, to: end, invalid: Boolean(start && end && start > end) };
+}
 export function monthBounds(from?: string, to?: string) {
   const start = monthStart(from), end = monthEnd(to);
   return {

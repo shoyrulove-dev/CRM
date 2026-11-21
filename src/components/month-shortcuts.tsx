@@ -4,12 +4,12 @@ export function MonthShortcuts({ resetPath }: { resetPath: string }) {
   function choose(event: MouseEvent<HTMLButtonElement>, offset: number) {
     const form = event.currentTarget.form;
     if (!form) return;
-    const localMonth = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).format(new Date());
-    const [year, month] = localMonth.split("-").map(Number);
+    const parts = new Intl.DateTimeFormat("en", { timeZone: "Asia/Bangkok", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+    const year = Number(parts.find(p => p.type === "year")?.value), month = Number(parts.find(p => p.type === "month")?.value);
     const value = new Date(Date.UTC(year, month - 1 + offset, 1)).toISOString().slice(0, 7);
     for (const name of ["from", "to"]) {
-      const field = form.elements.namedItem(name) as HTMLSelectElement | null;
-      if (field) field.value = value;
+      const field = form.elements.namedItem(name) as HTMLInputElement | HTMLSelectElement | null;
+      if (field) field.value = field.type === "date" ? `${value}-${name === "from" ? "01" : String(new Date(Date.UTC(year, month + offset, 0)).getUTCDate()).padStart(2, "0")}` : value;
     }
     const day = form.elements.namedItem("date") as HTMLInputElement | null;
     if (day) day.value = "";

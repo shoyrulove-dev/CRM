@@ -9,6 +9,15 @@ function load(file, deps = {}) {
   return exports;
 }
 const recurrence = load('care-recurrence');
+test('customer day ranges include both endpoints and preserve legacy month links', () => {
+  const { customerDateRange: range } = load('month-range');
+  assert.equal(range('2026-11-01', '2026-11-20').from, '2026-11-01');
+  assert.equal(range('2026-11-01', '2026-11-20').to, '2026-11-20');
+  assert.equal(range('2026-11', '2026-11').to, '2026-11-30');
+  assert.equal(range('2026-11-20', '2026-11-01').invalid, true);
+  assert.equal(range('2026-11-01', '2026-11-20', '2026-11-05').to, '2026-11-05');
+  assert.equal(range('2026-02-30', undefined).from, undefined);
+});
 test('calendar recurrence clamps month end and restores original day; weekly quarterly yearly custom', () => {
   const next = recurrence.nextCareDate;
   assert.equal(next('2026-01-31T02:00:00Z', 'monthly', 7, 31), '2026-02-28T02:00:00.000Z');

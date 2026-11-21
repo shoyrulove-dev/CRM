@@ -10,8 +10,7 @@ import { hasPermission } from "@/lib/session";
 import { redirect } from "next/navigation";
 import { listUsers } from "@/lib/users";
 import { ExportCustomersButton } from "@/components/export-customers-button";
-import { MonthFilter } from "@/components/month-filter";
-import { monthStart, monthEnd, validDay } from "@/lib/month-range";
+import { customerDateRange } from "@/lib/month-range";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
 import { MonthShortcuts } from "@/components/month-shortcuts";
 import { ImportCareButton } from "@/components/import-care-button";
@@ -39,8 +38,9 @@ export default async function CustomersPage({
     user && ["admin", "super_admin"].includes(user.role)
       ? listUsers().then(items => items.filter(item => item.active))
       : Promise.resolve([]);
-  const fromDate = validDay(params.date) || monthStart(params.from);
-  const toDate = validDay(params.date) || monthEnd(params.to);
+  const range = customerDateRange(params.from, params.to, params.date);
+  const fromDate = range.from;
+  const toDate = range.to;
   const size = 20,
     requestedPage = Math.max(1, Number(params.page) || 1),
     result = await getCustomersPage(
@@ -116,9 +116,8 @@ export default async function CustomersPage({
               <option key={employee.id}>{employee.name}</option>
             ))}
           </select>
-          <MonthFilter name="from" value={params.from} label="Đơn gần nhất từ tháng" />
-          <MonthFilter name="to" value={params.to} label="Đến tháng" />
-          <label className="month-filter">Hoặc ngày mua cụ thể<input className="ghost-select" type="date" name="date" defaultValue={params.date} aria-label="Ngày mua cụ thể" /></label>
+          <label className="month-filter">Đơn gần nhất từ ngày<input className="ghost-select" type="date" name="from" defaultValue={fromDate} aria-label="Từ ngày" /></label>
+          <label className="month-filter">Đến ngày<input className="ghost-select" type="date" name="to" defaultValue={toDate} aria-label="Đến ngày" /></label>
           <select className="ghost-select" name="sort" defaultValue={params.sort || "name"} aria-label="Sắp xếp khách hàng"><option value="name">Tên A–Z</option><option value="newest">Mua gần nhất</option><option value="oldest">Lâu chưa mua</option></select>
           <select
             className="ghost-select"
@@ -145,6 +144,7 @@ export default async function CustomersPage({
             />
           )}
         </form>
+        {range.invalid && <p className="form-error" role="alert">Ngày kết thúc phải bằng hoặc sau ngày bắt đầu. Vui lòng chọn lại khoảng ngày.</p>}
         <div className="filter-chips">
           <Link
             className={`chip ${!params.status ? "active" : ""}`}

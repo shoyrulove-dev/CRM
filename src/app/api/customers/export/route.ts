@@ -3,7 +3,7 @@ import { listCustomers } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, vietnamDateStamp } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
-import { monthStart, monthEnd, validDay } from "@/lib/month-range";
+import { customerDateRange } from "@/lib/month-range";
 
 const columns = {
   id: "Mã khách",
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       status: 403,
     });
   const p = request.nextUrl.searchParams;
-  const from = validDay(p.get("date") || undefined) || monthStart(p.get("from") || undefined);
-  const to = validDay(p.get("date") || undefined) || monthEnd(p.get("to") || undefined);
+  const { from, to, invalid } = customerDateRange(p.get("from") || undefined, p.get("to") || undefined, p.get("date") || undefined);
+  if (invalid) return new Response("Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.", { status: 400 });
   const all = await listCustomers(p.get("q") || undefined, user);
   const customers = all.filter(
     (item) =>
