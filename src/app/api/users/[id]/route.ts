@@ -76,6 +76,9 @@ export async function PATCH(
       { $set: update, ...(body?.password ? { $unset: { resetTokenHash: "", resetExpiresAt: "" } } : {}) },
       { returnDocument: "after", projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } },
     );
+  // A newly issued password must not inherit the old failed-password lockout.
+  if (body?.password)
+    await db.collection(collections.loginAttempts).deleteMany({ email: before.email });
   await writeAudit(current, "update", "user", id, before, result);
   return NextResponse.json({ data: result });
 }
