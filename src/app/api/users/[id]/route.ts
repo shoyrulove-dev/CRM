@@ -49,6 +49,17 @@ export async function PATCH(
     update.canManageUsers = body.canManageUsers;
   if (typeof body?.groupId === "string") update.groupId = body.groupId;
   let revoke = false;
+  if (body?.email !== undefined) {
+    if (current.role !== "super_admin")
+      return NextResponse.json({ error: "Chỉ Super Admin được đổi email đăng nhập." }, { status: 403 });
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return NextResponse.json({ error: "Email không hợp lệ." }, { status: 400 });
+    if (email !== before.email) {
+      update.email = email;
+      revoke = true;
+    }
+  }
   if (typeof body?.active === "boolean") {
     if (id === current.id && !body.active)
       return NextResponse.json(
@@ -56,7 +67,7 @@ export async function PATCH(
         { status: 400 },
       );
     update.active = body.active;
-    revoke = body.active !== before.active;
+    revoke ||= body.active !== before.active;
   }
   if (body?.password) {
     if (String(body.password).length < 8 || String(body.password).length > 128)
@@ -68,14 +79,19 @@ export async function PATCH(
     update.mustChangePassword = true;
     revoke = true;
   }
-  if (revoke) update.sessionVersion = Number(before.sessionVersion || 0) + 1;
+  const credentialsChanged = Boolean(body?.password || update.email);
   const result = await db
     .collection(collections.users)
     .findOneAndUpdate(
       { id },
-      { $set: update, ...(body?.password ? { $unset: { resetTokenHash: "", resetExpiresAt: "" } } : {}) },
+      { $set: update, ...(revoke ? { $inc: { sessionVersion: 1 } } : {}), ...(credentialsChanged ? { $unset: { resetTokenHash: "", resetExpiresAt: "", resetRequestedAt: "" } } : {}) },
       { returnDocument: "after", projection: { _id: 0, passwordHash: 0, resetTokenHash: 0, resetExpiresAt: 0 } },
-    );
+    ).catch((error: unknown) => {
+      if ((error as { code?: number }).code === 11000) return null;
+      throw error;
+    });
+  if (!result)
+    return NextResponse.json({ error: "Email này đã có tài khoản hoặc tài khoản không còn tồn tại." }, { status: 409 });
   // A newly issued password must not inherit the old failed-password lockout.
   if (body?.password)
     await db.collection(collections.loginAttempts).deleteMany({ email: before.email });

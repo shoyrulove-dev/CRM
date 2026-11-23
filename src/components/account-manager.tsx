@@ -95,6 +95,7 @@ export function AccountManager({
     if (
       await patch(selected.id, {
         name: form.name,
+        ...(currentRole === "super_admin" ? { email: form.email } : {}),
         role: form.role,
         groupId: form.groupId,
         canManageUsers: form.canManageUsers === "on",
@@ -272,7 +273,7 @@ export function AccountManager({
               </label>
               <label className="full">
                 Email
-                <input value={selected.email} disabled />
+                <input name="email" type="email" defaultValue={selected.email} required maxLength={254} disabled={currentRole !== "super_admin"} />
               </label>
               <label className="full">
                 Nhóm quyền

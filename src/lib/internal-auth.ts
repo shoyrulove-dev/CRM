@@ -1,5 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import { SESSION_COOKIE, verifySessionToken } from "./session";
+import { getCurrentUser } from "./current-user";
 
 export function isInternalRequest(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -12,16 +12,6 @@ export function isInternalRequest(request: Request) {
 
 export async function isInternalOrAdminRequest(request: Request) {
   if (isInternalRequest(request)) return true;
-  const cookie = request.headers.get("cookie") || "";
-  const token = cookie
-    .split(";")
-    .map((value) => value.trim())
-    .find((value) => value.startsWith(`${SESSION_COOKIE}=`))
-    ?.slice(SESSION_COOKIE.length + 1);
-  if (!token) return false;
-  try {
-    return ["admin", "super_admin"].includes((await verifySessionToken(token)).role);
-  } catch {
-    return false;
-  }
+  const user = await getCurrentUser();
+  return Boolean(user && !user.mustChangePassword && ["admin", "super_admin"].includes(user.role));
 }

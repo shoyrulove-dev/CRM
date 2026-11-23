@@ -8,8 +8,8 @@ import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@nichiei.vn");
-  const [password, setPassword] = useState("Nichiei@2026");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -109,10 +109,6 @@ export default function LoginPage() {
             {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             <ArrowRight size={17} />
           </button>
-          <div className="demo-hint">
-            <strong>Tài khoản demo</strong>
-            <span>admin@nichiei.vn / Nichiei@2026</span>
-          </div>
         </form>
       </section>
     </main>
