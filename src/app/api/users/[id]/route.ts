@@ -100,10 +100,11 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const current = await getCurrentUser();
+  const permanent = request.nextUrl.searchParams.get("mode") === "permanent";
   if (!current || !["super_admin", "admin"].includes(current.role))
     return NextResponse.json(
       { error: "Bạn không có quyền lưu trữ tài khoản." },
@@ -112,9 +113,11 @@ export async function DELETE(
   const { id } = await params;
   if (id === current.id)
     return NextResponse.json(
-      { error: "Bạn không thể tự lưu trữ tài khoản đang sử dụng." },
+      { error: "Bạn không thể xóa hoặc lưu trữ tài khoản đang sử dụng." },
       { status: 400 },
     );
+  if (permanent && current.role !== "super_admin")
+    return NextResponse.json({ error: "Chỉ Super Admin được xóa tài khoản." }, { status: 403 });
   if (!hasDatabase())
     return NextResponse.json(
       { error: "Kho dữ liệu chưa sẵn sàng." },
@@ -131,6 +134,16 @@ export async function DELETE(
     );
   if (!canManageAccount(current, before as never))
     return NextResponse.json({ error: "Bạn không được quản lý tài khoản này." }, { status: 403 });
+  if (permanent) {
+    const deleted = await db.collection(collections.users).findOneAndDelete(
+      { id, role: before.role },
+      { projection: { _id: 0, id: 1, name: 1, email: 1, role: 1 } },
+    );
+    if (!deleted)
+      return NextResponse.json({ error: "Tài khoản đã thay đổi. Vui lòng tải lại danh sách." }, { status: 409 });
+    await writeAudit(current, "delete", "user", id, deleted);
+    return NextResponse.json({ ok: true });
+  }
   const archivedAt = new Date().toISOString();
   const result = await db
     .collection(collections.users)

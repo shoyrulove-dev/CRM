@@ -1,6 +1,6 @@
 "use client";
 import { FormEvent, useMemo, useState } from "react";
-import { Archive, KeyRound, Lock, LockOpen, Pencil, Plus } from "lucide-react";
+import { Archive, KeyRound, Lock, LockOpen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { UserRole } from "@/lib/types";
@@ -34,7 +34,7 @@ export function AccountManager({
   const [filter, setFilter] = useState<Filter>("all"),
     [credential, setCredential] = useState<{ email: string; password: string } | null>(null),
     [saving, setSaving] = useState(false),
-    [mode, setMode] = useState<"create" | "edit" | "password" | null>(null),
+    [mode, setMode] = useState<"create" | "edit" | "password" | "delete" | null>(null),
     [selected, setSelected] = useState<Row | null>(null),
     [error, setError] = useState(""),
     router = useRouter(),
@@ -124,6 +124,25 @@ export function AccountManager({
       return setError(json.error || "Không thể lưu trữ tài khoản");
     router.refresh();
   }
+  async function deleteAccount() {
+    if (!selected || saving) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(selected.id)}?mode=permanent`, { method: "DELETE" });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error || "Không thể xóa tài khoản.");
+        return;
+      }
+      close();
+      router.refresh();
+    } catch {
+      setError("Không xác nhận được kết quả. Vui lòng tải lại danh sách.");
+    } finally {
+      setSaving(false);
+    }
+  }
   return (
     <>
       <div className="account-head">
@@ -159,7 +178,7 @@ export function AccountManager({
           Thêm tài khoản
         </button>
       </div>
-      <section className="panel account-table">
+      <section className={`panel account-table${currentRole === "super_admin" ? " account-table-super-admin" : ""}`}>
         <div className="account-row account-header">
           <span>NHÂN VIÊN</span>
           <span>EMAIL</span>
@@ -230,6 +249,17 @@ export function AccountManager({
               >
                 {u.active ? <Lock /> : <LockOpen />}
               </button>
+              {currentRole === "super_admin" && u.role !== "super_admin" && (
+                <button
+                  type="button"
+                  className="danger-action icon-action"
+                  title="Xóa tài khoản"
+                  aria-label={`Xóa tài khoản ${u.email}`}
+                  onClick={() => { setError(""); setSelected(u); setMode("delete"); }}
+                >
+                  <Trash2 />
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -237,6 +267,20 @@ export function AccountManager({
           <div className="account-empty">Chưa có tài khoản trong nhóm này.</div>
         )}
       </section>
+      {mode === "delete" && selected && (
+        <Modal title="Xóa tài khoản" description={`${selected.name} · ${selected.email}`} onClose={() => { if (!saving) close(); }}>
+          <div className="entity-form">
+            <p>Tài khoản sẽ bị xóa vĩnh viễn và mất quyền đăng nhập. Hồ sơ CRM và nhật ký vẫn được giữ.</p>
+            {error && <p className="form-error" role="alert">{error}</p>}
+            <footer>
+              <button type="button" className="secondary-button" disabled={saving} onClick={close}>Hủy</button>
+              <button type="button" className="secondary-button danger-action" disabled={saving} onClick={deleteAccount}>
+                {saving ? "Đang xóa…" : "Xóa vĩnh viễn"}
+              </button>
+            </footer>
+          </div>
+        </Modal>
+      )}
       {mode === "create" && (
         <Modal
           title="Thêm tài khoản"

@@ -72,6 +72,7 @@ tbody tr:hover { background: var(--cream); }
 .account-tabs button.active, .customer-tabs a.active { color: #9a7117; }
 .account-header { background: #faf8f5; }
 .account-row { grid-template-columns: 1.1fr 1.4fr 1fr 1fr 176px; }
+.account-table-super-admin .account-row { grid-template-columns: 1.1fr 1.4fr 1fr 1fr 210px; }
 .status-pill, .role-badge, .account-state, .priority { font-size: 12px; }
 .role-badge { background: #fff3cf; color: #8a651a; }
 .care-info h3 { font-size: 16.25px; }
