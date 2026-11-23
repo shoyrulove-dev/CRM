@@ -65,7 +65,7 @@ export default function LoginPage() {
         <form className="login-form" onSubmit={submit}>
           <div className="mobile-logo"><NichieiBrand compact /></div>
           <p className="eyebrow">CHÀO MỪNG TRỞ LẠI</p>
-          <h2>Đăng nhập hệ thống</h2>
+          <h2><span>Đăng nhập</span>{" "}<span>hệ thống</span></h2>
           <p className="form-note">Sử dụng tài khoản được cấp để tiếp tục.</p>
           <label>
             Email
