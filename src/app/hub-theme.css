@@ -93,6 +93,8 @@ tbody tr:hover { background: var(--cream); }
   text-wrap: balance;
 }
 .login-form h2 span { white-space: nowrap; }
+.login-form-wrap { min-width: 0; }
+.login-form input { min-width: 0; }
 .login-form .login-password-heading label, .login-password-heading .forgot-link { font-size: 16.25px; }
 .login-password-heading { line-height: 1.6; margin: 18px 0 8px; }
 .avatar, .customer-cell > i, .person i, .account-person i { background: #f1dedf; color: #9a7117; font-size: 13.75px; }

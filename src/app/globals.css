@@ -1384,6 +1384,7 @@ td:has(> svg) {
 }
 .login-form-wrap {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 40px;
 }
@@ -1479,9 +1480,9 @@ td:has(> svg) {
 .mobile-logo {
   display: none;
 }
-@media (max-width: 800px) {
+@media (max-width: 850px) {
   .login-page {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .login-brand {
     display: none;
