@@ -61,6 +61,9 @@ export async function POST(request: NextRequest) {
     }, 100_000);
   } catch (error) {
     if ((error as Error).message === "ROW_LIMIT") return fail("Tệp vượt 100.000 dòng. Vui lòng chia theo tháng.");
+    if ((error as Error).message === "CELL_LIMIT") return fail("Có mã đơn hoặc SKU dài hơn 120 ký tự. Kiểm tra hai cột này rồi tải lại.");
+    if ((error as Error).message === "Missing purchase date or phone column.") return fail("Thiếu cột Ngày hạch toán (hoặc Ngày mua) hoặc SĐT. Đặt tên cột ở dòng tiêu đề của sheet đầu tiên.");
+    if ((error as Error).message === "Selected worksheet has no header.") return fail("Sheet đầu tiên trống. Chuyển bảng dữ liệu vào sheet đầu tiên rồi tải lại.");
     return fail("Không đọc được tệp. Kiểm tra định dạng Excel và các cột Ngày hạch toán, SĐT.");
   }
   const match = new Map<string, Set<string>>();

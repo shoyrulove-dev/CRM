@@ -66,8 +66,13 @@ async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) 
       if (!day) totals.invalidDate++;
       if (!phone) totals.invalidPhone++;
       if (day && day > cutoff) totals.afterCutoff++;
-      if (!columns.order || !cellText(row.getCell(columns.order)).trim()) totals.missingOrder++;
-      if (!columns.sku || !cellText(row.getCell(columns.sku)).trim()) totals.missingSku++;
+      const missingOrder = !columns.order || !cellText(row.getCell(columns.order)).trim();
+      const missingSku = !columns.sku || !cellText(row.getCell(columns.sku)).trim();
+      if (missingOrder) totals.missingOrder++;
+      if (missingSku) totals.missingSku++;
+      const issues = [!phone && "invalid_phone", !day && "invalid_date", day > cutoff && "after_cutoff",
+        missingOrder && "missing_order", missingSku && "missing_sku"].filter(Boolean);
+      if (issues.length && samples.length < 20) samples.push({ row: row.number, issues });
       if (day && day <= cutoff && phone) {
         totals.eligible++;
         phones.add(phone);
@@ -78,8 +83,6 @@ async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) 
           order: columns.order ? cellText(row.getCell(columns.order)).trim() : "",
           sku: columns.sku ? cellText(row.getCell(columns.sku)).trim().toUpperCase() : "",
         });
-      } else if (samples.length < 20) {
-        samples.push({ row: row.number, issues: [!phone && "invalid_phone", !day && "invalid_date", day > cutoff && "after_cutoff"].filter(Boolean) });
       }
     }
     break;
