@@ -8,9 +8,9 @@ import type { CareImportRow } from "@/lib/care-import";
 type Preview = { batchId: string; expiresAt: string; rows: CareImportRow[] };
 type Result = { inserted: number; skipped: number; results: Array<{ row: number; status: string; message: string }> };
 const labels = { ready: "Sẵn sàng", warning: "Cần xác nhận", error: "Không thể nhập", duplicate: "Nghi trùng — bỏ qua" };
-export function ImportCareButton() {
+export function ImportCareButton({ onBack }: { onBack?: () => void } = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false), [file, setFile] = useState<File | null>(null);
+  const [open, setOpen] = useState(Boolean(onBack)), [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null), [result, setResult] = useState<Result | null>(null);
   const [selected, setSelected] = useState<number[]>([]), [acknowledged, setAcknowledged] = useState(false);
   const [busy, setBusy] = useState(false), [error, setError] = useState("");
@@ -57,10 +57,11 @@ export function ImportCareButton() {
     const link = document.createElement("a"); link.href = url; link.download = "ket-qua-import-cskh.csv"; link.click(); URL.revokeObjectURL(url);
   }
   return <>
-    <button className="secondary-button" onClick={start}><Upload size={16} />Import Excel CSKH</button>
+    {!onBack && <button className="secondary-button" onClick={start}><Upload size={16} />Import Excel CSKH</button>}
     {open && <Modal title="Import lịch sử CSKH từ Excel" description="Chỉ thêm nhật ký cho khách đã có; đối chiếu bằng số điện thoại. Không sửa hồ sơ, người phụ trách, lịch hẹn hoặc Loyalty."
-      onClose={() => { if (!busy) setOpen(false); }}>
+      onClose={() => { if (!busy) { if (onBack) onBack(); else setOpen(false); } }}>
       <div className="care-import">
+        {onBack && <button type="button" className="secondary-button" disabled={busy} onClick={onBack}>Chọn loại dữ liệu khác</button>}
         <div className="care-import-upload">
           <label>File Excel theo mẫu (.xlsx, tối đa 2 MB / 500 dòng)
             <input type="file" accept=".xlsx" disabled={busy} onChange={event => {

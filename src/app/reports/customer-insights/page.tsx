@@ -6,7 +6,6 @@ import { reportPeriod } from "@/lib/report-filters";
 import { customerReportViews, isCustomerReportView } from "@/lib/customer-report-metrics";
 import { getCustomerReport, reviewPeriods } from "@/lib/customer-report-data";
 import { Pagination } from "@/components/pagination";
-import { PurchaseHistoryImport } from "@/components/purchase-history-import";
 
 export const dynamic = "force-dynamic";
 const pathname = "/reports/customer-insights";
@@ -40,7 +39,7 @@ export default async function CustomerInsightsPage({ searchParams }: {
     <div className="page-heading compact">
       <div><p className="eyebrow">PHÂN TÍCH KHÁCH HÀNG</p><h1>{customerReportViews[view]}</h1></div>
       <div className="page-actions">
-        {user.role === "super_admin" && <PurchaseHistoryImport />}
+        {user.role === "super_admin" && <Link className="secondary-button" href="/customers">Nhập dữ liệu tại trang Khách hàng</Link>}
         <Link className="secondary-button" href={`/reports?${new URLSearchParams(viewFilter)}`}>Báo cáo tổng quan</Link>
       </div>
     </div>

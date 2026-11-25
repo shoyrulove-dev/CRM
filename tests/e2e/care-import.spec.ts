@@ -30,7 +30,8 @@ test("admin previews, explicitly acknowledges warnings and confirms selected row
     return route.continue();
   });
   await page.goto("/customers");
-  await page.getByRole("button", { name: "Import Excel CSKH" }).click();
+  await page.getByRole("button", { name: "Nhập dữ liệu khách hàng" }).click();
+  await page.getByRole("button", { name: "Nhật ký CSKH" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.locator('input[type="file"]').setInputFiles({ name: "sample.xlsx", mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", buffer: Buffer.from("mock-file") });
   await page.getByRole("button", { name: "Kiểm tra và xem trước" }).click();
@@ -53,7 +54,9 @@ test("failed preview can be retried and a new file resets the preview", async ({
     return attempts === 1 ? route.fulfill({ status: 400, json: { error: "File cần kiểm tra lại." } })
       : route.fulfill({ json: { data: { batchId: "x", expiresAt: "2099-01-01", rows: [{ ...baseRow, row: 2, status: "ready" }] } } });
   });
-  await page.goto("/care"); await page.getByRole("button", { name: "Import Excel CSKH" }).click();
+  await page.goto("/customers");
+  await page.getByRole("button", { name: "Nhập dữ liệu khách hàng" }).click();
+  await page.getByRole("button", { name: "Nhật ký CSKH" }).click();
   await page.locator('input[type="file"]').setInputFiles({ name: "test.xlsx", mimeType: "application/octet-stream", buffer: Buffer.from("mock") });
   await page.getByRole("button", { name: "Kiểm tra và xem trước" }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText("File cần kiểm tra lại.");
@@ -64,7 +67,7 @@ test("failed preview can be retried and a new file resets the preview", async ({
 });
 test("sales cannot see import or access any import method", async ({ page }) => {
   expect((await page.request.post("/api/auth/login", { data: { email: "sale@nichiei.vn", password: "Sale@2026" } })).ok()).toBeTruthy();
-  await page.goto("/customers"); await expect(page.getByRole("button", { name: "Import Excel CSKH" })).toHaveCount(0);
+  await page.goto("/customers"); await expect(page.getByRole("button", { name: "Nhập dữ liệu khách hàng" })).toHaveCount(0);
   expect((await page.request.get("/api/activities/import")).status()).toBe(403);
   expect((await page.request.post("/api/activities/import")).status()).toBe(403);
   expect((await page.request.put("/api/activities/import", { data: {} })).status()).toBe(403);

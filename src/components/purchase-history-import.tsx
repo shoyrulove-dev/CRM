@@ -28,9 +28,9 @@ const columns = [
   { key: "sku", label: "SKU", errors: ["missing_sku"], color: "#fef3c7" },
 ] as const;
 
-export function PurchaseHistoryImport() {
+export function PurchaseHistoryImport({ onBack }: { onBack?: () => void } = {}) {
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(onBack));
   const [step, setStep] = useState<"preview" | "apply" | null>(null);
   const busy = step !== null;
   const [error, setError] = useState("");
@@ -86,11 +86,12 @@ export function PurchaseHistoryImport() {
   }
 
   return <>
-    <button type="button" className="secondary-button" onClick={() => {
+    {!onBack && <button type="button" className="secondary-button" onClick={() => {
       setPreview(null); setEdits({}); setMatches({}); setDirty(false); setConfirmed(false); setError(""); setNotice(""); setOpen(true);
-    }}>Nhập lịch sử mua</button>
-    {open && <Modal title="Nhập lịch sử mua" description="Dùng SĐT để ghép với hồ sơ CRM. Mã đơn và SKU dùng để xác định sản phẩm trong đơn đầu tiên." onClose={() => { if (!busy) setOpen(false); }}>
+    }}>Nhập lịch sử mua</button>}
+    {open && <Modal title="Nhập lịch sử mua" description="Dùng SĐT để ghép với hồ sơ CRM. Mã đơn và SKU dùng để xác định sản phẩm trong đơn đầu tiên." onClose={() => { if (!busy) { if (onBack) onBack(); else setOpen(false); } }}>
       <div className="entity-form">
+        {onBack && <button type="button" className="secondary-button" disabled={busy} onClick={onBack}>Chọn loại dữ liệu khác</button>}
         <form className="entity-form" onSubmit={upload}>
           <label>Tệp Excel (.xlsx)<input name="file" type="file" accept=".xlsx" required disabled={busy} onChange={() => { setPreview(null); setConfirmed(false); setEdits({}); setMatches({}); setDirty(false); }} /></label>
           <label>Nhập lịch sử đến hết ngày<input name="cutoff" type="date" defaultValue="2025-10-31" required disabled={busy} onChange={() => { setPreview(null); setConfirmed(false); }} /></label>

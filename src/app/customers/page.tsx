@@ -13,7 +13,7 @@ import { ExportCustomersButton } from "@/components/export-customers-button";
 import { customerDateRange } from "@/lib/month-range";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
 import { MonthShortcuts } from "@/components/month-shortcuts";
-import { ImportCareButton } from "@/components/import-care-button";
+import { CustomerDataImport } from "@/components/customer-data-import";
 import "../care-import.css";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +78,7 @@ export default async function CustomersPage({
           <p>Theo dõi hồ sơ, lịch sử mua hàng và hành trình chăm sóc.</p>
         </div>
         <div className="page-actions">
-          {user && ["admin", "super_admin"].includes(user.role) && <ImportCareButton />}
+          {user && ["admin", "super_admin"].includes(user.role) && <CustomerDataImport canImportPurchases={user.role === "super_admin"} />}
           <CreateCustomerButton />
         </div>
       </div>
