@@ -1,4 +1,5 @@
 import "server-only";
+import { loadPurchaseHistory } from "./purchase-history";
 import { getReportData } from "./data-store";
 import { canSeeAll, type SessionUser } from "./session";
 import { reportDay, reportInRange } from "./report-filters";
@@ -31,7 +32,7 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
   });
   const names = new Map(customers.map(item => [item.id, item.name]));
   if (view === "sales-review" || view === "sales-orders") {
-    const classified = classifyPurchases(orders);
+    const classified = classifyPurchases(orders, await loadPurchaseHistory(orders.map(order => order.customerId).filter(Boolean)));
     const employees = [...new Set(orders.map(item => item.salesperson?.trim() || "Chưa xác định người bán"))].sort();
     if (view === "sales-review") return {
       headers: ["Kỳ", "Nhân viên bán", "Đơn mua", "Doanh số", "Khách mua", "Khách mua lần đầu", "Tỷ lệ khách mua lần đầu (%)", "Khách mua lại", "Đơn chỉ mua SP cũ", "Đơn chỉ mua SP mới", "Đơn mua cả cũ lẫn mới", "Đơn chưa đủ dữ liệu", "Doanh thu mua lại"],
@@ -40,8 +41,8 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
     return {
       headers: ["Ngày", "Mã đơn", "Mã khách", "Khách hàng", "Nhân viên bán", "Doanh số", "Phân loại hiện tại", "Phân loại đối chiếu", "Mã đơn đầu đối chiếu", "Kết quả đối chiếu"],
       rows: classified.filter(({ order }) => inRange(order.orderDate) && (!owner || (order.salesperson?.trim() || "Chưa xác định người bán") === owner))
-        .map(({ order, kind, firstCode, repeat }) => [reportDay(order.orderDate), order.code, order.customerId, names.get(order.customerId) || "", order.salesperson?.trim() || "Chưa xác định người bán", order.total, order.purchaseType, purchaseLabels[kind], firstCode,
-          !order.customerId ? "Thiếu mã khách" : repeat && order.purchaseType !== "Mua lại" ? "Có đơn trước trong CRM"
+        .map(({ order, kind, firstCode, repeat, historical }) => [reportDay(order.orderDate), order.code, order.customerId, names.get(order.customerId) || "", order.salesperson?.trim() || "Chưa xác định người bán", order.total, order.purchaseType, purchaseLabels[kind], firstCode,
+          !order.customerId ? "Thiếu mã khách" : historical ? "Có lịch sử mua đã duyệt" : repeat && order.purchaseType !== "Mua lại" ? "Có đơn trước trong CRM"
             : kind === "unknown" ? "Thiếu dữ liệu đơn đầu hoặc SKU" : kind === "new" ? "Chưa đối chiếu lịch sử ngoài CRM" : "Khớp nhóm mua lại"]),
       employees,
     };

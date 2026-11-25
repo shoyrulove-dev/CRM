@@ -6,6 +6,7 @@ import { reportPeriod } from "@/lib/report-filters";
 import { customerReportViews, isCustomerReportView } from "@/lib/customer-report-metrics";
 import { getCustomerReport, reviewPeriods } from "@/lib/customer-report-data";
 import { Pagination } from "@/components/pagination";
+import { PurchaseHistoryImport } from "@/components/purchase-history-import";
 
 export const dynamic = "force-dynamic";
 const pathname = "/reports/customer-insights";
@@ -38,7 +39,10 @@ export default async function CustomerInsightsPage({ searchParams }: {
   return <>
     <div className="page-heading compact">
       <div><p className="eyebrow">PHÂN TÍCH KHÁCH HÀNG</p><h1>{customerReportViews[view]}</h1></div>
-      <Link className="secondary-button" href={`/reports?${new URLSearchParams(viewFilter)}`}>Báo cáo tổng quan</Link>
+      <div className="page-actions">
+        {user.role === "super_admin" && <PurchaseHistoryImport />}
+        <Link className="secondary-button" href={`/reports?${new URLSearchParams(viewFilter)}`}>Báo cáo tổng quan</Link>
+      </div>
     </div>
     <div className="filter-chips">
       {Object.entries(customerReportViews).filter(([key]) => manager || !key.startsWith("sales-")).map(([key, label]) =>
@@ -66,7 +70,7 @@ export default async function CustomerInsightsPage({ searchParams }: {
       <a className="secondary-button" href={`/api/reports/export?${exportQuery}`}>Xuất Excel</a>
     </form>
     <p className="report-formula">
-      {sales ? "Tạm tính theo lịch sử đơn có trong CRM. Tỷ lệ khách mua lần đầu tính trên khách có đơn trong kỳ. Một khách có thể mua lần đầu rồi mua lại trong cùng kỳ."
+      {sales ? "Tính theo đơn CRM và các đợt lịch sử mua đã duyệt. Tỷ lệ khách mua lần đầu tính trên khách có đơn trong kỳ. Một khách có thể mua lần đầu rồi mua lại trong cùng kỳ."
         : view === "care-days" ? "Mỗi khách chỉ tính một lần mỗi ngày theo giờ Việt Nam. Lượt chăm sóc tính theo số nhật ký đã ghi."
           : "Mỗi đơn mua có SKU được tính một lần cho khách và sản phẩm đó. Các dòng thiếu SKU, đơn hủy và đơn trả hàng được loại khỏi báo cáo."}
     </p>

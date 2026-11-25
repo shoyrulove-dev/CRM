@@ -59,12 +59,15 @@ export const purchaseLabels: Record<PurchaseClass, string> = {
   unknown: "Chưa đủ dữ liệu",
 };
 
-export function classifyPurchases(orders: SalesOrder[]) {
+export type PurchaseBaseline = { day: string; code: string; skus: string[] };
+
+export function classifyPurchases(orders: SalesOrder[], history = new Map<string, PurchaseBaseline>()) {
   const sorted = orders.filter(order => order.status === "Mua hàng").sort((a, b) =>
     a.orderDate.localeCompare(b.orderDate) || a.code.localeCompare(b.code, undefined, { numeric: true }) || a.id.localeCompare(b.id));
   const firstByCustomer = new Map<string, SalesOrder>();
   return sorted.map(order => {
     const first = firstByCustomer.get(order.customerId);
+    const baseline = history.get(order.customerId);
     let kind: PurchaseClass = "unknown";
     if (!first && order.customerId) {
       firstByCustomer.set(order.customerId, order);
@@ -76,7 +79,18 @@ export function classifyPurchases(orders: SalesOrder[]) {
         kind = matched === 0 ? "different" : matched === currentCodes.size ? "old" : "mixed";
       }
     }
-    return { order, kind, firstCode: first?.code || "", repeat: Boolean(first) || order.purchaseType === "Mua lại" };
+    const historical = Boolean(baseline && baseline.day < reportDay(order.orderDate));
+    const useBaseline = historical && baseline && (!first || baseline.day <= reportDay(first.orderDate));
+    if (useBaseline) {
+      const codes = productCodes(order);
+      kind = "unknown";
+      if (baseline.skus.length && codes.size && order.products?.every(line => line.sku?.trim()) &&
+          (!first || baseline.day !== reportDay(first.orderDate) || baseline.code === first.code)) {
+        const matched = [...codes].filter(sku => baseline.skus.includes(sku)).length;
+        kind = matched === 0 ? "different" : matched === codes.size ? "old" : "mixed";
+      }
+    }
+    return { order, kind, firstCode: useBaseline ? baseline.code : first?.code || "", repeat: historical || Boolean(first) || order.purchaseType === "Mua lại", historical };
   });
 }
 

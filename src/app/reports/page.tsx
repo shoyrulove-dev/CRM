@@ -15,6 +15,7 @@ import { ReportExportButton } from "@/components/report-export-button";
 import { reportPeriod, reportInRange } from "@/lib/report-filters";
 import { retentionMetrics } from "@/lib/retention-metrics";
 import Link from "next/link";
+import { loadPurchaseHistory } from "@/lib/purchase-history";
 
 export const dynamic = "force-dynamic";
 const inRange = reportInRange;
@@ -29,6 +30,11 @@ export default async function ReportsPage({
   if (!period) return <section className="panel"><h1>Khoảng ngày không hợp lệ</h1><p>Chọn ngày hợp lệ, từ ngày không sau đến ngày.</p></section>;
   const { from, to, previousFrom, previousTo } = period;
   const data = await getReportData(user, { summary: true, sections: ["customers", "tasks", "activities", "orders"] });
+  const history = await loadPurchaseHistory(data.orders.map(order => order.customerId).filter(Boolean));
+  data.orders = data.orders.map(order => {
+    const first = history.get(order.customerId);
+    return first && first.day < order.orderDate.slice(0, 10) ? { ...order, purchaseType: "Mua lại" } : order;
+  });
   const employees = Array.from(
     new Set(
       [
