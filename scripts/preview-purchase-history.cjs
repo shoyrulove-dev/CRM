@@ -31,7 +31,7 @@ function purchaseDay(cell) {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date ? date : "";
 }
 
-async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) {
+async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity, edits = {}, editable = false) {
   const workbook = new ExcelJS.stream.xlsx.WorkbookReader(file, { sharedStrings: "cache", styles: "cache" });
   const phones = new Set();
   const samples = [];
@@ -57,8 +57,15 @@ async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) 
       }
       totals.rows++;
       if (totals.rows > maxRows) throw new Error("ROW_LIMIT");
-      const day = purchaseDay(row.getCell(columns.date));
-      const phone = normalizePhone(cellText(row.getCell(columns.phone)));
+      const edit = edits[row.number];
+      const values = {
+        date: edit?.date ?? (purchaseDay(row.getCell(columns.date)) || cellText(row.getCell(columns.date))),
+        phone: edit?.phone ?? cellText(row.getCell(columns.phone)),
+        order: edit?.order ?? (columns.order ? cellText(row.getCell(columns.order)).trim() : ""),
+        sku: edit?.sku ?? (columns.sku ? cellText(row.getCell(columns.sku)).trim() : ""),
+      };
+      const day = purchaseDay({ text: values.date });
+      const phone = normalizePhone(values.phone);
       if (day) {
         if (!minDay || day < minDay) minDay = day;
         if (!maxDay || day > maxDay) maxDay = day;
@@ -66,13 +73,14 @@ async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) 
       if (!day) totals.invalidDate++;
       if (!phone) totals.invalidPhone++;
       if (day && day > cutoff) totals.afterCutoff++;
-      const missingOrder = !columns.order || !cellText(row.getCell(columns.order)).trim();
-      const missingSku = !columns.sku || !cellText(row.getCell(columns.sku)).trim();
+      const missingOrder = !values.order.trim();
+      const missingSku = !values.sku.trim();
       if (missingOrder) totals.missingOrder++;
       if (missingSku) totals.missingSku++;
       const issues = [!phone && "invalid_phone", !day && "invalid_date", day > cutoff && "after_cutoff",
         missingOrder && "missing_order", missingSku && "missing_sku"].filter(Boolean);
-      if (issues.length && samples.length < 20) samples.push({ row: row.number, issues });
+      if ((issues.length || edit) && samples.length < 20)
+        samples.push({ row: row.number, issues, ...(editable ? { values } : {}) });
       if (day && day <= cutoff && phone) {
         totals.eligible++;
         phones.add(phone);
@@ -80,8 +88,8 @@ async function preview(file, sheetName, cutoff, onPurchase, maxRows = Infinity) 
           row: row.number,
           day,
           phone,
-          order: columns.order ? cellText(row.getCell(columns.order)).trim() : "",
-          sku: columns.sku ? cellText(row.getCell(columns.sku)).trim().toUpperCase() : "",
+          order: values.order.trim(),
+          sku: values.sku.trim().toUpperCase(),
         });
       }
     }

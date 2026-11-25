@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
 import { NextRequest, NextResponse } from "next/server";
-import { preview, normalizePhone } from "../../../../../scripts/preview-purchase-history.cjs";
+import { preview, normalizePhone, type HistoryCells } from "../../../../../scripts/preview-purchase-history.cjs";
 import { getCurrentUser } from "@/lib/current-user";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { collections, getReportData } from "@/lib/data-store";
@@ -41,6 +41,26 @@ export async function POST(request: NextRequest) {
   if (!(file instanceof File) || !file.name.toLowerCase().endsWith(".xlsx") || !file.size || file.size > maxBytes)
     return fail("Chọn tệp .xlsx tối đa 10 MB. Tệp lớn hơn cần chia theo tháng.");
   if (typeof cutoff !== "string" || !validDay(cutoff)) return fail("Mốc lịch sử không hợp lệ.");
+  const rawEdits = form?.get("edits");
+  const edits: Record<string, Partial<HistoryCells>> = {};
+  if (rawEdits) {
+    if (typeof rawEdits !== "string" || rawEdits.length > 50000) return fail("Danh sách ô sửa vượt giới hạn.");
+    try {
+      const parsed = JSON.parse(rawEdits);
+      if (!parsed || Array.isArray(parsed) || typeof parsed !== "object" || Object.keys(parsed).length > 100) throw new Error();
+      for (const [row, fields] of Object.entries(parsed)) {
+        if (!/^[1-9]\d{0,6}$/.test(row) || !fields || typeof fields !== "object" || Array.isArray(fields)) throw new Error();
+        const clean: Record<string, string> = {};
+        for (const [field, value] of Object.entries(fields)) {
+          if (!["date", "phone", "order", "sku"].includes(field) || typeof value !== "string" || value.length > 120) throw new Error();
+          clean[field] = value.trim();
+        }
+        edits[row] = clean;
+      }
+    } catch {
+      return fail("Ô chỉnh sửa không hợp lệ. Kiểm tra số dòng và độ dài nội dung.");
+    }
+  }
   const bytes = Buffer.from(await file.arrayBuffer());
   const digest = createHash("sha256").update(bytes).update(cutoff).digest("hex");
   if (await batches.findOne({ digest, status: "approved" })) return fail("Tệp với mốc này đã được áp dụng.", 409);
@@ -58,7 +78,7 @@ export async function POST(request: NextRequest) {
       const codes = first.orders.get(row.order) || new Set<string>();
       codes.add(row.sku);
       first.orders.set(row.order, codes);
-    }, 100_000);
+    }, 100_000, edits, true);
   } catch (error) {
     if ((error as Error).message === "ROW_LIMIT") return fail("Tệp vượt 100.000 dòng. Vui lòng chia theo tháng.");
     if ((error as Error).message === "CELL_LIMIT") return fail("Có mã đơn hoặc SKU dài hơn 120 ký tự. Kiểm tra hai cột này rồi tải lại.");
@@ -67,22 +87,34 @@ export async function POST(request: NextRequest) {
     return fail("Không đọc được tệp. Kiểm tra định dạng Excel và các cột Ngày hạch toán, SĐT.");
   }
   const match = new Map<string, Set<string>>();
-  for await (const customer of db.collection(collections.customers).find({}, { projection: { id: 1, phone: 1 } })) {
+  const names = new Map<string, string>();
+  for await (const customer of db.collection(collections.customers).find({}, { projection: { id: 1, phone: 1, name: 1 } })) {
     const phone = normalizePhone(customer.phone);
     if (!byPhone.has(phone) || !customer.id) continue;
     const ids = match.get(phone) || new Set<string>();
     ids.add(String(customer.id));
+    names.set(String(customer.id), String(customer.name || ""));
     match.set(phone, ids);
   }
   let ambiguous = 0;
+  const choices: { phone: string; customers: { id: string; name: string }[] }[] = [];
+  let selected: Record<string, unknown> = {};
+  try {
+    const value = form?.get("matches");
+    if (typeof value === "string" && value.length <= 30000) selected = JSON.parse(value) || {};
+  } catch { return fail("Danh sách hồ sơ đã chọn không hợp lệ."); }
   const id = randomUUID();
   const records: (PurchaseBaseline & { batchId: string; customerId: string })[] = [];
   for (const [phone, ids] of match) {
-    if (ids.size !== 1) { ambiguous++; continue; }
+    const chosen = selected[phone];
+    if (ids.size !== 1) {
+      if (choices.length < 20) choices.push({ phone, customers: [...ids].map(id => ({ id, name: names.get(id) || "" })) });
+      if (typeof chosen !== "string" || !ids.has(chosen)) { ambiguous++; continue; }
+    }
     const first = byPhone.get(phone)!;
     const [code, skus] = first.orders.entries().next().value!;
     const unambiguous = first.orders.size === 1 && Boolean(code);
-    records.push({ batchId: id, customerId: [...ids][0], day: first.day, code: unambiguous ? code : "",
+    records.push({ batchId: id, customerId: ids.size === 1 ? [...ids][0] : chosen as string, day: first.day, code: unambiguous ? code : "",
       skus: unambiguous && !skus.has("") ? [...skus] : [] });
   }
   const { orders } = await getReportData(user, { sections: ["orders"], purchaseReport: true });
@@ -97,7 +129,7 @@ export async function POST(request: NextRequest) {
   });
   const revenue = (rows: typeof after) => rows.reduce((sum, row) => sum + (row.repeat ? Number(row.order.total) || 0 : 0), 0);
   const result = {
-    id, validation, matched: records.length, ambiguous, unmatched: byPhone.size - match.size,
+    id, validation, choices, matched: records.length, ambiguous, unmatched: byPhone.size - match.size,
     changed: changed.length, beforeRevenue: revenue(before), afterRevenue: revenue(after),
     sample: changed.slice(0, 20).map(row => ({
       code: row.order.code, day: row.order.orderDate, employee: row.order.salesperson, amount: row.order.total,
