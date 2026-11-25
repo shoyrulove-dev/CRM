@@ -78,7 +78,7 @@ export default async function CustomersPage({
           <p>Theo dõi hồ sơ, lịch sử mua hàng và hành trình chăm sóc.</p>
         </div>
         <div className="page-actions">
-          {user && ["admin", "super_admin"].includes(user.role) && <CustomerDataImport canImportPurchases={user.role === "super_admin"} />}
+          {user && ["admin", "super_admin"].includes(user.role) && <CustomerDataImport />}
           <CreateCustomerButton />
         </div>
       </div>

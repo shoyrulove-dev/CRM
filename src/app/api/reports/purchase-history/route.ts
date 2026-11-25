@@ -14,7 +14,8 @@ const maxBytes = 10 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
-  if (user?.role !== "super_admin" || user.mustChangePassword) return fail("Chỉ Super Admin được nhập lịch sử mua.", 403);
+  if (!user || !["admin", "super_admin"].includes(user.role) || user.mustChangePassword)
+    return fail("Chỉ Quản trị và Super Admin được nhập lịch sử mua.", 403);
   if (!hasDatabase()) return fail("Kho dữ liệu chưa sẵn sàng.", 503);
   const db = await getDatabase();
   const batches = db.collection(purchaseHistoryBatches);
