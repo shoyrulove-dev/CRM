@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { ReportExportButton } from "@/components/report-export-button";
 import { reportPeriod, reportInRange } from "@/lib/report-filters";
 import { retentionMetrics } from "@/lib/retention-metrics";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 const inRange = reportInRange;
@@ -176,7 +177,10 @@ export default async function ReportsPage({
             trước
           </p>
         </div>
-        <ReportExportButton from={from} to={to} owner={params.owner} />
+        <div className="page-actions">
+          <Link className="secondary-button" href={`/reports/customer-insights?${new URLSearchParams({ from, to, ...(params.owner ? { owner: params.owner } : {}) })}`}>Báo cáo khách và sản phẩm</Link>
+          <ReportExportButton from={from} to={to} owner={params.owner} />
+        </div>
       </div>
       <form className="panel report-filter" method="get">
         <label>

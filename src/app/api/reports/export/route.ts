@@ -2,17 +2,34 @@ import { NextRequest } from "next/server";
 import { getReportData } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, type ExcelCell } from "@/lib/excel";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
 import { validDay } from "@/lib/month-range";
-import { reportInRange } from "@/lib/report-filters";
+import { reportInRange, reportPeriod } from "@/lib/report-filters";
+import { isCustomerReportView, customerReportViews } from "@/lib/customer-report-metrics";
+import { getCustomerReport, reviewPeriods } from "@/lib/customer-report-data";
 
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
-  if (!hasPermission(user, "reports")) return new Response("Không có quyền xuất báo cáo.", { status: 403 });
+  if (!user || !hasPermission(user, "reports")) return new Response("Không có quyền xuất báo cáo.", { status: 403 });
   const p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"),
     owner = user && !["admin", "super_admin"].includes(user.role) ? user.name : p.get("owner"), template = p.get("template") || "detail";
   if ((from && !validDay(from)) || (to && !validDay(to)) || (from && to && from > to))
     return new Response("Khoảng ngày không hợp lệ.", { status: 400 });
+  if (isCustomerReportView(template)) {
+    const sales = template === "sales-review" || template === "sales-orders";
+    if (sales && !canSeeAll(user)) return new Response("Không có quyền xuất báo cáo đối chiếu.", { status: 403 });
+    const period = reportPeriod(from || undefined, to || undefined);
+    if (!period) return new Response("Khoảng ngày không hợp lệ.", { status: 400 });
+    const unit = p.get("unit") || "month";
+    const { headers, rows } = await getCustomerReport(template, {
+      from: period.from, to: period.to, owner: owner || "",
+      customer: (p.get("customer") || "").trim().slice(0, 100),
+      product: (p.get("product") || "").trim().slice(0, 100),
+      unit: Object.hasOwn(reviewPeriods, unit) ? unit : "month",
+    }, user);
+    const file = await createExcelFile(customerReportViews[template].slice(0, 31), headers, rows);
+    return excelResponse(file, `${template}-${period.from}-${period.to}.xlsx`);
+  }
   const sections: Array<"customers" | "tasks" | "activities" | "orders" | "tickets"> = template === "orders" ? ["customers", "orders"]
     : template === "customers" ? ["customers"] : template === "tickets" ? ["tickets"] : ["activities"];
   const data = await getReportData(user, { sections });

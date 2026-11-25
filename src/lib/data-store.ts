@@ -492,7 +492,7 @@ export async function listTickets(
       );
 }
 export async function getReportData(user?: SessionUser | null, options: {
-  summary?: boolean; sections?: Array<"customers" | "tasks" | "activities" | "orders" | "tickets">;
+  summary?: boolean; purchaseReport?: boolean; sections?: Array<"customers" | "tasks" | "activities" | "orders" | "tickets">;
 } = {}) {
   const restricted = !!user && !["admin", "super_admin"].includes(user.role);
   const sections = new Set(options.sections || ["customers", "tasks", "activities", "orders", "tickets"]);
@@ -511,9 +511,9 @@ export async function getReportData(user?: SessionUser | null, options: {
   const owner = restricted ? { owner: user!.name } : {};
   const customerData = sections.has("customers") || (restricted && sections.has("activities"))
     ? await db.collection(collections.customers).find(owner, { projection: options.summary
-      ? { _id: 0, id: 1, owner: 1 } : { _id: 0 } }).toArray() : [];
+      ? { _id: 0, id: 1, owner: 1 } : options.purchaseReport ? { _id: 0, id: 1, name: 1 } : { _id: 0 } }).toArray() : [];
   const read = async <T>(name: string, enabled: boolean, filter: Record<string, unknown>, projection: Record<string, number>) =>
-    enabled ? await db.collection(name).find(filter, { projection: options.summary ? projection : { _id: 0 } }).toArray() as unknown as T[] : [] as T[];
+    enabled ? await db.collection(name).find(filter, { projection: options.summary || options.purchaseReport ? projection : { _id: 0 } }).toArray() as unknown as T[] : [] as T[];
   const [taskData, activityData, orderData, ticketData] = await Promise.all([
     read<CareTask>(collections.careTasks, sections.has("tasks"), owner, { _id: 0, owner: 1, dueAt: 1, status: 1 }),
     read<CareActivity>(collections.careActivities, sections.has("activities"), restricted ? {
@@ -522,7 +522,8 @@ export async function getReportData(user?: SessionUser | null, options: {
       contactStatus: 1, result: 1, productEndDate: 1, repurchaseTimely: 1, satisfaction: 1, adverseReaction: 1, noPurchaseReason: 1 }),
     read<SalesOrder>(collections.orders, sections.has("orders"), restricted ? {
       $or: [{ owner: user!.name }, { salesperson: user!.name }],
-    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1 }),
+    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1,
+      ...(options.purchaseReport ? { id: 1, code: 1, "products.sku": 1, "products.name": 1 } : {}) }),
     read<ServiceTicket>(collections.tickets, sections.has("tickets"), owner, { _id: 0, id: 1, owner: 1, status: 1, createdAt: 1 }),
   ]);
   return { customers: sections.has("customers") ? customerData as unknown as Customer[] : [], tasks: taskData, activities: activityData, orders: orderData, tickets: ticketData };
