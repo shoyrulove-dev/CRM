@@ -168,6 +168,9 @@ export default async function CustomersPage({
               {result.overdueCount}
             </b>
           </Link>
+          <Link className={`chip ${params.status === "done" ? "active" : ""}`} href={query({ status: "done", page: 1 })}>
+            Đã hoàn thành <b>{result.doneCount}</b>
+          </Link>
         </div>
         <div className="table-wrap customer-table">
           <table>
@@ -243,9 +246,10 @@ export default async function CustomersPage({
                   </td>
                   <td>
                     <strong>
-                      {formatDate(item.nextCare)}
+                      {formatDate(item.careCompleted ? "" : item.nextCare)}
                     </strong>
-                    <StatusPill status={item.status} />
+                    {item.careCompleted ? <StatusPill status="done" />
+                      : item.status !== "done" && <StatusPill status={item.status} />}
                   </td>
                   <td>
                     <Link

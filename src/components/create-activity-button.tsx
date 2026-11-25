@@ -1,45 +1,77 @@
 "use client";
 import { MessageSquarePlus } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import type { SalesOrder } from "@/lib/types";
 import { healthGoals } from "@/lib/customer-options";
+import { useCustomerOrders, type FormOrder } from "./use-customer-orders";
 
 export function CreateActivityButton({
   customerId,
   orders,
+  task,
+  employees,
 }: {
   customerId: string;
   orders: SalesOrder[];
+  task?: { id: string; orderId?: string; channel: string; purpose: string; owner: string; status: string };
+  employees?: string[];
 }) {
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [saved, setSaved] = useState(false);
+  const requestId = useRef("");
+  const orderData = useCustomerOrders(orders, customerId, "care", Boolean(task && open));
+  const availableOrders = orderData.orders as (FormOrder & { channel?: string })[];
+  function openForm() {
+    requestId.current = task ? crypto.randomUUID() : "";
+    setSaved(false);
+    setError("");
+    setOpen(true);
+  }
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loading || (!saved && (orderData.loading || orderData.error))) return;
+    const complete = saved || (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "complete";
     setLoading(true);
     setError("");
     const form = new FormData(event.currentTarget);
-    const order = orders.find((item) => item.id === form.get("orderId"));
+    const order = availableOrders.find((item) => item.id === form.get("orderId"));
     const body = {
       customerId,
       ...Object.fromEntries(form.entries()),
+      ...(task ? { taskId: task.id, requestId: requestId.current } : {}),
       purchaseChannel: order?.channel || form.get("purchaseChannel"),
       adverseReaction: form.get("adverseReaction") === "on",
     };
     try {
-    const response = await fetch("/api/activities", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = await response.json();
-    if (!response.ok) {
-      setError(json.error || "Không thể lưu nhật ký");
-      setLoading(false);
-      return;
+    if (!saved) {
+      const response = await fetch("/api/activities", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await response.json();
+      if (!response.ok) {
+        setError(json.error || "Không thể lưu nhật ký");
+        return;
+      }
+      if (complete) setSaved(true);
+    }
+    if (complete && task) {
+      const response = await fetch(`/api/care/${encodeURIComponent(task.id)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ status: "done" }),
+      }).catch(() => null);
+      if (!response?.ok) {
+        setError("Nhật ký đã lưu. Chưa xác nhận được lịch đã hoàn thành. Bạn có thể thử lại bước hoàn thành.");
+        router.refresh();
+        return;
+      }
     }
     setOpen(false);
     router.refresh();
@@ -51,7 +83,7 @@ export function CreateActivityButton({
   }
   return (
     <>
-      <button className="primary-button" onClick={() => setOpen(true)}>
+      <button type="button" className={task ? "secondary-button" : "primary-button"} onClick={openForm}>
         <MessageSquarePlus size={16} />
         Ghi nhận chăm sóc
       </button>
@@ -59,24 +91,24 @@ export function CreateActivityButton({
         <Modal
           title="Nhật ký chăm sóc"
           description="Liên kết lần chăm sóc với đơn hàng và thời điểm tái mua."
-          onClose={() => setOpen(false)}
+          onClose={() => { if (!loading) setOpen(false); }}
         >
           <form className="entity-form" onSubmit={submit}>
-            <div className="form-grid">
+            {!saved && <div className="form-grid">
               <label className="full">
                 Đơn hàng liên quan
-                <select name="orderId">
+                <select name="orderId" key={orderData.loading ? "loading" : "ready"} defaultValue={task?.orderId}>
                   <option value="">Không gắn đơn hàng</option>
-                  {orders.map((order) => (
+                  {availableOrders.map((order) => (
                     <option key={order.id} value={order.id}>
-                      {order.code} · {order.orderDate} · {order.channel}
+                      {order.code} · {order.orderDate}{order.channel ? ` · ${order.channel}` : ""}
                     </option>
                   ))}
                 </select>
               </label>
               <label>
                 Kênh chăm sóc
-                <select name="channel">
+                <select name="channel" defaultValue={task?.channel}>
                   <option>Gọi điện</option>
                   <option>Zalo</option>
                   <option>Facebook</option>
@@ -86,17 +118,14 @@ export function CreateActivityButton({
               </label>
               <label>
                 Nhân viên
-                <select name="employee">
-                  <option>Vân Anh</option>
-                  <option>Trâm</option>
-                  <option>Linh</option>
-                  <option>Ly</option>
-                  <option>Phước An</option>
+                <select name="employee" defaultValue={task?.owner}>
+                  {(employees || ["Vân Anh", "Trâm", "Linh", "Ly", "Phước An"]).map(name => <option key={name}>{name}</option>)}
                 </select>
               </label>
               <label className="full">
                 Mục đích
-                <select name="purpose">
+                <select name="purpose" defaultValue={task?.purpose}>
+                  {task?.purpose && !["Hướng dẫn sử dụng", "Hỏi thăm cảm nhận", "Nhắc tái mua", "Chăm sóc khách trung thành", "Xử lý phản ánh", "Gửi mẹo vặt, tương tác lại"].includes(task.purpose) && <option>{task.purpose}</option>}
                   <option>Hướng dẫn sử dụng</option>
                   <option>Hỏi thăm cảm nhận</option>
                   <option>Nhắc tái mua</option>
@@ -166,19 +195,24 @@ export function CreateActivityButton({
                 <input name="adverseReaction" type="checkbox" /> Có phản ứng bất
                 thường cần chú ý
               </label>
-            </div>
+            </div>}
+            {!saved && orderData.error && <p className="form-error">{orderData.error} <button type="button" className="secondary-button" onClick={orderData.retry}>Tải lại đơn</button></p>}
             {error && <p className="form-error">{error}</p>}
             <footer>
               <button
                 type="button"
                 className="secondary-button"
+                disabled={loading}
                 onClick={() => setOpen(false)}
               >
                 Hủy
               </button>
-              <button className="primary-button" disabled={loading}>
+              {!saved && <button className="primary-button" disabled={loading || orderData.loading || !!orderData.error}>
                 {loading ? "Đang lưu..." : "Lưu nhật ký"}
-              </button>
+              </button>}
+              {task && task.status !== "done" && <button className="secondary-button" value="complete" disabled={loading || (!saved && (orderData.loading || !!orderData.error))}>
+                {saved ? "Thử hoàn thành lại" : "Lưu và hoàn thành lịch"}
+              </button>}
             </footer>
           </form>
         </Modal>

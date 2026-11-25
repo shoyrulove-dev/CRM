@@ -6,6 +6,8 @@ import { writeAudit } from "@/lib/audit";
 import { canSeeAll, hasPermission } from "@/lib/session";
 import { hasBrokenText } from "@/lib/validation";
 import { createEntityId } from "@/lib/entity-id";
+import { createHash } from "node:crypto";
+import { ObjectId } from "mongodb";
 
 export async function POST(request: NextRequest) {
   if (!hasDatabase())
@@ -43,6 +45,24 @@ export async function POST(request: NextRequest) {
       { error: "Khách hàng không thuộc phạm vi phụ trách của bạn." },
       { status: 403 },
     );
+  const activityCollection = db.collection(collections.careActivities);
+  let activityKey: ObjectId | undefined;
+  if (body.taskId !== undefined) {
+    if (typeof body.taskId !== "string" || typeof body.requestId !== "string" || !/^[a-f0-9-]{36}$/i.test(body.requestId))
+      return NextResponse.json({ error: "Yêu cầu ghi nhận lịch không hợp lệ." }, { status: 400 });
+    const task = await db.collection(collections.careTasks).findOne({
+      id: body.taskId,
+      customerId: customer.id,
+      ...(canSeeAll(user) ? {} : { owner: user!.name }),
+    });
+    if (!task)
+      return NextResponse.json({ error: "Lịch chăm sóc không thuộc phạm vi truy cập." }, { status: 404 });
+    activityKey = new ObjectId(createHash("sha256").update(JSON.stringify([user!.id, task.id, body.requestId])).digest("hex").slice(0, 24));
+    const existing = await activityCollection.findOne({ _id: activityKey }, { projection: { _id: 0 } });
+    if (existing) return NextResponse.json({ data: existing });
+    if (body.orderId && !await db.collection(collections.orders).findOne({ id: body.orderId, customerId: customer.id }))
+      return NextResponse.json({ error: "Đơn hàng không thuộc khách hàng này." }, { status: 400 });
+  }
   const occurredAt = body.occurredAt || new Date().toISOString();
   const careAttempt =
     (await db
@@ -63,6 +83,7 @@ export async function POST(request: NextRequest) {
     id: createEntityId("NK"),
     customerId: body.customerId,
     orderId: body.orderId || "",
+    ...(activityKey ? { taskId: body.taskId } : {}),
     careAttempt,
     occurredAt,
     channel: body.channel,
@@ -84,7 +105,15 @@ export async function POST(request: NextRequest) {
         : user?.name || "Chưa phân công",
     createdAt: new Date().toISOString(),
   };
-  await db.collection(collections.careActivities).insertOne(document);
+  try {
+    await activityCollection.insertOne(activityKey ? { ...document, _id: activityKey } : document);
+  } catch (error) {
+    if (activityKey && (error as { code?: number }).code === 11000) {
+      const existing = await activityCollection.findOne({ _id: activityKey }, { projection: { _id: 0 } });
+      if (existing) return NextResponse.json({ data: existing });
+    }
+    throw error;
+  }
   const nextCareDate = new Date(occurredAt);
   nextCareDate.setDate(nextCareDate.getDate() + 30);
   await db

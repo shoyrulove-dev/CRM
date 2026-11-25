@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { listCustomers } from "@/lib/data-store";
+import { completedCareCustomerIds, listCustomers } from "@/lib/data-store";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, vietnamDateStamp } from "@/lib/excel";
 import { hasPermission } from "@/lib/session";
@@ -29,11 +29,12 @@ export async function GET(request: NextRequest) {
   const p = request.nextUrl.searchParams;
   const { from, to, invalid } = customerDateRange(p.get("from") || undefined, p.get("to") || undefined, p.get("date") || undefined);
   if (invalid) return new Response("Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.", { status: 400 });
-  const all = await listCustomers(p.get("q") || undefined, user);
+  const [all, completed] = await Promise.all([listCustomers(p.get("q") || undefined, user), completedCareCustomerIds()]);
+  const status = p.get("status");
   const customers = all.filter(
     (item) =>
       (!p.get("owner") || item.owner === p.get("owner")) &&
-      (!p.get("status") || item.status === p.get("status")) &&
+      (!status || (status === "done" ? completed.has(item.id) : !completed.has(item.id) && item.status === status)) &&
       (!from || item.lastOrder >= from) &&
       (!to || item.lastOrder <= to),
   );
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     "Khách hàng",
     selected.map((key) => columns[key]),
     customers.map((item) => selected.map((key) =>
-      key === "owner" ? item.haravanEmployee || item.owner : item[key] ?? "",
+      key === "owner" ? item.haravanEmployee || item.owner : key === "nextCare" && completed.has(item.id) ? "" : item[key] ?? "",
     )),
   );
   return excelResponse(file, `danh-sach-khach-hang-${vietnamDateStamp()}.xlsx`);

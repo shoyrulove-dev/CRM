@@ -188,6 +188,19 @@ export async function listCustomers(
   return listFromMongo<Customer>(collections.customers, filter, { name: 1 });
 }
 
+export async function completedCareCustomerIds() {
+  const db = hasDatabase() ? await getDatabase() : null;
+  const [finished, pending] = db
+    ? await Promise.all([
+        db.collection(collections.careTasks).distinct<string>("customerId", { status: "done" }),
+        db.collection(collections.careTasks).distinct<string>("customerId", { status: { $ne: "done" } }),
+      ])
+    : [tasks.filter(task => task.status === "done").map(task => task.customerId),
+       tasks.filter(task => task.status !== "done").map(task => task.customerId)];
+  const open = new Set(pending);
+  return new Set(finished.filter(id => id && !open.has(id)));
+}
+
 export async function getCustomersPage(
   input: {
     search?: string;
@@ -203,6 +216,9 @@ export async function getCustomersPage(
 ) {
   const requestedPage = Number.isFinite(input.page) ? Math.max(1, Math.floor(input.page!)) : 1,
     size = Math.min(100, Math.max(1, input.size || 20));
+  const completed = await completedCareCustomerIds();
+  const matchesStatus = (item: Customer, status: string) =>
+    status === "done" ? completed.has(item.id) : !completed.has(item.id) && item.status === status;
   if (!hasDatabase()) {
     const filtered = customers.filter(
       (item) =>
@@ -215,13 +231,13 @@ export async function getCustomersPage(
         (!input.from || item.lastOrder >= input.from) &&
         (!input.to || item.lastOrder <= input.to),
     );
-    const counts = { allCount: filtered.length, dueCount: filtered.filter(item => item.status === "due").length, overdueCount: filtered.filter(item => item.status === "overdue").length };
-    const selected = filtered.filter(item => !input.status || item.status === input.status);
+    const counts = { allCount: filtered.length, dueCount: filtered.filter(item => matchesStatus(item, "due")).length, overdueCount: filtered.filter(item => matchesStatus(item, "overdue")).length, doneCount: filtered.filter(item => completed.has(item.id)).length };
+    const selected = filtered.filter(item => !input.status || matchesStatus(item, input.status));
     selected.sort((a, b) => input.sort === "newest" ? b.lastOrder.localeCompare(a.lastOrder) : input.sort === "oldest" ? a.lastOrder.localeCompare(b.lastOrder) : a.name.localeCompare(b.name, "vi"));
     const page = Math.min(requestedPage, Math.max(1, Math.ceil(selected.length / size)));
     return {
       page,
-      items: selected.slice((page - 1) * size, page * size),
+      items: selected.slice((page - 1) * size, page * size).map(item => ({ ...item, careCompleted: completed.has(item.id) })),
       ...counts,
       total: selected.length,
       totalRevenue: selected.reduce((sum, item) => sum + item.revenue, 0),
@@ -231,7 +247,6 @@ export async function getCustomersPage(
   const filter: Record<string, unknown> = {};
   if (user && !["admin", "super_admin"].includes(user.role)) filter.owner = user.name;
   else if (input.owner) filter.owner = input.owner;
-  if (input.status) filter.status = input.status;
   if (input.from || input.to)
     filter.lastOrder = {
       ...(input.from ? { $gte: input.from } : {}),
@@ -244,8 +259,10 @@ export async function getCustomersPage(
       { id: { $regex: escapeSearch(input.search), $options: "i" } },
     ];
   const db = await getDatabase();
-  const { status: ignoredStatus, ...countFilter } = filter;
-  void ignoredStatus;
+  const countFilter = { ...filter };
+  const completedIds = [...completed];
+  if (input.status === "done") filter.id = { $in: completedIds };
+  else if (input.status) Object.assign(filter, { status: input.status, id: { $nin: completedIds } });
   const [totals, counts] = await Promise.all([
     db
       .collection(collections.customers)
@@ -263,7 +280,16 @@ export async function getCustomersPage(
         },
       ])
       .next(),
-    input.status ? db.collection(collections.customers).aggregate([{ $match: countFilter }, { $group: { _id: null, allCount: { $sum: 1 }, dueCount: { $sum: { $cond: [{ $eq: ["$status", "due"] }, 1, 0] } }, overdueCount: { $sum: { $cond: [{ $eq: ["$status", "overdue"] }, 1, 0] } } } }]).next() : Promise.resolve(null),
+    db.collection(collections.customers).aggregate([
+      { $match: countFilter },
+      { $set: { completed: { $in: ["$id", completedIds] } } },
+      { $group: {
+        _id: null, allCount: { $sum: 1 },
+        dueCount: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "due"] }, { $not: ["$completed"] }] }, 1, 0] } },
+        overdueCount: { $sum: { $cond: [{ $and: [{ $eq: ["$status", "overdue"] }, { $not: ["$completed"] }] }, 1, 0] } },
+        doneCount: { $sum: { $cond: ["$completed", 1, 0] } },
+      } },
+    ]).next(),
   ]);
   const total = Number(totals?.total || 0);
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / size)));
@@ -275,13 +301,14 @@ export async function getCustomersPage(
     .toArray();
   return {
     page,
-    items: items as unknown as Customer[],
+    items: (items as unknown as Customer[]).map(item => ({ ...item, careCompleted: completed.has(item.id) })),
     total,
     totalRevenue: Number(totals?.totalRevenue || 0),
     totalOrders: Number(totals?.totalOrders || 0),
-    allCount: Number(counts?.allCount ?? (input.status ? 0 : totals?.total) ?? 0),
-    dueCount: Number(counts?.dueCount ?? (input.status ? 0 : totals?.dueCount) ?? 0),
-    overdueCount: Number(counts?.overdueCount ?? (input.status ? 0 : totals?.overdueCount) ?? 0),
+    allCount: Number(counts?.allCount ?? 0),
+    dueCount: Number(counts?.dueCount ?? 0),
+    overdueCount: Number(counts?.overdueCount ?? 0),
+    doneCount: Number(counts?.doneCount ?? 0),
   };
 }
 
@@ -374,25 +401,44 @@ export async function getCustomerProfile(
 export async function getCarePageData(params: { date?: string; from?: string; to?: string; owner?: string; status?: string; task?: string; page?: string }, user: SessionUser | null) {
   const size = 20;
   const requestedPage = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
-  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Bangkok" }).format(new Date());
+  const today = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
+  const todayBounds = dayBounds(today)!;
   const base = user && !["admin", "super_admin"].includes(user.role) ? { owner: user.name } : {};
   const selectedDay = dayBounds(params.date);
-  const filter = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
-    ...(params.status ? { status: params.status } : {}), ...(params.task ? { id: params.task } : {}),
+  const scope = { ...base, ...(!("owner" in base) && params.owner ? { owner: params.owner } : {}),
+    ...(params.task ? { id: params.task } : {}),
     ...(selectedDay ? { dueAt: selectedDay } :
       monthStart(params.from) || monthEnd(params.to) ? { dueAt: monthBounds(params.from, params.to) } : {}) };
+  const filter = { ...scope, ...(params.status ? { status: params.status } : {}) };
+  const summarize = (rows: { count: number; customerId?: string }[]) => ({
+    count: rows.reduce((total, row) => total + row.count, 0),
+    customers: new Set(rows.map(row => row.customerId).filter(Boolean)).size,
+  });
   if (!hasDatabase()) {
     const all = await listCareTasks(user);
-    const bounds = monthBounds(params.from, params.to);
-    const selected = all.filter((task) => (!params.owner || task.owner === params.owner) && (!params.status || task.status === params.status) && (!params.task || task.id === params.task) && (!params.date || task.dueAt.startsWith(params.date)) && (!bounds.$gte || task.dueAt >= bounds.$gte) && (!bounds.$lte || task.dueAt <= bounds.$lte));
+    const bounds = scope.dueAt;
+    const scoped = all.filter(task => (!scope.owner || task.owner === scope.owner) && (!scope.id || task.id === scope.id) &&
+      (!bounds?.$gte || task.dueAt >= bounds.$gte) && (!bounds?.$lte || task.dueAt <= bounds.$lte));
+    const selected = scoped.filter(task => !params.status || task.status === params.status);
     const page = Math.min(requestedPage, Math.max(1, Math.ceil(selected.length / size)));
-    return { tasks: selected.slice((page - 1) * size, page * size), page, size, total: selected.length, overdue: all.filter((task) => task.status === "overdue").length, done: all.filter((task) => task.status === "done").length, today: all.filter((task) => task.status !== "done" && task.dueAt.startsWith(today)).length };
+    const stats = (predicate: (task: CareTask) => boolean) =>
+      summarize(scoped.filter(predicate).map(task => ({ count: 1, customerId: task.customerId })));
+    return { tasks: selected.slice((page - 1) * size, page * size), page, size, total: selected.length,
+      overdue: stats(task => task.status === "overdue"), done: stats(task => task.status === "done"),
+      today: stats(task => task.status !== "done" && task.dueAt >= todayBounds.$gte && task.dueAt <= todayBounds.$lte) };
   }
   const col = (await getDatabase()).collection(collections.careTasks);
+  const stats = async (condition: Record<string, unknown>) => summarize(
+    await col.aggregate<{ count: number; customerId?: string }>([
+      { $match: { $and: [scope, condition] } },
+      { $group: { _id: "$customerId", count: { $sum: 1 } } },
+      { $project: { _id: 0, customerId: "$_id", count: 1 } },
+    ]).toArray(),
+  );
   const [total, overdue, done, dueToday] = await Promise.all([
     col.countDocuments(filter),
-    col.countDocuments({ ...base, status: "overdue" }), col.countDocuments({ ...base, status: "done" }),
-    col.countDocuments({ ...base, status: { $ne: "done" }, dueAt: { $gte: new Date(`${today}T00:00:00+07:00`).toISOString(), $lte: new Date(`${today}T23:59:59+07:00`).toISOString() } }),
+    stats({ status: "overdue" }), stats({ status: "done" }),
+    stats({ status: { $ne: "done" }, dueAt: todayBounds }),
   ]);
   const page = Math.min(requestedPage, Math.max(1, Math.ceil(total / size)));
   const rows = await col.find(filter, { projection: { _id: 0 } }).sort({ dueAt: 1, id: 1 }).skip((page - 1) * size).limit(size).toArray();

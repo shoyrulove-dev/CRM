@@ -1,4 +1,7 @@
 import { CalendarDays, CheckCircle2, Clock3 } from "lucide-react";
+import Link from "next/link";
+import { CreateActivityButton } from "@/components/create-activity-button";
+import { CreateCareButton } from "@/components/create-care-button";
 import { StatusPill } from "@/components/status-pill";
 import { getCarePageData, listProductCatalog } from "@/lib/data-store";
 import { LazyCreateButton } from "@/components/lazy-create-button";
@@ -45,18 +48,19 @@ export default async function CarePage({
   }>;
 }) {
   const params = await searchParams,
-    user = await getCurrentUser(),
-    [careData, allUsers, productCatalog] = await Promise.all([
+    user = await getCurrentUser();
+  if (!user || !hasPermission(user, "care")) redirect("/");
+  const [careData, allUsers, productCatalog] = await Promise.all([
       getCarePageData(params, user),
       listUsers(),
       listProductCatalog(),
     ]);
-  if (!hasPermission(user, "care")) redirect("/");
   const displayedTasks = careData.tasks;
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
   const products = productCatalog.map((item) => item.name);
+  const formEmployees = ["admin", "super_admin"].includes(user.role) ? employees : employees.filter(employee => employee.id === user.id);
   return (
     <>
       <div className="page-heading compact">
@@ -79,9 +83,9 @@ export default async function CarePage({
           <Clock3 />
           <div>
             <strong>
-              {careData.overdue}
+              {careData.overdue.count}
             </strong>
-            <span>Đang quá hạn</span>
+            <span>Lịch quá hạn · {careData.overdue.customers} khách</span>
           </div>
         </article>
         <article>
@@ -89,19 +93,19 @@ export default async function CarePage({
           <div>
             <strong>
               {
-                careData.today
+                careData.today.count
               }
             </strong>
-            <span>Đến hạn hôm nay</span>
+            <span>Lịch đến hạn hôm nay · {careData.today.customers} khách</span>
           </div>
         </article>
         <article>
           <CheckCircle2 />
           <div>
             <strong>
-              {careData.done}
+              {careData.done.count}
             </strong>
-            <span>Đã hoàn thành</span>
+            <span>Lịch đã hoàn thành · {careData.done.customers} khách</span>
           </div>
         </article>
       </section>
@@ -154,7 +158,20 @@ export default async function CarePage({
               <div className="care-body">
                 <div>
                   <StatusPill status={item.status} />
-                  <h3>{item.purpose}</h3>
+                  {item.customerId ? <details className="care-row-details">
+                    <summary>{item.purpose}</summary>
+                    <div className="page-actions">
+                      {hasPermission(user, "customers") && <Link className="secondary-button" href={`/customers/${encodeURIComponent(item.customerId)}?tab=care`}>Xem hồ sơ</Link>}
+                      <CreateActivityButton customerId={item.customerId} orders={[]} task={item} employees={formEmployees.map(employee => employee.name)} />
+                      <CreateCareButton
+                        customerId={item.customerId}
+                        customers={[{ id: item.customerId, name: item.customer, phone: item.phone, owner: item.owner }]}
+                        employees={formEmployees}
+                        preset={{ orderId: item.orderId, channel: item.channel }}
+                        loadOrdersOnDemand
+                      />
+                    </div>
+                  </details> : <h3>{item.purpose}</h3>}
                   <p>
                     {item.customer} · {item.phone}
                     {item.orderCode ? ` · Đơn ${item.orderCode}` : ""}

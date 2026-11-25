@@ -76,6 +76,8 @@ tbody tr:hover { background: var(--cream); }
 .status-pill, .role-badge, .account-state, .priority { font-size: 12px; }
 .role-badge { background: #fff3cf; color: #8a651a; }
 .care-info h3 { font-size: 16.25px; }
+.care-row-details summary { cursor: pointer; font-weight: 700; }
+.care-row-details .page-actions { justify-content: flex-start; flex-wrap: wrap; margin-block: .4rem; }
 .care-info p, .care-time small, .care-actions { font-size: 13.75px; }
 .care-time strong { font-size: 20px; }
 .form-grid label, .form-error, .form-success, .field-help { font-size: 13.75px; }
