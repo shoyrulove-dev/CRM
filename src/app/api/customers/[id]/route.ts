@@ -64,6 +64,8 @@ export async function PATCH(
   const dbForValidation = await getDatabase();
   const existing = await dbForValidation.collection(collections.customers).findOne({ id, ...(canSeeAll(user) ? {} : { owner: user?.name }) });
   if (!existing) return NextResponse.json({ error: "Không tìm thấy khách hàng." }, { status: 404 });
+  if (existing.haravanId && ["name", "phone", "birthDate"].some(field => field in update && update[field] !== existing[field]))
+    return NextResponse.json({ error: "Dùng mục Đối soát Haravan để điều chỉnh tên, SĐT hoặc ngày sinh.", status: 409 });
   if ("advisoryNote" in update) {
     if (typeof update.advisoryNote !== "string" || update.advisoryNote.length > 2000 || hasBrokenText(update.advisoryNote))
       return NextResponse.json({ error: "Lưu ý tư vấn không hợp lệ hoặc vượt 2.000 ký tự." }, { status: 400 });

@@ -19,7 +19,8 @@ import { CreateCareButton } from "@/components/create-care-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { StatusPill } from "@/components/status-pill";
 import { getCurrentUser } from "@/lib/current-user";
-import { hasPermission } from "@/lib/session";
+import { canSeeAll, hasPermission } from "@/lib/session";
+import { HaravanCustomerReconciliation } from "@/components/haravan-customer-reconciliation";
 import { listUsers } from "@/lib/users";
 import { AssignCustomerOwner } from "@/components/assign-customer-owner";
 import { formatDateTime } from "@/lib/format-date";
@@ -85,7 +86,7 @@ export default async function CustomerProfilePage({
             <RefreshLoyaltyButton id={customer.id} />
             <p>
               {customer.id} · <Phone size={13} />
-              {customer.phone} · Phụ trách: <strong>{customer.owner}</strong>
+              {customer.contactPhone || customer.phone} · Phụ trách: <strong>{customer.owner}</strong>
             </p>
           </div>
         </div>
@@ -373,6 +374,8 @@ export default async function CustomerProfilePage({
               <h2>Thông tin khách hàng</h2>
               <CustomerClassificationEditor id={customer.id} segment={customer.segment} healthGoal={customer.healthGoal} advisoryNote={customer.advisoryNote} />
             </div>
+            {customer.haravanId && canSeeAll(user) && <HaravanCustomerReconciliation id={customer.id} source={customer.haravanSource}
+              corrections={customer.haravanCorrections} current={{ name: customer.name, phone: customer.contactPhone || customer.phone, birthDate: customer.birthDate || "" }} />}
             <dl>
               {customer.advisoryNote && <div>
                 <dt>Lưu ý tư vấn</dt>
@@ -398,7 +401,7 @@ export default async function CustomerProfilePage({
                   <Phone />
                   Điện thoại
                 </dt>
-                <dd>{customer.phone}</dd>
+                <dd>{customer.contactPhone || customer.phone}</dd>
               </div>
               <div>
                 <dt>

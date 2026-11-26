@@ -28,6 +28,10 @@ export interface PermissionGroup {
 }
 
 export interface Customer {
+  haravanId?: string;
+  haravanSource?: import("./haravan-customer-reconciliation").HaravanCustomerSource;
+  haravanCorrections?: import("./haravan-customer-reconciliation").HaravanCustomerCorrections;
+  contactPhone?: string;
   advisoryNote?: string;
   advisoryNoteBy?: string;
   advisoryNoteAt?: string;

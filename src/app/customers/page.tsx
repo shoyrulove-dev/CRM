@@ -207,7 +207,7 @@ export default async function CustomersPage({
                         <strong>{item.name}</strong>
                         <CustomerLoyalty customer={item} />
                         <small>
-                          {item.id} · {item.phone}
+                          {item.id} · {item.contactPhone || item.phone}
                         </small>
                       </span>
                     </Link>

@@ -178,33 +178,44 @@ async function upsertCustomer(
       ? { haravanId }
       : { phone };
   const id = String(existing?.id || generatedId || `HRV-KH-${Date.now()}`);
+  const birthDate = raw.birthday?.slice(0, 10) || "";
+  const sourceName = fallback ? { $ifNull: ["$haravanSource.name", { $literal: name }] } : { $literal: name };
+  const sourcePhone = fallback ? { $ifNull: ["$haravanSource.phone", { $literal: phone }] } : { $literal: phone };
+  const insertDefaults = {
+    id,
+    owner: "Chưa phân công",
+    segment: "Chưa xác định",
+    orders: Number(raw.orders_count || 0),
+    revenue: Number(raw.total_spent || 0),
+    lastOrder: raw.last_order_date?.slice(0, 10) || "",
+    nextCare: "",
+    status: "due",
+    healthGoal: "Chưa xác định",
+    createdAt: raw.created_at || new Date().toISOString(),
+  };
+  const initialFields = Object.fromEntries(Object.entries(insertDefaults).map(([field, value]) =>
+    [field, { $cond: [{ $eq: [{ $type: "$id" }, "missing"] }, { $literal: value }, `$${field}`] }]));
   await customerCollection.updateOne(
     match,
-    {
+    [{
       $set: {
-        haravanId: haravanId || undefined,
-        name,
-        phone,
-        phoneNormalized,
-        birthDate: raw.birthday?.slice(0, 10) || String(existing?.birthDate || ""),
-        haravanTags: raw.tags || "",
-        haravanUpdatedAt: raw.updated_at || "",
+        ...initialFields,
+        haravanId: { $literal: haravanId },
+        haravanSource: {
+          name: sourceName,
+          phone: sourcePhone,
+          birthDate: raw.birthday === undefined ? { $ifNull: ["$haravanSource.birthDate", ""] } : { $literal: birthDate },
+        },
+        name: { $ifNull: ["$haravanCorrections.name.value", sourceName] },
+        phone: sourcePhone,
+        phoneNormalized: fallback ? { $ifNull: ["$phoneNormalized", { $literal: phoneNormalized }] } : { $literal: phoneNormalized },
+        birthDate: { $ifNull: ["$haravanCorrections.birthDate.value", birthDate ? { $literal: birthDate } : { $ifNull: ["$birthDate", ""] }] },
+        haravanTags: { $literal: raw.tags || "" },
+        haravanUpdatedAt: { $literal: raw.updated_at || "" },
         source: "haravan",
         syncedAt: new Date().toISOString(),
       },
-      $setOnInsert: {
-        id,
-        owner: "Chưa phân công",
-        segment: "Chưa xác định",
-        orders: Number(raw.orders_count || 0),
-        revenue: Number(raw.total_spent || 0),
-        lastOrder: raw.last_order_date?.slice(0, 10) || "",
-        nextCare: "",
-        status: "due",
-        healthGoal: "Chưa xác định",
-        createdAt: raw.created_at || new Date().toISOString(),
-      },
-    },
+    }],
     { upsert: true },
   );
   return { id, owner: String(existing?.owner || "Chưa phân công") };

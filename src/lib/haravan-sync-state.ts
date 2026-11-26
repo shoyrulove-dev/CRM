@@ -1,4 +1,4 @@
-export const HARAVAN_MAPPING_VERSION = 5;
+export const HARAVAN_MAPPING_VERSION = 6;
 type SyncCheckpoint = Record<string, unknown> | null | undefined;
 export function haravanSyncState(previous: SyncCheckpoint, startedAt: string) {
   const resuming = previous?.checkpointVersion === 1 && previous?.cycleMappingVersion === HARAVAN_MAPPING_VERSION &&

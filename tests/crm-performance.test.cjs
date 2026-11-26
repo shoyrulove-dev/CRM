@@ -46,10 +46,11 @@ test('reports use Vietnam day boundaries and reject invalid/reversed periods', (
 });
 test('incremental checkpoint resumes same filter instead of changing dataset at page 11', () => {
   const start = '2026-11-19T00:00:00Z';
-  const first = checkpoint.haravanSyncState({ complete: true, mappingVersion: 5, lastSuccessAt: start }, '2026-11-19T01:00:00Z');
+  const version = checkpoint.HARAVAN_MAPPING_VERSION;
+  const first = checkpoint.haravanSyncState({ complete: true, mappingVersion: version, lastSuccessAt: start }, '2026-11-19T01:00:00Z');
   assert.equal(first.incremental, true); assert.equal(first.customerPage, 1);
-  const next = checkpoint.haravanSyncState({ complete: false, mappingVersion: 5,
-    checkpointVersion: 1, cycleMappingVersion: 5, cycleIncremental: true,
+  const next = checkpoint.haravanSyncState({ complete: false, mappingVersion: version,
+    checkpointVersion: 1, cycleMappingVersion: version, cycleIncremental: true,
     cycleStartedAt: first.cycleStartedAt, cycleUpdatedAtMin: first.updatedAtMin,
     customerPage: 11, orderPage: 21 }, '2026-11-19T02:00:00Z');
   assert.equal(next.customerPage, 11); assert.equal(next.orderPage, 21);
