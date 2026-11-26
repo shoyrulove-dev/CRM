@@ -531,8 +531,8 @@ export async function getReportData(user?: SessionUser | null, options: {
       contactStatus: 1, result: 1, productEndDate: 1, repurchaseTimely: 1, satisfaction: 1, adverseReaction: 1, noPurchaseReason: 1 }),
     read<SalesOrder>(collections.orders, sections.has("orders"), restricted ? {
       $or: [{ owner: user!.name }, { salesperson: user!.name }],
-    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1,
-      ...(options.includeOrderCodes ? { id: 1, code: 1 } : {}),
+    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1, reportAdjustment: 1,
+      ...(options.includeOrderCodes ? { id: 1, code: 1, haravanId: 1 } : {}),
       ...(options.purchaseReport ? { id: 1, code: 1, "products.sku": 1, "products.name": 1 } : {}) }),
     read<ServiceTicket>(collections.tickets, sections.has("tickets"), owner, { _id: 0, id: 1, owner: 1, status: 1, createdAt: 1 }),
   ]);

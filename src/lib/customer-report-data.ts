@@ -1,4 +1,5 @@
 import "server-only";
+import { effectiveReportOrders } from "./order-report-adjustment";
 import { loadPurchaseHistory } from "./purchase-history";
 import { getReportData } from "./data-store";
 import { canSeeAll, type SessionUser } from "./session";
@@ -27,9 +28,10 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
     };
   }
 
-  const { orders, customers } = await getReportData(user, {
+  const { orders: sourceOrders, customers } = await getReportData(user, {
     sections: ["orders", "customers"], purchaseReport: true,
   });
+  const orders = effectiveReportOrders(sourceOrders);
   const names = new Map(customers.map(item => [item.id, item.name]));
   if (view === "sales-review" || view === "sales-orders") {
     const classified = classifyPurchases(orders, await loadPurchaseHistory(orders.map(order => order.customerId).filter(Boolean)));

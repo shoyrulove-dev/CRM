@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getReportData } from "@/lib/data-store";
+import { effectiveReportOrders } from "@/lib/order-report-adjustment";
 import { getCurrentUser } from "@/lib/current-user";
 import { createExcelFile, excelResponse, type ExcelCell } from "@/lib/excel";
 import { canSeeAll, hasPermission } from "@/lib/session";
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     name = "Đơn hàng Haravan";
     headers = ["Ngày tạo", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tổng thanh toán", "Phụ trách CRM", "Người bán Haravan"];
     const customerById = new Map(data.customers.map((item) => [item.id, item]));
-    rows = data.orders.filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner)).flatMap((item) => {
+    rows = effectiveReportOrders(data.orders).filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner)).flatMap((item) => {
       const customer = customerById.get(item.customerId);
       const products = item.products.length ? item.products : [{ name: "", quantity: 0 }];
       return products.map((product, index) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, index === 0 ? item.total : "", item.owner, item.salesperson]);

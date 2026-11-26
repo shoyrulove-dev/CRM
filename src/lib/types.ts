@@ -143,6 +143,8 @@ export interface LoginEvent {
 }
 
 export interface SalesOrder {
+  haravanId?: string;
+  reportAdjustment?: import("./order-report-adjustment").OrderReportAdjustment;
   id: string;
   code: string;
   customerId: string;

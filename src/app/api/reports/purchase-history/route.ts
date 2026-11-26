@@ -5,6 +5,7 @@ import { preview, normalizePhone, type HistoryCells } from "../../../../../scrip
 import { getCurrentUser } from "@/lib/current-user";
 import { getDatabase, hasDatabase } from "@/lib/mongodb";
 import { collections, getReportData } from "@/lib/data-store";
+import { effectiveReportOrders } from "@/lib/order-report-adjustment";
 import { validDay } from "@/lib/month-range";
 import { classifyPurchases, purchaseLabels, type PurchaseBaseline } from "@/lib/customer-report-metrics";
 import { loadPurchaseHistory, mergePurchaseBaseline, purchaseHistoryBatches, purchaseHistoryRows } from "@/lib/purchase-history";
@@ -118,7 +119,8 @@ export async function POST(request: NextRequest) {
     records.push({ batchId: id, customerId: ids.size === 1 ? [...ids][0] : chosen as string, day: first.day, code: unambiguous ? code : "",
       skus: unambiguous && !skus.has("") ? [...skus] : [] });
   }
-  const { orders } = await getReportData(user, { sections: ["orders"], purchaseReport: true });
+  const data = await getReportData(user, { sections: ["orders"], purchaseReport: true });
+  const orders = effectiveReportOrders(data.orders);
   const history = await loadPurchaseHistory(orders.map(order => order.customerId).filter(Boolean));
   const before = classifyPurchases(orders, history);
   for (const row of records) mergePurchaseBaseline(history, row.customerId, row);
