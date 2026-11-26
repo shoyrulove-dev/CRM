@@ -50,8 +50,8 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
 
   const needle = product.toLocaleLowerCase("vi");
   const customerNeedle = customer.toLocaleLowerCase("vi");
-  const employees = [...new Set(orders.flatMap(item => [item.owner, item.salesperson]).filter(Boolean))].sort();
-  const pairs = countProductPurchases(orders.filter(item => inRange(item.orderDate) && (!owner || item.owner === owner || item.salesperson === owner)))
+  const employees = [...new Set(orders.map(item => item.salesperson).filter(Boolean))].sort();
+  const pairs = countProductPurchases(orders.filter(item => inRange(item.orderDate) && (!owner || item.salesperson === owner)))
     .filter(row => (!needle || `${row.sku} ${row.product || ""}`.toLocaleLowerCase("vi").includes(needle)) &&
       (!customerNeedle || `${row.customerId} ${names.get(row.customerId) || ""}`.toLocaleLowerCase("vi").includes(customerNeedle)));
   if (view === "product-history") return {

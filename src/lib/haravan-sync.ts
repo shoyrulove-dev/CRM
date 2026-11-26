@@ -4,6 +4,7 @@ import { collections, ensureIndexes, reconcileCustomers } from "./data-store";
 import { getIntegrationConfig } from "./integration-config";
 import { getDatabase, hasDatabase } from "./mongodb";
 import { haravanSyncState, HARAVAN_MAPPING_VERSION } from "./haravan-sync-state";
+import { reportDay } from "./report-filters";
 
 type HaravanCustomer = {
   id: number | string;
@@ -348,7 +349,7 @@ async function syncHaravanDataUnlocked() {
         haravanId: String(order.id),
         code: order.name || `#${order.order_number || order.id}`,
         customerId: mapped.id,
-        orderDate: order.created_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+        orderDate: order.created_at ? reportDay(order.created_at) : "",
         channel: order.source_name || "Haravan",
         location: "Haravan",
         customerSource: order.landing_site_ref || "Haravan",
@@ -364,7 +365,7 @@ async function syncHaravanDataUnlocked() {
         promotion: Number(order.total_discounts || 0) ? "Có giảm giá" : "",
         total: Number(order.total_price || 0),
         owner: mapped.owner,
-        salesperson: matchedEmployee || mapped.owner,
+        salesperson: matchedEmployee || haravanEmployee || "Chưa xác định người bán",
         paymentMethod: order.gateway || "",
         haravanUpdatedAt: order.updated_at || "",
         source: "haravan",

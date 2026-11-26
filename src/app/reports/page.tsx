@@ -44,13 +44,13 @@ export default async function ReportsPage({
         ...data.customers.map((item) => item.owner),
         ...data.tasks.map((item) => item.owner),
         ...data.activities.map((item) => item.employee),
-        ...data.orders.flatMap((item) => [item.owner, item.salesperson]),
+        ...data.orders.map((item) => item.salesperson),
       ].filter(Boolean),
     ),
   ).sort((a, b) => a.localeCompare(b, "vi"));
   const selectedEmployee = !user || ["admin", "super_admin"].includes(user.role) ? params.owner : user.name;
   const employeeMatches = (value: string) => !selectedEmployee || value === selectedEmployee;
-  const orderMatches = (item: { owner: string; salesperson: string }) => !selectedEmployee || item.owner === selectedEmployee || item.salesperson === selectedEmployee;
+  const orderMatches = (item: { salesperson: string }) => !selectedEmployee || item.salesperson === selectedEmployee;
   const activities = data.activities.filter(
       (item) =>
         inRange(item.occurredAt, from, to) &&
@@ -507,7 +507,7 @@ export default async function ReportsPage({
       </section>
       {showOrders && <section id="orders-in-period" className="panel list-panel">
         <div className="panel-head"><div><h2>Đơn mua từ {from} đến {to}</h2>
-          <p>Đếm theo ngày đơn CRM, trạng thái Mua hàng. Bộ lọc nhân viên khớp người bán hoặc người phụ trách.</p></div></div>
+          <p>Đếm theo ngày tạo đơn (giờ Việt Nam), trạng thái Mua hàng và người bán trên đơn.</p></div></div>
         <div className="table-wrap"><table>
           <thead><tr><th>Mã đơn</th><th>Ngày đơn CRM</th><th>Người bán</th><th>Người phụ trách</th><th>Doanh số</th></tr></thead>
           <tbody>
