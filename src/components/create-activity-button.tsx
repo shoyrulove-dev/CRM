@@ -12,11 +12,13 @@ export function CreateActivityButton({
   orders,
   task,
   employees,
+  inline = false,
 }: {
   customerId: string;
   orders: SalesOrder[];
   task?: { id: string; orderId?: string; channel: string; purpose: string; owner: string; status: string };
   employees?: string[];
+  inline?: boolean;
 }) {
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),
@@ -81,19 +83,8 @@ export function CreateActivityButton({
       setLoading(false);
     }
   }
-  return (
-    <>
-      <button type="button" className={task ? "secondary-button" : "primary-button"} onClick={openForm}>
-        <MessageSquarePlus size={16} />
-        Ghi nhận chăm sóc
-      </button>
-      {open && (
-        <Modal
-          title="Nhật ký chăm sóc"
-          description="Liên kết lần chăm sóc với đơn hàng và thời điểm tái mua."
-          onClose={() => { if (!loading) setOpen(false); }}
-        >
-          <form className="entity-form" onSubmit={submit}>
+  const form = open && (
+    <form className="entity-form" onSubmit={submit}>
             {!saved && <div className="form-grid">
               <label className="full">
                 Đơn hàng liên quan
@@ -210,13 +201,18 @@ export function CreateActivityButton({
               {!saved && <button className="primary-button" disabled={loading || orderData.loading || !!orderData.error}>
                 {loading ? "Đang lưu..." : "Lưu nhật ký"}
               </button>}
-              {task && task.status !== "done" && <button className="secondary-button" value="complete" disabled={loading || (!saved && (orderData.loading || !!orderData.error))}>
+              {!inline && task && task.status !== "done" && <button className="secondary-button" value="complete" disabled={loading || (!saved && (orderData.loading || !!orderData.error))}>
                 {saved ? "Thử hoàn thành lại" : "Lưu và hoàn thành lịch"}
               </button>}
             </footer>
-          </form>
-        </Modal>
-      )}
-    </>
+    </form>
   );
+  return <>
+    {(!inline || !open) && <button type="button" className={task ? "secondary-button" : "primary-button"} onClick={openForm}>
+      <MessageSquarePlus size={16} />Ghi nhận chăm sóc
+    </button>}
+    {inline ? form : open && <Modal title="Nhật ký chăm sóc"
+      description="Liên kết lần chăm sóc với đơn hàng và thời điểm tái mua."
+      onClose={() => { if (!loading) setOpen(false); }}>{form}</Modal>}
+  </>;
 }

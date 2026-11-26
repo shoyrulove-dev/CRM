@@ -77,6 +77,8 @@ tbody tr:hover { background: var(--cream); }
 .role-badge { background: #fff3cf; color: #8a651a; }
 .care-info h3 { font-size: 16.25px; }
 .care-row-details summary { cursor: pointer; font-weight: 700; }
+.ticket-customer-results { display: grid; gap: 6px; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; }
+.ticket-customer-results button { width: 100%; justify-content: flex-start; text-align: left; }
 .care-row-details .page-actions { justify-content: flex-start; flex-wrap: wrap; margin-block: .4rem; }
 .care-info p, .care-time small, .care-actions { font-size: 13.75px; }
 .care-time strong { font-size: 20px; }

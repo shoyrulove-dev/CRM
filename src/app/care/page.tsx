@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CreateActivityButton } from "@/components/create-activity-button";
 import { CreateCareButton } from "@/components/create-care-button";
 import { StatusPill } from "@/components/status-pill";
-import { getCarePageData, listProductCatalog } from "@/lib/data-store";
+import { getCarePageData, getCareTaskActivities, listProductCatalog } from "@/lib/data-store";
 import { LazyCreateButton } from "@/components/lazy-create-button";
 import { CareTaskActions } from "@/components/care-task-actions";
 import { getCurrentUser } from "@/lib/current-user";
@@ -55,6 +55,7 @@ export default async function CarePage({
       listProductCatalog(),
     ]);
   const displayedTasks = careData.tasks;
+  const taskActivities = await getCareTaskActivities(displayedTasks.map(task => task.id), user);
   const employees = allUsers
     .filter((item) => item.active)
     .map((item) => ({ id: item.id, name: item.name }));
@@ -126,6 +127,7 @@ export default async function CarePage({
               defaultValue={params.owner || ""}
             >
               <option value="">Tất cả nhân viên</option>
+              <option>Chưa phân công</option>
               {employees.map((employee) => (
                 <option key={employee.id}>{employee.name}</option>
               ))}
@@ -159,6 +161,8 @@ export default async function CarePage({
                   <StatusPill status={item.status} />
                   {item.customerId ? <details className="care-row-details">
                     <summary>{item.purpose}</summary>
+                    {taskActivities.filter(activity => activity.taskId === item.id).map(activity =>
+                      <p key={activity.id}><strong>{careDate(activity.occurredAt).date} · {activity.result}</strong>{activity.note && ` · ${activity.note}`}</p>)}
                     <div className="page-actions">
                       {hasPermission(user, "customers") && <Link className="secondary-button" href={`/customers/${encodeURIComponent(item.customerId)}?tab=care`}>Xem hồ sơ</Link>}
                       <CreateActivityButton customerId={item.customerId} orders={[]} task={item} employees={formEmployees.map(employee => employee.name)} />
@@ -185,7 +189,7 @@ export default async function CarePage({
                   <span className="person">
                     {item.owner}
                   </span>
-                  <CareTaskActions task={item} employees={employees} />
+                  <CareTaskActions task={item} employees={formEmployees} activityEmployees={formEmployees.map(employee => employee.name)} />
                 </div>
               </div>
             </article>

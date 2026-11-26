@@ -112,6 +112,7 @@ export default async function CustomersPage({
             defaultValue={params.owner || ""}
           >
             <option value="">Tất cả nhân viên</option>
+            {user && ["admin", "super_admin"].includes(user.role) && <option>Chưa phân công</option>}
             {employees.map((employee) => (
               <option key={employee.id}>{employee.name}</option>
             ))}

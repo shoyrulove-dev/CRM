@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
 import { customerSegments, healthGoals, normalizeClassification } from "@/lib/customer-options";
 
-export function CustomerClassificationEditor({ id, segment, healthGoal }: { id: string; segment: string; healthGoal: string }) {
+export function CustomerClassificationEditor({ id, segment, healthGoal, advisoryNote }: { id: string; segment: string; healthGoal: string; advisoryNote?: string }) {
   const [open, setOpen] = useState(false), [loading, setLoading] = useState(false), [error, setError] = useState("");
   const router = useRouter();
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -23,6 +23,7 @@ export function CustomerClassificationEditor({ id, segment, healthGoal }: { id: 
     {open && <Modal title="Cập nhật phân nhóm" description="Chọn theo thông tin đã trao đổi với khách hàng." onClose={() => setOpen(false)}><form className="entity-form" onSubmit={save}><div className="form-grid">
       <label className="full">Phân nhóm<select name="segment" defaultValue={normalizeClassification(segment) || "Chưa xác định"}>{Array.from(new Set([...customerSegments, ...(segment ? [normalizeClassification(segment)] : [])])).map(value => <option key={value}>{value}</option>)}</select></label>
       <label className="full">Mục tiêu sức khỏe<select name="healthGoal" defaultValue={normalizeClassification(healthGoal) || "Chưa xác định"}>{Array.from(new Set([...healthGoals, ...(healthGoal ? [normalizeClassification(healthGoal)] : [])])).map(value => <option key={value}>{value}</option>)}</select></label>
+      <label className="full">Lưu ý tư vấn<textarea name="advisoryNote" defaultValue={advisoryNote} rows={4} maxLength={2000} /></label>
     </div>{error && <p className="form-error">{error}</p>}<footer><button type="button" className="secondary-button" onClick={() => setOpen(false)}>Hủy</button><button className="primary-button" disabled={loading}>{loading ? "Đang lưu..." : "Lưu thay đổi"}</button></footer></form></Modal>}
   </>;
 }

@@ -371,9 +371,14 @@ export default async function CustomerProfilePage({
           <section className="panel info-card">
             <div className="panel-head">
               <h2>Thông tin khách hàng</h2>
-              <CustomerClassificationEditor id={customer.id} segment={customer.segment} healthGoal={customer.healthGoal} />
+              <CustomerClassificationEditor id={customer.id} segment={customer.segment} healthGoal={customer.healthGoal} advisoryNote={customer.advisoryNote} />
             </div>
             <dl>
+              {customer.advisoryNote && <div>
+                <dt>Lưu ý tư vấn</dt>
+                <dd style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{customer.advisoryNote}</dd>
+                {customer.advisoryNoteAt && <dd><small>{customer.advisoryNoteBy} · {new Date(customer.advisoryNoteAt).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })}</small></dd>}
+              </div>}
               <div>
                 <dt>
                   <UserRound />

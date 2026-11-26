@@ -72,6 +72,7 @@ export async function ensureIndexes() {
     db.collection(collections.careTasks).createIndex({ dueAt: 1, id: 1 }),
     db.collection(collections.careTasks).createIndex({ owner: 1, dueAt: 1, id: 1 }),
     db.collection(collections.careTasks).createIndex({ customerId: 1, dueAt: -1, id: -1 }),
+    db.collection(collections.careActivities).createIndex({ taskId: 1, occurredAt: -1 }, { sparse: true }),
     db
       .collection(collections.careTasks)
       .createIndex({ owner: 1, status: 1, dueAt: 1 }),
@@ -398,6 +399,14 @@ export async function getCustomerProfile(
   };
 }
 
+export async function getCareTaskActivities(taskIds: string[], user: SessionUser) {
+  if (!hasDatabase() || !taskIds.length) return [];
+  return (await getDatabase()).collection(collections.careActivities).find({
+    taskId: { $in: taskIds },
+    ...(["admin", "super_admin"].includes(user.role) ? {} : { employee: user.name }),
+  }, { projection: { _id: 0, id: 1, taskId: 1, note: 1, result: 1, occurredAt: 1 } }).sort({ occurredAt: -1 }).toArray();
+}
+
 export async function getCarePageData(params: { date?: string; from?: string; to?: string; owner?: string; status?: string; task?: string; page?: string }, user: SessionUser | null) {
   const size = 20;
   const requestedPage = Math.max(1, Math.min(1000000, Math.floor(Number(params.page) || 1)));
@@ -492,7 +501,7 @@ export async function listTickets(
       );
 }
 export async function getReportData(user?: SessionUser | null, options: {
-  summary?: boolean; purchaseReport?: boolean; sections?: Array<"customers" | "tasks" | "activities" | "orders" | "tickets">;
+  summary?: boolean; purchaseReport?: boolean; includeOrderCodes?: boolean; sections?: Array<"customers" | "tasks" | "activities" | "orders" | "tickets">;
 } = {}) {
   const restricted = !!user && !["admin", "super_admin"].includes(user.role);
   const sections = new Set(options.sections || ["customers", "tasks", "activities", "orders", "tickets"]);
@@ -515,7 +524,7 @@ export async function getReportData(user?: SessionUser | null, options: {
   const read = async <T>(name: string, enabled: boolean, filter: Record<string, unknown>, projection: Record<string, number>) =>
     enabled ? await db.collection(name).find(filter, { projection: options.summary || options.purchaseReport ? projection : { _id: 0 } }).toArray() as unknown as T[] : [] as T[];
   const [taskData, activityData, orderData, ticketData] = await Promise.all([
-    read<CareTask>(collections.careTasks, sections.has("tasks"), owner, { _id: 0, owner: 1, dueAt: 1, status: 1 }),
+    read<CareTask>(collections.careTasks, sections.has("tasks"), owner, { _id: 0, owner: 1, dueAt: 1, status: 1, customerId: 1 }),
     read<CareActivity>(collections.careActivities, sections.has("activities"), restricted ? {
       $or: [{ employee: user!.name }, { customerId: { $in: customerData.map(item => item.id) } }],
     } : {}, { _id: 0, customerId: 1, occurredAt: 1, employee: 1, channel: 1, purpose: 1,
@@ -523,6 +532,7 @@ export async function getReportData(user?: SessionUser | null, options: {
     read<SalesOrder>(collections.orders, sections.has("orders"), restricted ? {
       $or: [{ owner: user!.name }, { salesperson: user!.name }],
     } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, status: 1, total: 1, purchaseType: 1,
+      ...(options.includeOrderCodes ? { id: 1, code: 1 } : {}),
       ...(options.purchaseReport ? { id: 1, code: 1, "products.sku": 1, "products.name": 1 } : {}) }),
     read<ServiceTicket>(collections.tickets, sections.has("tickets"), owner, { _id: 0, id: 1, owner: 1, status: 1, createdAt: 1 }),
   ]);

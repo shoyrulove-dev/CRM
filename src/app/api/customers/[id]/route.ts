@@ -45,6 +45,7 @@ export async function PATCH(
     "phone",
     "segment",
     "healthGoal",
+    "advisoryNote",
     "birthDate",
     "nextCare",
     "status",
@@ -63,6 +64,17 @@ export async function PATCH(
   const dbForValidation = await getDatabase();
   const existing = await dbForValidation.collection(collections.customers).findOne({ id, ...(canSeeAll(user) ? {} : { owner: user?.name }) });
   if (!existing) return NextResponse.json({ error: "Không tìm thấy khách hàng." }, { status: 404 });
+  if ("advisoryNote" in update) {
+    if (typeof update.advisoryNote !== "string" || update.advisoryNote.length > 2000 || hasBrokenText(update.advisoryNote))
+      return NextResponse.json({ error: "Lưu ý tư vấn không hợp lệ hoặc vượt 2.000 ký tự." }, { status: 400 });
+    update.advisoryNote = update.advisoryNote.trim();
+    if (update.advisoryNote === (existing.advisoryNote || "")) delete update.advisoryNote;
+    else {
+      update.advisoryNoteBy = user?.name;
+      update.advisoryNoteAt = new Date().toISOString();
+    }
+  }
+  if (!Object.keys(update).length) return NextResponse.json({ data: existing });
   if ("owner" in update) {
     update.owner = cleanText(update.owner, 120);
     if (update.owner !== "Chưa phân công" && !await dbForValidation.collection(collections.users).findOne({ name: update.owner, active: true, archivedAt: { $exists: false } }))

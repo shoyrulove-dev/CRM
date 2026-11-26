@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "./modal";
+import { CreateActivityButton } from "./create-activity-button";
 import type { CareTask } from "@/lib/types";
 type Employee = { id: string; name: string };
 const localInput = (value: string) => {
@@ -14,9 +15,11 @@ const localInput = (value: string) => {
 export function CareTaskActions({
   task,
   employees,
+  activityEmployees,
 }: {
   task: CareTask;
   employees: Employee[];
+  activityEmployees?: string[];
 }) {
   const [loading, setLoading] = useState(false),
     [open, setOpen] = useState(false),
@@ -114,6 +117,7 @@ export function CareTaskActions({
               <label>
                 Phụ trách
                 <select name="owner" defaultValue={task.owner}>
+                  {!employees.some(employee => employee.name === task.owner) && <option value={task.owner}>{task.owner || "Chưa phân công"}</option>}
                   {employees.map((employee) => (
                     <option key={employee.id} value={employee.name}>
                       {employee.name}
@@ -157,6 +161,10 @@ export function CareTaskActions({
               </button>
             </footer>
           </form>
+          {task.customerId && activityEmployees && <div className="entity-form">
+            <h3>Nhật ký chăm sóc</h3>
+            <CreateActivityButton customerId={task.customerId} orders={[]} task={task} employees={activityEmployees} inline />
+          </div>}
         </Modal>
       )}
     </div>

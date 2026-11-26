@@ -15,6 +15,8 @@ import { ReportExportButton } from "@/components/report-export-button";
 import { reportPeriod, reportInRange } from "@/lib/report-filters";
 import { retentionMetrics } from "@/lib/retention-metrics";
 import Link from "next/link";
+import { careCoverage } from "@/lib/care-coverage";
+import { Pagination } from "@/components/pagination";
 import { loadPurchaseHistory } from "@/lib/purchase-history";
 
 export const dynamic = "force-dynamic";
@@ -22,14 +24,15 @@ const inRange = reportInRange;
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; owner?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; owner?: string; orders?: string; page?: string }>;
 }) {
   const params = await searchParams, user = await getCurrentUser();
   if (!hasPermission(user, "reports")) redirect("/");
   const period = reportPeriod(params.from, params.to);
   if (!period) return <section className="panel"><h1>Khoảng ngày không hợp lệ</h1><p>Chọn ngày hợp lệ, từ ngày không sau đến ngày.</p></section>;
   const { from, to, previousFrom, previousTo } = period;
-  const data = await getReportData(user, { summary: true, sections: ["customers", "tasks", "activities", "orders"] });
+  const showOrders = params.orders === "1";
+  const data = await getReportData(user, { summary: true, includeOrderCodes: showOrders, sections: ["customers", "tasks", "activities", "orders"] });
   const history = await loadPurchaseHistory(data.orders.map(order => order.customerId).filter(Boolean));
   data.orders = data.orders.map(order => {
     const first = history.get(order.customerId);
@@ -63,7 +66,7 @@ export default async function ReportsPage({
       inRange(item.orderDate, previousFrom, previousTo) && orderMatches(item),
     );
   const tasks = data.tasks.filter((item) => inRange(item.dueAt, from, to) && employeeMatches(item.owner));
-  const rows = employees.map((name) => {
+  const rows = employees.filter(employeeMatches).map((name) => {
     const care = activities.filter((item) => item.employee === name),
       contacted = care.filter(
         (item) => item.contactStatus === "Liên lạc được",
@@ -94,6 +97,7 @@ export default async function ReportsPage({
         : 0,
       done: assigned.filter((item) => item.status === "done").length,
       tasks: assigned.length,
+      coverage: careCoverage(assigned, care),
     };
   });
   const repurchaseRevenue = orders
@@ -111,6 +115,11 @@ export default async function ReportsPage({
         .length / activities.length
     : 0;
   const purchasedOrders = orders.filter((item) => item.status === "Mua hàng");
+  if (showOrders) purchasedOrders.sort((a, b) => b.orderDate.localeCompare(a.orderDate) || (a.code || "").localeCompare(b.code || ""));
+  const orderSize = 25;
+  const orderPage = Math.min(Math.max(1, Math.floor(Number(params.page) || 1)), Math.max(1, Math.ceil(purchasedOrders.length / orderSize)));
+  const orderParams = { from, to, owner: params.owner, orders: "1" };
+  const orderLink = new URLSearchParams({ from, to, ...(params.owner ? { owner: params.owner } : {}), orders: "1" });
   const { customersWithOrders, multiBuyers, repurchaseRate, cumulativeBuyers, cumulativeRepeat } = retentionMetrics(data.orders.filter(orderMatches), from, to);
   const dueForRepurchase = activities.filter(
       (item) => item.productEndDate && inRange(item.productEndDate, from, to),
@@ -248,6 +257,7 @@ export default async function ReportsPage({
         <div className="panel-head">
           <div>
             <h2>Kết quả theo nhân viên</h2>
+            <p>Tỷ lệ đã chăm chỉ tính khách có lịch đến hạn và có nhật ký của nhân viên trong cùng kỳ.</p>
             <p>
               Tổng hợp công việc và kết quả chăm sóc trong thời gian đã chọn.
             </p>
@@ -258,8 +268,10 @@ export default async function ReportsPage({
             <thead>
               <tr>
                 <th>NHÂN VIÊN</th>
+                <th>KHÁCH CẦN CHĂM</th>
                 <th>LƯỢT CHĂM</th>
                 <th>SỐ KHÁCH</th>
+                <th>ĐÃ CHĂM / CẦN CHĂM</th>
                 <th>LIÊN LẠC</th>
                 <th>TỶ LỆ</th>
                 <th>MUA LẠI</th>
@@ -277,8 +289,10 @@ export default async function ReportsPage({
                   <td>
                     <strong>{row.name}</strong>
                   </td>
+                  <td>{row.coverage.due}</td>
                   <td>{row.care}</td>
                   <td>{row.customers}</td>
+                  <td>{row.coverage.rate === null ? "—" : `${row.coverage.reached}/${row.coverage.due} (${(row.coverage.rate * 100).toFixed(1)}%)`}</td>
                   <td>{row.contacted}</td>
                   <td>{(row.contactRate * 100).toFixed(1)}%</td>
                   <td>{row.buy}</td>
@@ -412,7 +426,7 @@ export default async function ReportsPage({
                 </td>
               </tr>
               <tr>
-                <td>Đơn mua trong kỳ</td>
+                <td>Đơn mua trong kỳ <Link href={`/reports?${orderLink}#orders-in-period`}>Xem từng đơn</Link></td>
                 <td>
                   <b>{purchasedOrders.length}</b>
                 </td>
@@ -491,6 +505,19 @@ export default async function ReportsPage({
           })}
         </div>
       </section>
+      {showOrders && <section id="orders-in-period" className="panel list-panel">
+        <div className="panel-head"><div><h2>Đơn mua từ {from} đến {to}</h2>
+          <p>Đếm theo ngày đơn CRM, trạng thái Mua hàng. Bộ lọc nhân viên khớp người bán hoặc người phụ trách.</p></div></div>
+        <div className="table-wrap"><table>
+          <thead><tr><th>Mã đơn</th><th>Ngày đơn CRM</th><th>Người bán</th><th>Người phụ trách</th><th>Doanh số</th></tr></thead>
+          <tbody>
+            {purchasedOrders.slice((orderPage - 1) * orderSize, orderPage * orderSize).map(item =>
+              <tr key={item.id}><td>{item.code}</td><td>{item.orderDate}</td><td>{item.salesperson}</td><td>{item.owner}</td><td>{money.format(item.total)}</td></tr>)}
+            {!purchasedOrders.length && <tr><td colSpan={5}>Không có đơn mua trong kỳ đã chọn.</td></tr>}
+          </tbody>
+        </table></div>
+        <Pagination page={orderPage} size={orderSize} total={purchasedOrders.length} pathname="/reports" params={orderParams} />
+      </section>}
     </>
   );
 }

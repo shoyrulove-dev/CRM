@@ -28,6 +28,9 @@ export interface PermissionGroup {
 }
 
 export interface Customer {
+  advisoryNote?: string;
+  advisoryNoteBy?: string;
+  advisoryNoteAt?: string;
   membershipTier?: string;
   loyaltyPoints?: number;
   loyaltySyncedAt?: string;
@@ -73,6 +76,7 @@ export interface CareTask {
 }
 
 export interface CareActivity {
+  taskId?: string;
   id: string;
   customerId: string;
   occurredAt: string;
