@@ -328,6 +328,7 @@ async function syncHaravanDataUnlocked() {
         const assignment = await db.collection(collections.customers).updateOne(
           {
             id: mapped.id,
+            ownerSource: { $ne: "manual" },
             $or: [
               { owner: "Chưa phân công" },
               { ownerSource: "haravan" },
@@ -344,6 +345,11 @@ async function syncHaravanDataUnlocked() {
         );
         if (matchedEmployee && assignment.modifiedCount) mapped.owner = matchedEmployee;
       }
+      // A CRM assignment made after this customer entered the sync batch wins.
+      const manualAssignment = await db.collection(collections.customers).findOne(
+        { id: mapped.id, ownerSource: "manual" },
+        { projection: { owner: 1 } },
+      );
       const document = {
         id: `HRV-DH-${order.id}`,
         haravanId: String(order.id),
@@ -364,7 +370,7 @@ async function syncHaravanDataUnlocked() {
         })),
         promotion: Number(order.total_discounts || 0) ? "Có giảm giá" : "",
         total: Number(order.total_price || 0),
-        owner: mapped.owner,
+        owner: manualAssignment?.owner || mapped.owner,
         salesperson: matchedEmployee || haravanEmployee || "Chưa xác định người bán",
         paymentMethod: order.gateway || "",
         haravanUpdatedAt: order.updated_at || "",
