@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const pathname = "/reports/customer-insights";
 
 export default async function CustomerInsightsPage({ searchParams }: {
-  searchParams: Promise<{ view?: string; from?: string; to?: string; owner?: string; customer?: string; product?: string; unit?: string; page?: string }>;
+  searchParams: Promise<{ view?: string; from?: string; to?: string; owner?: string; customer?: string; product?: string; unit?: string; page?: string; channel?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, "reports")) redirect("/");
@@ -25,6 +25,7 @@ export default async function CustomerInsightsPage({ searchParams }: {
   const { from, to } = period;
   const filters = {
     from, to, owner: manager ? params.owner || "" : "",
+    channel: params.channel || "",
     customer: sales || view === "care-days" ? "" : (params.customer || "").trim().slice(0, 100),
     product: sales || view === "care-days" ? "" : (params.product || "").trim().slice(0, 100),
     unit: params.unit && Object.hasOwn(reviewPeriods, params.unit) ? params.unit : "month",
@@ -34,7 +35,7 @@ export default async function CustomerInsightsPage({ searchParams }: {
   const page = Math.min(Math.max(1, Math.ceil(report.rows.length / size)), Math.max(1, Math.floor(Number(params.page) || 1)));
   const pagination = { view, ...filters };
   const exportQuery = new URLSearchParams({ ...filters, template: view });
-  const viewFilter = { from, to };
+  const viewFilter = { from, to, channel: filters.channel, owner: filters.owner };
   return <>
     <div className="page-heading compact">
       <div><p className="eyebrow">PHÂN TÍCH KHÁCH HÀNG</p><h1>{customerReportViews[view]}</h1></div>
@@ -58,6 +59,9 @@ export default async function CustomerInsightsPage({ searchParams }: {
           {report.employees.map(name => <option key={name}>{name}</option>)}
         </select>
       </label>}
+      {view !== "care-days" ? <label>Kênh đơn hàng<select name="channel" defaultValue={filters.channel}>
+        <option value="">Tất cả kênh</option>{report.channels.map(channel => <option key={channel}>{channel}</option>)}
+      </select></label> : <input type="hidden" name="channel" value={filters.channel} />}
       {view === "sales-review" && <label>Nhóm theo
         <select name="unit" defaultValue={filters.unit}>{Object.entries(reviewPeriods).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
       </label>}

@@ -9,6 +9,8 @@ export type OrderReportAdjustment = {
   at: string;
   sourceDate: string;
   sourceStatus: SalesOrder["status"];
+  reviewedAt?: string;
+  reviewedBy?: string;
 };
 
 export function effectiveReportOrder(order: SalesOrder): SalesOrder {

@@ -27,7 +27,7 @@ const inRange = reportInRange;
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ from?: string; to?: string; owner?: string; orders?: string; page?: string }>;
+  searchParams: Promise<{ from?: string; to?: string; owner?: string; channel?: string; orders?: string; page?: string }>;
 }) {
   const params = await searchParams, user = await getCurrentUser();
   if (!hasPermission(user, "reports")) redirect("/");
@@ -55,7 +55,9 @@ export default async function ReportsPage({
   ).sort((a, b) => a.localeCompare(b, "vi"));
   const selectedEmployee = !user || ["admin", "super_admin"].includes(user.role) ? params.owner : user.name;
   const employeeMatches = (value: string) => !selectedEmployee || value === selectedEmployee;
-  const orderMatches = (item: { owner: string }) => !selectedEmployee || item.owner === selectedEmployee;
+  const orderChannels = [...new Set([...sourceOrders.map(item => item.channel), params.channel].filter((value): value is string => Boolean(value)))].sort();
+  const orderMatches = (item: { owner: string; channel: string }) =>
+    (!selectedEmployee || item.owner === selectedEmployee) && (!params.channel || item.channel === params.channel);
   const activities = data.activities.filter(
       (item) =>
         inRange(item.occurredAt, from, to) &&
@@ -128,8 +130,9 @@ export default async function ReportsPage({
   }).sort((a, b) => b.orderDate.localeCompare(a.orderDate) || (a.code || "").localeCompare(b.code || "")) : [];
   const orderSize = 25;
   const orderPage = Math.min(Math.max(1, Math.floor(Number(params.page) || 1)), Math.max(1, Math.ceil(detailOrders.length / orderSize)));
-  const orderParams = { from, to, owner: params.owner, orders: "1" };
-  const orderLink = new URLSearchParams({ from, to, ...(params.owner ? { owner: params.owner } : {}), orders: "1" });
+  const reportParams = { from, to, ...(params.owner ? { owner: params.owner } : {}), ...(params.channel ? { channel: params.channel } : {}) };
+  const orderParams = { ...reportParams, orders: "1" };
+  const orderLink = new URLSearchParams(orderParams);
   const { customersWithOrders, multiBuyers, repurchaseRate, cumulativeBuyers, cumulativeRepeat } = retentionMetrics(data.orders.filter(orderMatches), from, to);
   const dueForRepurchase = activities.filter(
       (item) => item.productEndDate && inRange(item.productEndDate, from, to),
@@ -203,8 +206,8 @@ export default async function ReportsPage({
           </p>
         </div>
         <div className="page-actions">
-          <Link className="secondary-button" href={`/reports/customer-insights?${new URLSearchParams({ from, to, ...(params.owner ? { owner: params.owner } : {}) })}`}>Báo cáo khách và sản phẩm</Link>
-          <ReportExportButton from={from} to={to} owner={params.owner} />
+          <Link className="secondary-button" href={`/reports/customer-insights?${new URLSearchParams(reportParams)}`}>Báo cáo khách và sản phẩm</Link>
+          <ReportExportButton {...reportParams} />
         </div>
       </div>
       <form className="panel report-filter" method="get">
@@ -227,6 +230,9 @@ export default async function ReportsPage({
           Đến ngày
           <input type="date" name="to" defaultValue={to} />
         </label>
+        <label>Kênh đơn hàng<select name="channel" defaultValue={params.channel || ""}><option value="">Tất cả kênh</option>
+          {orderChannels.map(channel => <option key={channel}>{channel}</option>)}</select></label>
+        {showOrders && <input type="hidden" name="orders" value="1" />}
         <button className="primary-button">Áp dụng</button>
       </form>
       <section className="report-kpis">
@@ -519,17 +525,17 @@ export default async function ReportsPage({
         <div className="panel-head"><div><h2>Đơn mua từ {from} đến {to}</h2>
           <p>Đếm theo ngày tạo đơn (giờ Việt Nam), trạng thái Mua hàng và người phụ trách CRM.</p></div></div>
         <div className="table-wrap"><table>
-          <thead><tr><th>Mã đơn</th><th>Ngày tính</th><th>Người bán</th><th>Phụ trách CRM</th><th>Doanh số gốc</th><th>Trong số tổng kỳ</th>{canSeeAll(user) && <th>Đối soát</th>}</tr></thead>
+          <thead><tr><th>Mã đơn</th><th>Ngày tính</th><th>Kênh</th><th>Người bán</th><th>Phụ trách CRM</th><th>Doanh số gốc</th><th>Trong số tổng kỳ</th>{canSeeAll(user) && <th>Đối soát</th>}</tr></thead>
           <tbody>
             {detailOrders.slice((orderPage - 1) * orderSize, orderPage * orderSize).map(item => {
               const effective = effectiveReportOrder(item);
               const included = !item.reportAdjustment?.excluded && effective.status === "Mua hàng" && inRange(effective.orderDate, from, to);
-              return <tr key={item.id}><td>{item.code}</td><td>{effective.orderDate || "—"}</td><td>{item.salesperson}</td><td>{item.owner}</td><td>{money.format(item.total)}</td>
+              return <tr key={item.id}><td>{item.code}</td><td>{effective.orderDate || "—"}</td><td>{item.channel || "Chưa rõ"}</td><td>{item.salesperson}</td><td>{item.owner}</td><td>{money.format(item.total)}</td>
                 <td>{included ? "Có" : item.reportAdjustment?.excluded ? "Đã loại" : effective.status !== "Mua hàng" ? effective.status : "Ngoài kỳ"}</td>
                 {canSeeAll(user) && <td>{item.haravanId && <OrderReportReconciliation id={item.id} code={item.code} date={item.orderDate} status={item.status} adjustment={item.reportAdjustment} />}</td>}
               </tr>;
             })}
-            {!detailOrders.length && <tr><td colSpan={canSeeAll(user) ? 7 : 6}>Không có đơn trong kỳ đã chọn.</td></tr>}
+            {!detailOrders.length && <tr><td colSpan={canSeeAll(user) ? 8 : 7}>Không có đơn trong kỳ đã chọn.</td></tr>}
           </tbody>
         </table></div>
         <Pagination page={orderPage} size={orderSize} total={detailOrders.length} pathname="/reports" params={orderParams} />

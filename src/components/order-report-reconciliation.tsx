@@ -17,13 +17,13 @@ export function OrderReportReconciliation({ id, code, date, status, adjustment }
     event.preventDefault();
     if (busy) return;
     const form = new FormData(event.currentTarget);
-    const action = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "reset" ? "reset" : "save";
+    const action = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") || "save";
     setBusy(true); setError("");
     try {
       const response = await fetch(`/api/reports/orders/${encodeURIComponent(id)}/adjustment`, {
         method: "PATCH", headers: { "content-type": "application/json" },
         body: JSON.stringify({ action, reason: form.get("reason"), date: form.get("date"), status: form.get("status"),
-          excluded: form.get("excluded") === "on", expectedDate: date, expectedStatus: status, expectedAt: adjustment?.at || "" }),
+          excluded: form.get("excluded") === "on", expectedDate: date, expectedStatus: status, expectedAt: adjustment?.reviewedAt || adjustment?.at || "" }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) throw new Error(result?.error || "Không thể lưu điều chỉnh.");
@@ -36,6 +36,7 @@ export function OrderReportReconciliation({ id, code, date, status, adjustment }
     ["Trạng thái", status, adjustment?.status ?? status],
     ["Phạm vi báo cáo", "Theo trạng thái nguồn", adjustment?.excluded ? "Đã loại khỏi báo cáo" : "Theo trạng thái đang dùng"],
   ];
+  const needsReview = adjustment && (adjustment.sourceDate !== date || adjustment.sourceStatus !== status);
   return <>
     <button type="button" className="secondary-button" onClick={() => { setError(""); setOpen(true); }}>Đối soát</button>
     {open && <Modal title={`Đối soát đơn ${code}`} description="Điều chỉnh dùng cho báo cáo CRM. Dữ liệu gốc được giữ để so sánh." onClose={() => { if (!busy) setOpen(false); }}>
@@ -46,7 +47,8 @@ export function OrderReportReconciliation({ id, code, date, status, adjustment }
             <td>{(i === 2 ? adjustment?.excluded : source !== current) ? "Có điều chỉnh" : "—"}</td></tr>)}</tbody>
         </table></div>
         {adjustment && <p>{adjustment.editor} · {new Date(adjustment.at).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })} · {adjustment.reason}
-          {(adjustment.sourceDate !== date || adjustment.sourceStatus !== status) && <strong> · Nguồn đã đổi, cần rà lại</strong>}</p>}
+          {needsReview && <strong> · Nguồn đã đổi, cần rà lại</strong>}</p>}
+        {!needsReview && adjustment?.reviewedAt && <p>Đã rà bởi {adjustment.reviewedBy} · {new Date(adjustment.reviewedAt).toLocaleString("vi-VN", { timeZone: "Asia/Bangkok" })}</p>}
         <form className="entity-form" onSubmit={save}>
           <label>Ngày tính báo cáo<input type="date" name="date" defaultValue={adjustment?.date ?? date} required /></label>
           <label>Trạng thái tính báo cáo<select name="status" defaultValue={adjustment?.status ?? status}><option>Mua hàng</option><option>Trả hàng</option><option>Hủy</option></select></label>
@@ -54,6 +56,7 @@ export function OrderReportReconciliation({ id, code, date, status, adjustment }
           <label>Lý do<textarea name="reason" required minLength={3} maxLength={500} rows={3} /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <footer>
+            {needsReview && <button className="secondary-button" value="review" disabled={busy} formNoValidate>Xác nhận đã rà</button>}
             {adjustment && <button className="secondary-button" value="reset" disabled={busy} formNoValidate>Trả về Haravan</button>}
             <button className="primary-button" value="save" disabled={busy}>{busy ? "Đang lưu…" : "Lưu điều chỉnh"}</button>
           </footer>

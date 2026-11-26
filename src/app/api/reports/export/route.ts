@@ -12,7 +12,7 @@ import { getCustomerReport, reviewPeriods } from "@/lib/customer-report-data";
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user || !hasPermission(user, "reports")) return new Response("Không có quyền xuất báo cáo.", { status: 403 });
-  const p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"),
+  const p = request.nextUrl.searchParams, from = p.get("from"), to = p.get("to"), channel = p.get("channel"),
     owner = user && !["admin", "super_admin"].includes(user.role) ? user.name : p.get("owner"), template = p.get("template") || "detail";
   if ((from && !validDay(from)) || (to && !validDay(to)) || (from && to && from > to))
     return new Response("Khoảng ngày không hợp lệ.", { status: 400 });
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const unit = p.get("unit") || "month";
     const { headers, rows } = await getCustomerReport(template, {
       from: period.from, to: period.to, owner: owner || "",
+      channel: channel || "",
       customer: (p.get("customer") || "").trim().slice(0, 100),
       product: (p.get("product") || "").trim().slice(0, 100),
       unit: Object.hasOwn(reviewPeriods, unit) ? unit : "month",
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     name = "Đơn hàng Haravan";
     headers = ["Ngày tạo", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tổng thanh toán", "Phụ trách CRM", "Người bán Haravan"];
     const customerById = new Map(data.customers.map((item) => [item.id, item]));
-    rows = effectiveReportOrders(data.orders).filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner)).flatMap((item) => {
+    rows = effectiveReportOrders(data.orders).filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner) && (!channel || item.channel === channel)).flatMap((item) => {
       const customer = customerById.get(item.customerId);
       const products = item.products.length ? item.products : [{ name: "", quantity: 0 }];
       return products.map((product, index) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, index === 0 ? item.total : "", item.owner, item.salesperson]);

@@ -52,7 +52,7 @@ export function countProductPurchases(orders: SalesOrder[]) {
 
 export type PurchaseClass = "new" | "old" | "different" | "mixed" | "unknown";
 export const purchaseLabels: Record<PurchaseClass, string> = {
-  new: "Mua lần đầu trong dữ liệu CRM",
+  new: "Chưa thấy đơn mua trước đó",
   old: "Chỉ mua sản phẩm cũ",
   different: "Chỉ mua sản phẩm mới",
   mixed: "Mua cả cũ lẫn mới",
