@@ -33,15 +33,15 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
   const names = new Map(customers.map(item => [item.id, item.name]));
   if (view === "sales-review" || view === "sales-orders") {
     const classified = classifyPurchases(orders, await loadPurchaseHistory(orders.map(order => order.customerId).filter(Boolean)));
-    const employees = [...new Set(orders.map(item => item.salesperson?.trim() || "Chưa xác định người bán"))].sort();
+    const employees = [...new Set(orders.map(item => item.owner?.trim() || "Chưa phân công"))].sort();
     if (view === "sales-review") return {
-      headers: ["Kỳ", "Nhân viên bán", "Đơn mua", "Doanh số", "Khách mua", "Khách mua lần đầu", "Tỷ lệ khách mua lần đầu (%)", "Khách mua lại", "Đơn chỉ mua SP cũ", "Đơn chỉ mua SP mới", "Đơn mua cả cũ lẫn mới", "Đơn chưa đủ dữ liệu", "Doanh thu mua lại"],
+      headers: ["Kỳ", "Phụ trách CRM", "Đơn mua", "Doanh số", "Khách mua", "Khách mua lần đầu", "Tỷ lệ khách mua lần đầu (%)", "Khách mua lại", "Đơn chỉ mua SP cũ", "Đơn chỉ mua SP mới", "Đơn mua cả cũ lẫn mới", "Đơn chưa đủ dữ liệu", "Doanh thu mua lại"],
       rows: summarizePurchases(classified, from, to, owner, unit), employees,
     };
     return {
-      headers: ["Ngày", "Mã đơn", "Mã khách", "Khách hàng", "Nhân viên bán", "Doanh số", "Phân loại hiện tại", "Phân loại đối chiếu", "Mã đơn đầu đối chiếu", "Kết quả đối chiếu"],
-      rows: classified.filter(({ order }) => inRange(order.orderDate) && (!owner || (order.salesperson?.trim() || "Chưa xác định người bán") === owner))
-        .map(({ order, kind, firstCode, repeat, historical }) => [reportDay(order.orderDate), order.code, order.customerId, names.get(order.customerId) || "", order.salesperson?.trim() || "Chưa xác định người bán", order.total, order.purchaseType, purchaseLabels[kind], firstCode,
+      headers: ["Ngày", "Mã đơn", "Mã khách", "Khách hàng", "Phụ trách CRM", "Người bán Haravan", "Doanh số", "Phân loại hiện tại", "Phân loại đối chiếu", "Mã đơn đầu đối chiếu", "Kết quả đối chiếu"],
+      rows: classified.filter(({ order }) => inRange(order.orderDate) && (!owner || (order.owner?.trim() || "Chưa phân công") === owner))
+        .map(({ order, kind, firstCode, repeat, historical }) => [reportDay(order.orderDate), order.code, order.customerId, names.get(order.customerId) || "", order.owner?.trim() || "Chưa phân công", order.salesperson || "", order.total, order.purchaseType, purchaseLabels[kind], firstCode,
           !order.customerId ? "Thiếu mã khách" : historical ? "Có lịch sử mua đã duyệt" : repeat && order.purchaseType !== "Mua lại" ? "Có đơn trước trong CRM"
             : kind === "unknown" ? "Thiếu dữ liệu đơn đầu hoặc SKU" : kind === "new" ? "Chưa đối chiếu lịch sử ngoài CRM" : "Khớp nhóm mua lại"]),
       employees,
@@ -50,8 +50,8 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
 
   const needle = product.toLocaleLowerCase("vi");
   const customerNeedle = customer.toLocaleLowerCase("vi");
-  const employees = [...new Set(orders.map(item => item.salesperson).filter(Boolean))].sort();
-  const pairs = countProductPurchases(orders.filter(item => inRange(item.orderDate) && (!owner || item.salesperson === owner)))
+  const employees = [...new Set(orders.map(item => item.owner).filter(Boolean))].sort();
+  const pairs = countProductPurchases(orders.filter(item => inRange(item.orderDate) && (!owner || item.owner === owner)))
     .filter(row => (!needle || `${row.sku} ${row.product || ""}`.toLocaleLowerCase("vi").includes(needle)) &&
       (!customerNeedle || `${row.customerId} ${names.get(row.customerId) || ""}`.toLocaleLowerCase("vi").includes(customerNeedle)));
   if (view === "product-history") return {

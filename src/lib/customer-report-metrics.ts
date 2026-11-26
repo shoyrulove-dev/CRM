@@ -105,7 +105,7 @@ export function summarizePurchases(rows: ReturnType<typeof classifyPurchases>, f
   const groups = new Map<string, typeof rows>();
   for (const row of rows) {
     const { order } = row;
-    const employee = order.salesperson?.trim() || "Chưa xác định người bán";
+    const employee = order.owner?.trim() || "Chưa phân công";
     if (!reportInRange(order.orderDate, from, to) || (owner && employee !== owner)) continue;
     const period = periodKey(reportDay(order.orderDate), unit);
     for (const name of ["", employee]) {

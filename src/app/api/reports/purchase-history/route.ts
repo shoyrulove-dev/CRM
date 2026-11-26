@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
     id, validation, choices, matched: records.length, ambiguous, unmatched: byPhone.size - match.size,
     changed: changed.length, beforeRevenue: revenue(before), afterRevenue: revenue(after),
     sample: changed.slice(0, 20).map(row => ({
-      code: row.order.code, day: row.order.orderDate, employee: row.order.salesperson, amount: row.order.total,
+      code: row.order.code, day: row.order.orderDate, employee: row.order.owner, amount: row.order.total,
       before: purchaseLabels[beforeById.get(row.order.id)!.kind], after: purchaseLabels[row.kind],
       beforeRepeat: beforeById.get(row.order.id)!.repeat, afterRepeat: row.repeat,
     })),

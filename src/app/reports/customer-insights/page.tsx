@@ -52,7 +52,7 @@ export default async function CustomerInsightsPage({ searchParams }: {
       <input type="hidden" name="view" value={view} />
       <label>Từ ngày<input name="from" type="date" defaultValue={from} required /></label>
       <label>Đến ngày<input name="to" type="date" defaultValue={to} required /></label>
-      {manager && <label>{sales ? "Nhân viên bán" : "Nhân viên"}
+      {manager && <label>{view === "care-days" ? "Nhân viên chăm sóc" : "Phụ trách CRM"}
         <select name="owner" defaultValue={filters.owner}>
           <option value="">Tất cả nhân viên</option>
           {report.employees.map(name => <option key={name}>{name}</option>)}
