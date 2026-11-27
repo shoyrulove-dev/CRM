@@ -1,4 +1,5 @@
 import { reportDay, reportInRange } from "./report-filters";
+import { orderRevenueShares } from "./order-report-adjustment";
 import type { CareActivity, SalesOrder } from "./types";
 
 export const customerReportViews = {
@@ -102,27 +103,33 @@ export function periodKey(day: string, unit: string) {
 }
 
 export function summarizePurchases(rows: ReturnType<typeof classifyPurchases>, from: string, to: string, owner: string, unit: string) {
-  const groups = new Map<string, typeof rows>();
+  const groups = new Map<string, { primary: typeof rows; sales: number }>();
   for (const row of rows) {
     const { order } = row;
     const employee = order.owner?.trim() || "Chưa phân công";
-    if (!reportInRange(order.orderDate, from, to) || (owner && employee !== owner)) continue;
+    if (!reportInRange(order.orderDate, from, to)) continue;
     const period = periodKey(reportDay(order.orderDate), unit);
-    for (const name of ["", employee]) {
+    const shares = orderRevenueShares({ ...order, owner: employee });
+    const allocations = new Map(shares.map(share => [share.employee, order.total * share.percent / 100]));
+    for (const name of new Set(["", employee, ...allocations.keys()])) {
+      if (name && owner && name !== owner) continue;
+      const credited = name || owner;
+      if (credited && credited !== employee && !allocations.has(credited)) continue;
       const key = JSON.stringify([period, name]);
-      const group = groups.get(key) ?? [];
-      group.push(row);
+      const group = groups.get(key) ?? { primary: [], sales: 0 };
+      if (!credited || credited === employee) group.primary.push(row);
+      group.sales += credited ? allocations.get(credited) || 0 : order.total;
       groups.set(key, group);
     }
   }
-  return [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([key, group]) => {
+  return [...groups].sort(([a], [b]) => a.localeCompare(b)).map(([key, { primary: group, sales }]) => {
     const [period, employee] = JSON.parse(key) as [string, string];
     const buyers = new Set(group.map(row => row.order.customerId).filter(Boolean));
     const newBuyers = new Set(group.filter(row => row.kind === "new").map(row => row.order.customerId));
     const previousBuyers = new Set(group.filter(row => row.repeat && row.order.customerId).map(row => row.order.customerId));
     return [
       period, employee || (owner ? "Tổng theo bộ lọc" : "Tổng toàn đội"),
-      group.length, group.reduce((sum, row) => sum + (Number(row.order.total) || 0), 0),
+      group.length, sales,
       buyers.size, newBuyers.size, buyers.size ? Math.round(newBuyers.size / buyers.size * 10000) / 100 : 0,
       previousBuyers.size, group.filter(row => row.kind === "old").length,
       group.filter(row => row.kind === "different").length, group.filter(row => row.kind === "mixed").length,

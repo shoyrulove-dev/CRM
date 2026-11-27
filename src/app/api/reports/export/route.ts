@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
   let name = "Chi tiết chăm sóc", headers: string[], rows: ExcelCell[][];
   if (template === "orders") {
     name = "Đơn hàng Haravan";
-    headers = ["Ngày tạo", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tổng thanh toán", "Phụ trách CRM", "Người bán Haravan"];
+    headers = ["Ngày tính", "Tháng", "Kênh bán", "Mã đơn hàng", "Tên khách", "Số điện thoại", "Tình trạng", "Sản phẩm", "Số lượng", "Tiền hàng sau trừ ship", "Phụ trách CRM", "Người bán Haravan", "Phí ship"];
     const customerById = new Map(data.customers.map((item) => [item.id, item]));
     rows = effectiveReportOrders(data.orders).filter((item) => inRange(item.orderDate) && (!owner || item.owner === owner) && (!channel || item.channel === channel)).flatMap((item) => {
       const customer = customerById.get(item.customerId);
       const products = item.products.length ? item.products : [{ name: "", quantity: 0 }];
-      return products.map((product, index) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, index === 0 ? item.total : "", item.owner, item.salesperson]);
+      return products.map((product, index) => [item.orderDate, item.orderDate.slice(0, 7), item.channel, item.code, customer?.name || "", customer?.phone || "", item.status, product.name, product.quantity, index === 0 ? item.total : "", item.owner, item.salesperson, index === 0 ? item.shippingFee ?? "" : ""]);
     });
   } else if (template === "employee") {
     name = "Hiệu quả nhân viên"; headers = ["Nhân viên", "Lượt chăm sóc", "Số khách", "Liên lạc được", "Mua lại / hẹn mua", "Phản ứng bất thường"];

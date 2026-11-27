@@ -5,6 +5,8 @@ import { getIntegrationConfig } from "./integration-config";
 import { getDatabase, hasDatabase } from "./mongodb";
 import { haravanSyncState, HARAVAN_MAPPING_VERSION } from "./haravan-sync-state";
 import { reportDay } from "./report-filters";
+import { haravanDeliveryState, haravanShippingFee, type HaravanFulfillmentState } from "./haravan-order-values";
+import { isManualReportChannel } from "./order-report-adjustment";
 
 type HaravanCustomer = {
   id: number | string;
@@ -31,6 +33,9 @@ type HaravanOrder = {
   cancelled_at?: string | null;
   financial_status?: string | null;
   total_price?: number | string;
+  shipping_lines?: { price?: number | string }[];
+  fulfillment_status?: string | null;
+  fulfillments?: HaravanFulfillmentState[];
   total_discounts?: number | string;
   gateway?: string | null;
   source_name?: string | null;
@@ -324,7 +329,7 @@ async function syncHaravanDataUnlocked() {
       const matchedEmployee =
         (haravanUser?.email ? userByEmail.get(haravanUser.email.trim().toLowerCase()) : undefined) ||
         (haravanEmployee ? userByName.get(haravanEmployee.toLocaleLowerCase("vi")) : undefined);
-      if (haravanEmployee || matchedEmployee) {
+      if (!isManualReportChannel(order.source_name || "") && (haravanEmployee || matchedEmployee)) {
         const assignment = await db.collection(collections.customers).updateOne(
           {
             id: mapped.id,
@@ -370,6 +375,8 @@ async function syncHaravanDataUnlocked() {
         })),
         promotion: Number(order.total_discounts || 0) ? "Có giảm giá" : "",
         total: Number(order.total_price || 0),
+        shippingFee: haravanShippingFee(order.shipping_lines) ?? null,
+        deliveryState: haravanDeliveryState(order.fulfillment_status, order.fulfillments),
         owner: manualAssignment?.owner || mapped.owner,
         salesperson: matchedEmployee || haravanEmployee || "Chưa xác định người bán",
         paymentMethod: order.gateway || "",

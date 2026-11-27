@@ -17,7 +17,7 @@ import { retentionMetrics } from "@/lib/retention-metrics";
 import Link from "next/link";
 import { careCoverage } from "@/lib/care-coverage";
 import { Pagination } from "@/components/pagination";
-import { effectiveReportOrder, effectiveReportOrders } from "@/lib/order-report-adjustment";
+import { creditedOrderRevenue, effectiveReportOrder, effectiveReportOrders, orderReportBlockReason, orderRevenueShares, reportSalesEligible } from "@/lib/order-report-adjustment";
 import { OrderReportReconciliation } from "@/components/order-report-reconciliation";
 import { canSeeAll } from "@/lib/session";
 import { loadPurchaseHistory } from "@/lib/purchase-history";
@@ -49,7 +49,7 @@ export default async function ReportsPage({
         ...data.customers.map((item) => item.owner),
         ...data.tasks.map((item) => item.owner),
         ...data.activities.map((item) => item.employee),
-        ...data.orders.map((item) => item.owner),
+        ...data.orders.flatMap((item) => [item.owner, ...orderRevenueShares(item).map(share => share.employee)]),
       ].filter(Boolean),
     ),
   ).sort((a, b) => a.localeCompare(b, "vi"));
@@ -122,10 +122,22 @@ export default async function ReportsPage({
         .length / activities.length
     : 0;
   const purchasedOrders = orders.filter((item) => item.status === "Mua hàng");
+  const salesByChannel = new Map<string, { count: number; revenue: number }>();
+  for (const order of data.orders) {
+    if (order.status !== "Mua hàng" || !inRange(order.orderDate, from, to) || (params.channel && order.channel !== params.channel)) continue;
+    const revenue = creditedOrderRevenue(order, selectedEmployee);
+    const primary = !selectedEmployee || order.owner === selectedEmployee;
+    if (!primary && !revenue) continue;
+    const channel = order.channel || "Chưa rõ";
+    const row = salesByChannel.get(channel) ?? { count: 0, revenue: 0 };
+    if (primary) row.count++;
+    row.revenue += revenue;
+    salesByChannel.set(channel, row);
+  }
   const detailOrders = showOrders ? sourceOrders.filter(item => {
-    if (!orderMatches(item)) return false;
     const effective = effectiveReportOrder(item);
-    return (!item.reportAdjustment?.excluded && effective.status === "Mua hàng" && inRange(effective.orderDate, from, to)) ||
+    if (!orderMatches(effective) && !(canSeeAll(user) && orderMatches(item))) return false;
+    return (!item.reportAdjustment?.excluded && reportSalesEligible(item) && effective.status === "Mua hàng" && inRange(effective.orderDate, from, to)) ||
       (canSeeAll(user) && Boolean(item.haravanId) && (inRange(item.orderDate, from, to) || inRange(effective.orderDate, from, to)));
   }).sort((a, b) => b.orderDate.localeCompare(a.orderDate) || (a.code || "").localeCompare(b.code || "")) : [];
   const orderSize = 25;
@@ -521,18 +533,27 @@ export default async function ReportsPage({
           })}
         </div>
       </section>
+      <section className="panel list-panel">
+        <div className="panel-head"><h2>Đơn mua và doanh số theo kênh</h2></div>
+        <div className="table-wrap"><table><thead><tr><th>Kênh</th><th>Số đơn</th><th>Doanh số sau trừ ship</th></tr></thead>
+          <tbody>{[...salesByChannel].sort(([a], [b]) => a.localeCompare(b, "vi")).map(([channel, row]) =>
+            <tr key={channel}><td><Link href={`/reports?${new URLSearchParams({ ...orderParams, channel })}#orders-in-period`}>{channel}</Link></td>
+              <td>{row.count}</td><td>{money.format(row.revenue)}</td></tr>)}
+            <tr><th scope="row">Tổng</th><td>{purchasedOrders.length}</td><td>{money.format([...salesByChannel.values()].reduce((sum, row) => sum + row.revenue, 0))}</td></tr>
+          </tbody></table></div>
+      </section>
       {showOrders && <section id="orders-in-period" className="panel list-panel">
         <div className="panel-head"><div><h2>Đơn mua từ {from} đến {to}</h2>
           <p>Đếm theo ngày tạo đơn (giờ Việt Nam), trạng thái Mua hàng và người phụ trách CRM.</p></div></div>
         <div className="table-wrap"><table>
-          <thead><tr><th>Mã đơn</th><th>Ngày tính</th><th>Kênh</th><th>Người bán</th><th>Phụ trách CRM</th><th>Doanh số gốc</th><th>Trong số tổng kỳ</th>{canSeeAll(user) && <th>Đối soát</th>}</tr></thead>
+          <thead><tr><th>Mã đơn</th><th>Ngày tính</th><th>Kênh</th><th>Người bán</th><th>Phụ trách CRM</th><th>Tiền hàng sau trừ ship</th><th>Trong số tổng kỳ</th>{canSeeAll(user) && <th>Đối soát</th>}</tr></thead>
           <tbody>
             {detailOrders.slice((orderPage - 1) * orderSize, orderPage * orderSize).map(item => {
               const effective = effectiveReportOrder(item);
-              const included = !item.reportAdjustment?.excluded && effective.status === "Mua hàng" && inRange(effective.orderDate, from, to);
-              return <tr key={item.id}><td>{item.code}</td><td>{effective.orderDate || "—"}</td><td>{item.channel || "Chưa rõ"}</td><td>{item.salesperson}</td><td>{item.owner}</td><td>{money.format(item.total)}</td>
-                <td>{included ? "Có" : item.reportAdjustment?.excluded ? "Đã loại" : effective.status !== "Mua hàng" ? effective.status : "Ngoài kỳ"}</td>
-                {canSeeAll(user) && <td>{item.haravanId && <OrderReportReconciliation id={item.id} code={item.code} date={item.orderDate} status={item.status} adjustment={item.reportAdjustment} />}</td>}
+              const included = !item.reportAdjustment?.excluded && reportSalesEligible(item) && orderMatches(effective) && effective.status === "Mua hàng" && inRange(effective.orderDate, from, to);
+              return <tr key={item.id}><td>{item.code}</td><td>{effective.orderDate || "—"}</td><td>{effective.channel || "Chưa rõ"}</td><td>{item.salesperson}</td><td>{effective.owner}</td><td>{money.format(effective.total)}<small> · Ship {item.shippingFee == null ? "chưa rõ" : money.format(item.shippingFee)}</small></td>
+                <td>{included ? "Có" : orderReportBlockReason(item) || (effective.status !== "Mua hàng" ? effective.status : "Ngoài bộ lọc")}</td>
+                {canSeeAll(user) && <td>{item.haravanId && <OrderReportReconciliation id={item.id} code={item.code} date={item.orderDate} status={item.status} owner={item.owner} channel={item.channel} adjustment={item.reportAdjustment} />}</td>}
               </tr>;
             })}
             {!detailOrders.length && <tr><td colSpan={canSeeAll(user) ? 8 : 7}>Không có đơn trong kỳ đã chọn.</td></tr>}

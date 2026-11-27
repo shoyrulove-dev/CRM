@@ -143,6 +143,8 @@ export interface LoginEvent {
 }
 
 export interface SalesOrder {
+  shippingFee?: number | null;
+  deliveryState?: "ready" | "in_transit" | "delivered" | "not_shipped" | "returned" | "unknown";
   haravanId?: string;
   reportAdjustment?: import("./order-report-adjustment").OrderReportAdjustment;
   id: string;

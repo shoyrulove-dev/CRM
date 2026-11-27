@@ -512,7 +512,8 @@ export async function getReportData(user?: SessionUser | null, options: {
       customers: sections.has("customers") ? customerData : [],
       tasks: sections.has("tasks") ? tasks.filter(item => !restricted || item.owner === user!.name) : [],
       activities: sections.has("activities") ? activities.filter(item => !restricted || item.employee === user!.name || ids.has(item.customerId)) : [],
-      orders: sections.has("orders") ? orders.filter(item => !restricted || item.owner === user!.name || item.salesperson === user!.name) : [],
+      orders: sections.has("orders") ? orders.filter(item => !restricted || item.owner === user!.name || item.salesperson === user!.name ||
+        item.reportAdjustment?.owner === user!.name || item.reportAdjustment?.shares?.some(share => share.employee === user!.name)) : [],
       tickets: sections.has("tickets") ? tickets.filter(item => !restricted || item.owner === user!.name) : [],
     };
   }
@@ -530,8 +531,8 @@ export async function getReportData(user?: SessionUser | null, options: {
     } : {}, { _id: 0, customerId: 1, occurredAt: 1, employee: 1, channel: 1, purpose: 1,
       contactStatus: 1, result: 1, productEndDate: 1, repurchaseTimely: 1, satisfaction: 1, adverseReaction: 1, noPurchaseReason: 1 }),
     read<SalesOrder>(collections.orders, sections.has("orders"), restricted ? {
-      $or: [{ owner: user!.name }, { salesperson: user!.name }],
-    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, channel: 1, status: 1, total: 1, purchaseType: 1, reportAdjustment: 1,
+      $or: [{ owner: user!.name }, { salesperson: user!.name }, { "reportAdjustment.owner": user!.name }, { "reportAdjustment.shares.employee": user!.name }],
+    } : {}, { _id: 0, customerId: 1, orderDate: 1, owner: 1, salesperson: 1, channel: 1, status: 1, total: 1, shippingFee: 1, deliveryState: 1, purchaseType: 1, reportAdjustment: 1,
       ...(options.includeOrderCodes ? { id: 1, code: 1, haravanId: 1 } : {}),
       ...(options.purchaseReport ? { id: 1, code: 1, "products.sku": 1, "products.name": 1 } : {}) }),
     read<ServiceTicket>(collections.tickets, sections.has("tickets"), owner, { _id: 0, id: 1, owner: 1, status: 1, createdAt: 1 }),

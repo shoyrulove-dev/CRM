@@ -37,6 +37,24 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       return fail("Ngày tính, trạng thái hoặc lựa chọn loại đơn không hợp lệ.");
     adjustment = { date: body.date, status: body.status, excluded: body.excluded, reason, editor: user.name,
       at: new Date().toISOString(), sourceDate: order.orderDate, sourceStatus: order.status };
+    if (typeof body.channel === "string" && body.channel.trim()) {
+      if (body.channel.trim().length > 80) return fail("Kênh tối đa 80 ký tự.");
+      adjustment.channel = body.channel.trim();
+    }
+    const owner = typeof body.owner === "string" ? body.owner.trim() : "";
+    const shares = body.shares;
+    if (owner || shares?.length) {
+      if (!owner || !Array.isArray(shares) || shares.length > 10 ||
+        shares.some(row => !row || typeof row.employee !== "string" || !row.employee.trim() || !Number.isInteger(row.percent) || row.percent < 1 || row.percent > 100) ||
+        (shares.length && (new Set(shares.map(row => row.employee)).size !== shares.length || shares.reduce((sum, row) => sum + row.percent, 0) !== 100 || !shares.some(row => row.employee === owner))))
+        return fail("Chọn phụ trách chính và tỷ lệ nguyên cộng đủ 100%, mỗi người một dòng.");
+      const names = [...new Set<string>([owner, ...shares.map(row => row.employee)])];
+      const active = await (await getDatabase()).collection(collections.users).distinct("name", { active: true, name: { $in: names } });
+      if (names.some(name => !active.includes(name))) return fail("Có nhân viên không còn hoạt động hoặc sai tên.");
+      adjustment.owner = owner;
+      adjustment.shares = shares;
+    }
+    adjustment.manualChannelApproved = body.manualChannelApproved === true;
   }
   const result = await orders.updateOne({
     _id: order._id, orderDate: order.orderDate, status: order.status,

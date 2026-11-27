@@ -1,5 +1,5 @@
 import "server-only";
-import { effectiveReportOrders } from "./order-report-adjustment";
+import { effectiveReportOrders, orderRevenueShares } from "./order-report-adjustment";
 import { loadPurchaseHistory } from "./purchase-history";
 import { getReportData } from "./data-store";
 import { canSeeAll, type SessionUser } from "./session";
@@ -39,7 +39,7 @@ export async function getCustomerReport(view: CustomerReportView, filters: Custo
   if (view === "sales-review" || view === "sales-orders") {
     const classified = classifyPurchases(orders, await loadPurchaseHistory(orders.map(order => order.customerId).filter(Boolean)))
       .filter(({ order }) => channelMatches(order));
-    const employees = [...new Set(orders.map(item => item.owner?.trim() || "Chưa phân công"))].sort();
+    const employees = [...new Set(orders.flatMap(item => [item.owner?.trim() || "Chưa phân công", ...orderRevenueShares(item).map(share => share.employee)]).filter(Boolean))].sort();
     if (view === "sales-review") return {
       headers: ["Kỳ", "Phụ trách CRM", "Đơn mua", "Doanh số", "Khách mua", "Khách mua lần đầu", "Tỷ lệ khách mua lần đầu (%)", "Khách mua lại", "Đơn chỉ mua SP cũ", "Đơn chỉ mua SP mới", "Đơn mua cả cũ lẫn mới", "Đơn chưa đủ dữ liệu", "Doanh thu mua lại"],
       rows: summarizePurchases(classified, from, to, owner, unit), employees, channels,
