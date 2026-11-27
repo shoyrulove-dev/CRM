@@ -6,8 +6,9 @@ import { Modal } from "./modal";
 import type { OrderReportAdjustment } from "@/lib/order-report-adjustment";
 import type { SalesOrder } from "@/lib/types";
 
-export function OrderReportReconciliation({ id, code, date, status, adjustment, owner, channel }: {
+export function OrderReportReconciliation({ id, code, date, status, adjustment, owner, channel, buttonLabel = "Đối soát" }: {
   id: string; code: string; date: string; status: SalesOrder["status"]; adjustment?: OrderReportAdjustment; owner: string; channel: string;
+  buttonLabel?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -45,7 +46,7 @@ export function OrderReportReconciliation({ id, code, date, status, adjustment, 
   ];
   const needsReview = adjustment && (adjustment.sourceDate !== date || adjustment.sourceStatus !== status);
   return <>
-    <button type="button" className="secondary-button" onClick={() => { setError(""); setOpen(true); }}>Đối soát</button>
+    <button type="button" className="secondary-button" aria-label={`${buttonLabel} đơn ${code}`} onClick={() => { setError(""); setOpen(true); }}>{buttonLabel}</button>
     {open && <Modal title={`Đối soát đơn ${code}`} description="Điều chỉnh dùng cho báo cáo CRM. Dữ liệu gốc được giữ để so sánh." onClose={() => { if (!busy) setOpen(false); }}>
       <div className="entity-form">
         <div className="table-wrap"><table>

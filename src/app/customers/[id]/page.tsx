@@ -28,6 +28,7 @@ import { CustomerClassificationEditor } from "@/components/customer-classificati
 import { Pagination, pageNumber } from "@/components/pagination";
 import { CustomerLoyalty } from "@/components/customer-loyalty";
 import { RefreshLoyaltyButton } from "@/components/refresh-loyalty-button";
+import { OrderReportReconciliation } from "@/components/order-report-reconciliation";
 
 export const dynamic = "force-dynamic";
 type Tab = "orders" | "reminders" | "care" | "tickets";
@@ -198,7 +199,31 @@ export default async function CustomerProfilePage({
                         {order.gift && ` · Quà tặng: ${order.gift}`}
                       </p>
                     )}
+                    {order.haravanId && (
+                      <p>
+                        <strong>Phụ trách chính</strong>{" · "}
+                        {order.reportAdjustment?.owner || order.owner || "Chưa phân công"}
+                        {order.reportAdjustment?.shares?.length ? (
+                          <>
+                            {" · "}<strong>Chia doanh số</strong>{" · "}
+                            {order.reportAdjustment.shares.map(({ employee, percent }) => `${employee} ${percent}%`).join(", ")}
+                          </>
+                        ) : null}
+                      </p>
+                    )}
                     <footer className="order-quick-actions">
+                      {order.haravanId && user && canSeeAll(user) && !user.mustChangePassword && (
+                        <OrderReportReconciliation
+                          id={order.id}
+                          code={order.code}
+                          date={order.orderDate}
+                          status={order.status}
+                          owner={order.owner}
+                          channel={order.channel}
+                          adjustment={order.reportAdjustment}
+                          buttonLabel="Phân công và chia doanh số"
+                        />
+                      )}
                       <CreateCareButton
                         customers={[customer]}
                         employees={employees}
