@@ -19,6 +19,7 @@ import { careCoverage } from "@/lib/care-coverage";
 import { Pagination } from "@/components/pagination";
 import { creditedOrderRevenue, effectiveReportOrder, effectiveReportOrders, orderReportBlockReason, orderRevenueShares, reportSalesEligible } from "@/lib/order-report-adjustment";
 import { OrderReportReconciliation } from "@/components/order-report-reconciliation";
+import { MarketplaceOrderImport } from "@/components/marketplace-order-import";
 import { canSeeAll } from "@/lib/session";
 import { loadPurchaseHistory } from "@/lib/purchase-history";
 
@@ -542,6 +543,7 @@ export default async function ReportsPage({
             <tr><th scope="row">Tổng</th><td>{purchasedOrders.length}</td><td>{money.format([...salesByChannel.values()].reduce((sum, row) => sum + row.revenue, 0))}</td></tr>
           </tbody></table></div>
       </section>
+      {canSeeAll(user) && !user?.mustChangePassword && <MarketplaceOrderImport />}
       {showOrders && <section id="orders-in-period" className="panel list-panel">
         <div className="panel-head"><div><h2>Đơn mua từ {from} đến {to}</h2>
           <p>Đếm theo ngày tạo đơn (giờ Việt Nam), trạng thái Mua hàng và người phụ trách CRM.</p></div></div>
