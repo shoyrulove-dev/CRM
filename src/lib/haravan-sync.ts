@@ -15,6 +15,7 @@ type HaravanCustomer = {
   email?: string | null;
   phone?: string | null;
   default_address?: { phone?: string | null } | null;
+  addresses?: { phone?: string | null }[] | null;
   orders_count?: number;
   total_spent?: number | string;
   last_order_date?: string | null;
@@ -160,6 +161,8 @@ async function upsertCustomer(
   const haravanId = String(raw.id || "");
   const phone = phoneOf(raw) || String(fallback?.phone || "").trim();
   const phoneNormalized = phone.replace(/\D/g, "");
+  const shippingPhones = [...new Set([raw.default_address?.phone, ...(raw.addresses ?? []).map(address => address.phone)]
+    .map(value => String(value || "").replace(/\D/g, "")).filter(Boolean))];
   const name = customerName(raw) || fallback?.name || phone || "Khách Haravan";
   const customerCollection = db.collection(collections.customers);
   const byHaravanId = haravanId
@@ -214,6 +217,9 @@ async function upsertCustomer(
         },
         name: { $ifNull: ["$haravanCorrections.name.value", sourceName] },
         phone: sourcePhone,
+        ...(!fallback && (raw.addresses !== undefined || raw.default_address !== undefined)
+          ? { haravanShippingPhones: Array.isArray(raw.addresses) ? { $literal: shippingPhones } :
+            { $setUnion: [{ $ifNull: ["$haravanShippingPhones", []] }, { $literal: shippingPhones }] } } : {}),
         phoneNormalized: fallback ? { $ifNull: ["$phoneNormalized", { $literal: phoneNormalized }] } : { $literal: phoneNormalized },
         birthDate: { $ifNull: ["$haravanCorrections.birthDate.value", birthDate ? { $literal: birthDate } : { $ifNull: ["$birthDate", ""] }] },
         haravanTags: { $literal: raw.tags || "" },

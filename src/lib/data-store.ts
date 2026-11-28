@@ -12,6 +12,14 @@ import type { SessionUser } from "./session";
 import { monthStart, monthEnd, monthBounds, dayBounds } from "./month-range";
 import { escapeSearch } from "./query-utils";
 
+function customerPhoneSearch(value: string) {
+  const digits = value.replace(/\D/g, "");
+  const local = digits.replace(/^(?:84|0)(?=\d{9}$)/, "");
+  const pattern = /^[+\d\s().-]+$/.test(value) && local.length >= 3
+    ? local.split("").join("\\D*") : escapeSearch(value);
+  return ["phone", "contactPhone", "haravanShippingPhones"].map(field => ({ [field]: { $regex: pattern, $options: "i" } }));
+}
+
 export const collections = {
   customers: "customers",
   careTasks: "care_tasks",
@@ -180,7 +188,7 @@ export async function listCustomers(
     clauses.push({
       $or: [
         { name: { $regex: escapeSearch(search), $options: "i" } },
-        { phone: { $regex: escapeSearch(search), $options: "i" } },
+        ...customerPhoneSearch(search),
         { id: { $regex: escapeSearch(search), $options: "i" } },
       ],
     });
@@ -256,7 +264,7 @@ export async function getCustomersPage(
   if (input.search)
     filter.$or = [
       { name: { $regex: escapeSearch(input.search), $options: "i" } },
-      { phone: { $regex: escapeSearch(input.search), $options: "i" } },
+      ...customerPhoneSearch(input.search),
       { id: { $regex: escapeSearch(input.search), $options: "i" } },
     ];
   const db = await getDatabase();
